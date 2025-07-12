@@ -10,7 +10,7 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.1
+local teleportDelay = 0.5
 local teleporting = false
 
 -- Create GUI
