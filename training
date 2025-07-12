@@ -11,27 +11,24 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.4
+local teleportDelay = 0.6
 local teleporting = false
 
 -- Freeze helper functions
-local function freezeCharacter()
-    humanoidRootPart.Anchored = true
-    humanoid.AutoRotate = false
-    humanoid.WalkSpeed = 0
-    humanoid.JumpPower = 0
-
-    -- Disable animations
-    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
-        track:Stop()
+local function anchorCharacter()
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = true
+        end
     end
 end
 
-local function unfreezeCharacter()
-    humanoidRootPart.Anchored = false
-    humanoid.AutoRotate = true
-    humanoid.WalkSpeed = 16
-    humanoid.JumpPower = 50
+local function unanchorCharacter()
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = false
+        end
+    end
 end
 
 -- Simple GUI Setup
@@ -48,8 +45,8 @@ button.Parent = gui
 local function startTeleporting()
     teleporting = true
     button.Text = "Stop"
-    freezeCharacter()
-    
+    anchorCharacter()
+
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
@@ -61,7 +58,7 @@ local function startTeleporting()
         end
     end
 
-    unfreezeCharacter()
+    unanchorCharacter()
     button.Text = "Start"
 end
 
