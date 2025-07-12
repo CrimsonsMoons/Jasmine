@@ -7,11 +7,11 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxWidth = 100 -- way wider
-	local boxDepth = 100 -- way deeper
-	local boxHeight = 200 -- very tall
+	local boxWidth = 100
+	local boxDepth = 100
+	local boxHeight = 200
 	local wallThickness = 2
-	local verticalOffset = Vector3.new(0, boxHeight/2, 0) -- lifts box to start from ground
+	local verticalOffset = Vector3.new(0, boxHeight/2, 0)
 
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
@@ -23,7 +23,7 @@ local function createBoxAroundCharacter(char)
 		part.CanCollide = true
 		part.Size = size
 		part.Position = position
-		part.Transparency = 0.3
+		part.Transparency = 0.8 -- 👻 Transparent
 		part.Color = Color3.new(1, 0, 0)
 		part.Material = Enum.Material.Neon
 		part.Parent = partsFolder
@@ -40,11 +40,11 @@ local function createBoxAroundCharacter(char)
 	-- Ceiling
 	createWall(rootPos + Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
 
-	-- Side walls (left & right)
+	-- Side walls
 	createWall(rootPos + Vector3.new(halfW + wallThickness/2, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Right
 	createWall(rootPos - Vector3.new(halfW + wallThickness/2, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Left
 
-	-- Front & back walls
+	-- Front/back walls
 	createWall(rootPos + Vector3.new(0, 0, halfD + wallThickness/2), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Front
 	createWall(rootPos - Vector3.new(0, 0, halfD + wallThickness/2), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Back
 end
