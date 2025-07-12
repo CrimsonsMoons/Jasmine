@@ -16,6 +16,17 @@ local islandMap = {
     ["Blizzard"] = "Blizzard Island"
 }
 
+-- ❌ Global exclusions
+local excludedBodies = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
 -- 📦 GUI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "IslandTeleportUI"
@@ -109,17 +120,8 @@ local function followIslandBodies(folderName)
 	local bodies = {}
 	for _, item in ipairs(islandFolder:GetChildren()) do
 		local body = item:FindFirstChild("Body")
-		if body and body:IsA("BasePart") then
-			local isExcluded = false
-
-			-- ❌ Exclude Mountain Island's Travel Boat Body
-			if folderName == "Mountain Island" and item.Name == "Travel Boat" then
-				isExcluded = true
-			end
-
-			if not isExcluded then
-				table.insert(bodies, body)
-			end
+		if body and body:IsA("BasePart") and not excludedBodies[item.Name] then
+			table.insert(bodies, body)
 		end
 	end
 
