@@ -1,19 +1,27 @@
+-- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
--- Tabs
+-- === Tabs ===
 local TeleportTab = Window:NewTab("Main")
 local TeleportSection = TeleportTab:NewSection("Teleport Controls")
 
 local TravelTab = Window:NewTab("Island Travel")
 local TravelSection = TravelTab:NewSection("Quick TP Buttons")
 
+local TrainTab = Window:NewTab("Train")
+local TrainSection = TrainTab:NewSection("Training Features")
+
+local OresTab = Window:NewTab("Ores")
+local OresSection = OresTab:NewSection("Ore Auto-Teleport")
+local OreTrackerSection = OresTab:NewSection("Ore Tracker")
+
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 
--- Island names
+-- === Island Teleport Configuration ===
 local islandConfigs = {
     ["Mainland"] = {},
     ["Forest Island"] = {},
@@ -23,9 +31,10 @@ local islandConfigs = {
     ["Blizzard Island"] = {},
     ["Jungle Island"] = {},
     ["Volcano Island"] = {},
+    ["Desert Island"] = {},
 }
 
--- Global exclusions for ALL islands
+-- === Exclusions for all islands ===
 for _, config in pairs(islandConfigs) do
     config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
     config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
@@ -36,10 +45,9 @@ for _, config in pairs(islandConfigs) do
     config["Travel Boat"] = true
 end
 
--- Toggle states
+-- === Teleport Toggles ===
 local teleportToggles = {}
 
--- Create teleport toggles and loops
 for islandName, excludedIds in pairs(islandConfigs) do
     teleportToggles[islandName] = false
 
@@ -77,7 +85,7 @@ for islandName, excludedIds in pairs(islandConfigs) do
     end)
 end
 
--- Travel buttons using FireServer
+-- === Island Travel Buttons ===
 local function createTravelButton(islandName)
     TravelSection:NewButton("Travel to " .. islandName, "Uses remote to travel instantly", function()
         local args = {
@@ -95,7 +103,137 @@ local function createTravelButton(islandName)
     end)
 end
 
--- Create button for each island
 for islandName, _ in pairs(islandConfigs) do
     createTravelButton(islandName)
 end
+
+-- === Hurry Scurry Tween Toggle ===
+local hurryScurryEnabled = false
+
+TrainSection:NewToggle("Hurry Scurry", "Auto-tween through Outdoor Arena checkpoints", function(state)
+    hurryScurryEnabled = state
+    if state then
+        coroutine.wrap(function()
+            local TweenService = game:GetService("TweenService")
+            local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+            local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local currentTween = nil
+
+            local function tweenTo(part)
+                if currentTween then currentTween:Cancel() end
+                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
+                currentTween = tween
+                tween:Play()
+                return tween
+            end
+
+            while hurryScurryEnabled do
+                for i = 1, 6 do
+                    if not hurryScurryEnabled then break end
+                    local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+                    if checkpoint and checkpoint:IsA("BasePart") then
+                        local tween = tweenTo(checkpoint)
+                        tween.Completed:Wait()
+                        task.wait(0.1)
+                    end
+                end
+            end
+        end)()
+    end
+end)
+
+-- === Ores Teleport Toggle ===
+local oreTeleportEnabled = false
+local oreLoopRunning = false
+local oreRenderConn = nil
+local oreCount = 0
+local oreCounterLabel = OreTrackerSection:NewLabel("Ores Cleared: 0")
+
+OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function(state)
+    oreTeleportEnabled = state
+
+    if state and not oreLoopRunning then
+        oreLoopRunning = true
+        oreCount = 0
+        oreCounterLabel:UpdateLabel("Ores Cleared: 0")
+
+        coroutine.wrap(function()
+            local RunService = game:GetService("RunService")
+            local islandMap = {
+                ["Mainland"] = "Mainland",
+                ["Forest"] = "Forest Island",
+                ["Mountain"] = "Mountain Island",
+                ["Lunar"] = "Lunar Islands",
+                ["Royal"] = "Royal Island",
+                ["Blizzard"] = "Blizzard Island",
+                ["Jungle"] = "Jungle Island",
+                ["Volcano"] = "Volcano Island",
+                ["Desert"] = "Desert Island",
+            }
+
+            local excludedBodies = {
+                ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                ["Horse"] = true,
+                ["Travel Boat"] = true,
+            }
+
+            local function followIslandRocks(folderName)
+                local islandFolder = islandsFolder:FindFirstChild(folderName)
+                if not islandFolder then return end
+
+                local rocksList = {}
+                for _, item in ipairs(islandFolder:GetChildren()) do
+                    local rocks = item:FindFirstChild("Rocks")
+                    if rocks and rocks:IsA("BasePart") and not excludedBodies[item.Name] then
+                        table.insert(rocksList, rocks)
+                    end
+                end
+
+                for _, rock in ipairs(rocksList) do
+                    if not oreTeleportEnabled or not rock or not rock.Parent then break end
+
+                    oreRenderConn = RunService.RenderStepped:Connect(function()
+                        if oreTeleportEnabled and rock and rock.Parent then
+                            hrp.CFrame = rock.CFrame + Vector3.new(0, 5, 0)
+                        end
+                    end)
+
+                    while oreTeleportEnabled and rock and rock.Parent do
+                        task.wait(0.1)
+                    end
+
+                    if oreRenderConn then
+                        oreRenderConn:Disconnect()
+                        oreRenderConn = nil
+                    end
+
+                    oreCount += 1
+                    oreCounterLabel:UpdateLabel("Ores Cleared: " .. tostring(oreCount))
+
+                    task.wait(0.1)
+                end
+            end
+
+            for _, folderName in pairs(islandMap) do
+                if not oreTeleportEnabled then break end
+                followIslandRocks(folderName)
+            end
+
+            if oreRenderConn then
+                oreRenderConn:Disconnect()
+                oreRenderConn = nil
+            end
+
+            oreLoopRunning = false
+        end)()
+    elseif not state then
+        if oreRenderConn then
+            oreRenderConn:Disconnect()
+            oreRenderConn = nil
+        end
+    end
+end)
