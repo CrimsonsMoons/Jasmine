@@ -23,8 +23,11 @@ local function createBoxAroundCharacter(char)
 		part.CanCollide = true
 		part.Size = size
 		part.Position = position
-		part.Transparency = 1 -- 👻 Fully invisible
-		part.CanQuery = false -- optional: prevent raycasts from hitting
+		part.Transparency = 1 -- 💯 Fully invisible
+		part.CanTouch = false
+		part.CanQuery = false
+		part.CastShadow = false
+		-- DO NOT set Material or Color here
 		part.Parent = partsFolder
 	end
 
