@@ -8,7 +8,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 
--- Islands to support
+-- Island list (now includes Jungle Island)
 local islandConfigs = {
     ["Mainland"] = {},
     ["Forest Island"] = {},
@@ -16,9 +16,10 @@ local islandConfigs = {
     ["Lunar Islands"] = {},
     ["Royal Island"] = {},
     ["Blizzard Island"] = {},
+    ["Jungle Island"] = {}, -- ✅ Added Jungle Island
 }
 
--- 🔁 Global exclusions for ALL islands
+-- Global exclusions added to all islands
 for _, config in pairs(islandConfigs) do
     config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
     config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
@@ -29,10 +30,10 @@ for _, config in pairs(islandConfigs) do
     config["Travel Boat"] = true
 end
 
--- Toggle state per island
+-- Toggle storage
 local teleportToggles = {}
 
--- Build toggle + task loop for each island
+-- Generate UI toggle and task loop per island
 for islandName, excludedIds in pairs(islandConfigs) do
     teleportToggles[islandName] = false
 
