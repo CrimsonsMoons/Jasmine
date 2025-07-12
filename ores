@@ -191,9 +191,8 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                 for _, rock in ipairs(rocksList) do
                     if not oreTeleportEnabled or not rock or not rock.Parent then break end
 
-                    if oreRenderConn then oreRenderConn:Disconnect() end
                     oreRenderConn = RunService.RenderStepped:Connect(function()
-                        if rock and rock.Parent then
+                        if oreTeleportEnabled and rock and rock.Parent then
                             hrp.CFrame = rock.CFrame + Vector3.new(0, 5, 0)
                         end
                     end)
@@ -202,7 +201,12 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                         task.wait(0.1)
                     end
 
-                    if oreRenderConn then oreRenderConn:Disconnect() end
+                    if oreRenderConn then
+                        oreRenderConn:Disconnect()
+                        oreRenderConn = nil
+                    end
+
+                    task.wait(0.1)
                 end
             end
 
@@ -211,10 +215,17 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                 followIslandRocks(folderName)
             end
 
+            if oreRenderConn then
+                oreRenderConn:Disconnect()
+                oreRenderConn = nil
+            end
+
             oreLoopRunning = false
         end)()
     elseif not state then
-        if oreRenderConn then oreRenderConn:Disconnect() end
-        oreLoopRunning = false
+        if oreRenderConn then
+            oreRenderConn:Disconnect()
+            oreRenderConn = nil
+        end
     end
 end)
