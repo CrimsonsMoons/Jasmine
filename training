@@ -10,10 +10,10 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.5
+local teleportDelay = 0.4
 local teleporting = false
 
--- Create GUI
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGUI"
 screenGui.ResetOnSpawn = false
@@ -29,27 +29,55 @@ toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 20
 toggleButton.Parent = screenGui
 
--- Teleport loop in a coroutine
+-- Weld and teleport function
+local function teleportAndWeldToCheckpoint(checkpoint)
+    -- Remove existing weld
+    local existingWeld = humanoidRootPart:FindFirstChild("CheckpointWeld")
+    if existingWeld then
+        existingWeld:Destroy()
+    end
+
+    -- Move character above checkpoint
+    humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
+
+    -- Weld character to checkpoint
+    local weld = Instance.new("WeldConstraint")
+    weld.Name = "CheckpointWeld"
+    weld.Part0 = humanoidRootPart
+    weld.Part1 = checkpoint
+    weld.Parent = humanoidRootPart
+end
+
+-- Teleport loop
 local function startTeleporting()
     teleporting = true
     toggleButton.Text = "Stop Teleport"
+
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                humanoidRootPart.CFrame = checkpoint.CFrame + Vector3.new(0, 0, 0)
+                teleportAndWeldToCheckpoint(checkpoint)
             end
             task.wait(teleportDelay)
         end
     end
+
+    toggleButton.Text = "Start Teleport"
 end
 
+-- Toggle button
 toggleButton.MouseButton1Click:Connect(function()
     teleporting = not teleporting
     if teleporting then
         task.spawn(startTeleporting)
     else
+        -- Stop teleport loop and remove any existing weld
+        local existingWeld = humanoidRootPart:FindFirstChild("CheckpointWeld")
+        if existingWeld then
+            existingWeld:Destroy()
+        end
         toggleButton.Text = "Start Teleport"
     end
 end)
