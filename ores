@@ -1,139 +1,132 @@
--- === GUI Library Setup ===
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
--- === Tabs ===
-local TeleportTab = Window:NewTab("Main")
-local TeleportSection = TeleportTab:NewSection("Teleport Controls")
-
-local TravelTab = Window:NewTab("Island Travel")
-local TravelSection = TravelTab:NewSection("Quick TP Buttons")
-
-local TrainTab = Window:NewTab("Train")
-local TrainSection = TrainTab:NewSection("Training Features")
-
-local player = game.Players.LocalPlayer
+local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
-local islandsFolder = workspace:WaitForChild("Islands")
 
--- === Island Teleport Configuration ===
-local islandConfigs = {
-    ["Mainland"] = {},
-    ["Forest Island"] = {},
-    ["Mountain Island"] = {},
-    ["Lunar Islands"] = {},
-    ["Royal Island"] = {},
-    ["Blizzard Island"] = {},
-    ["Jungle Island"] = {},
-    ["Volcano Island"] = {},
-    ["Desert Island"] = {},
-}
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- === Exclusions for all islands ===
-for _, config in pairs(islandConfigs) do
-    config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
-    config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
-    config["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true
-    config["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true
-    config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
-    config["Horse"] = true
-    config["Travel Boat"] = true
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Dragging support (mouse + touch)
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
--- === Teleport Toggles ===
-local teleportToggles = {}
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
 
-for islandName, excludedIds in pairs(islandConfigs) do
-    teleportToggles[islandName] = false
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
 
-    TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName .. " (excluding specific parts)", function(state)
-        teleportToggles[islandName] = state
-    end)
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
 
-    task.spawn(function()
-        local folder = islandsFolder:FindFirstChild(islandName)
-        if not folder then
-            warn("Island not found: " .. islandName)
-            return
-        end
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
 
-        while true do
-            if teleportToggles[islandName] then
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not teleportToggles[islandName] then break end
-                    if excludedIds[model.Name] then continue end
+-- Toggle button
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 180, 0, 40)
+toggleButton.Position = UDim2.new(0, 10, 0, 30)
+toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.TextSize = 18
+toggleButton.Text = "Teleport: OFF"
+toggleButton.Parent = frame
 
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
-                            task.wait(0.05)
-                        end
-                    end
+-- Label
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 0, 30)
+label.Position = UDim2.new(0, 0, 0, 0)
+label.BackgroundTransparency = 1
+label.Text = "Teleport Toggle"
+label.TextColor3 = Color3.new(1, 1, 1)
+label.TextSize = 20
+label.Font = Enum.Font.SourceSansBold
+label.Parent = frame
 
-                    task.wait(0.1)
-                end
-            else
-                task.wait(0.5)
-            end
-        end
-    end)
+-- Logic
+local isToggled = false
+local teleporting = false
+local activeRocksPart = nil
+
+local function findFirstRocksPart()
+	local mainland = workspace:FindFirstChild("Islands") and workspace.Islands:FindFirstChild("Mainland")
+	if not mainland then return nil end
+
+	for _, child in pairs(mainland:GetChildren()) do
+		if child:IsA("Folder") and child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart") then
+			return child.Rocks
+		end
+	end
+	return nil
 end
 
--- === Island Travel Buttons ===
-local function createTravelButton(islandName)
-    TravelSection:NewButton("Travel to " .. islandName, "Uses remote to travel instantly", function()
-        local args = {
-            [1] = "\1",
-            [2] = "Travel",
-            [3] = islandName,
-            [4] = 1
-        }
+local function startTeleportLoop()
+	teleporting = true
 
-        local comm = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        local funcFolder = comm:WaitForChild("Functions", 9e9)
-        local remote = funcFolder:GetChildren()[2]
+	while teleporting and activeRocksPart and activeRocksPart.Parent do
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp and activeRocksPart then
+			hrp.CFrame = activeRocksPart.CFrame + Vector3.new(0, 5, 0)
+		end
+		wait(3)
+	end
 
-        remote:FireServer(unpack(args))
-    end)
+	-- Stop if target is gone
+	toggleButton.Text = "Teleport: OFF"
+	isToggled = false
+	teleporting = false
+	activeRocksPart = nil
 end
 
-for islandName, _ in pairs(islandConfigs) do
-    createTravelButton(islandName)
-end
+toggleButton.MouseButton1Click:Connect(function()
+	isToggled = not isToggled
+	toggleButton.Text = isToggled and "Teleport: ON" or "Teleport: OFF"
 
--- === Hurry Scurry Tween Toggle ===
-local hurryScurryEnabled = false
-
-TrainSection:NewToggle("Hurry Scurry", "Auto-tween through Outdoor Arena checkpoints", function(state)
-    hurryScurryEnabled = state
-    if state then
-        coroutine.wrap(function()
-            local TweenService = game:GetService("TweenService")
-            local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
-            local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-            local currentTween = nil
-
-            local function tweenTo(part)
-                if currentTween then currentTween:Cancel() end
-                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
-                currentTween = tween
-                tween:Play()
-                return tween
-            end
-
-            while hurryScurryEnabled do
-                for i = 1, 6 do
-                    if not hurryScurryEnabled then break end
-                    local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
-                    if checkpoint and checkpoint:IsA("BasePart") then
-                        local tween = tweenTo(checkpoint)
-                        tween.Completed:Wait()
-                        task.wait(0.1)
-                    end
-                end
-            end
-        end)()
-    end
+	if isToggled then
+		activeRocksPart = findFirstRocksPart()
+		if activeRocksPart then
+			startTeleportLoop()
+		else
+			warn("No Rocks part found.")
+			toggleButton.Text = "Teleport: OFF"
+			isToggled = false
+		end
+	else
+		teleporting = false
+	end
 end)
