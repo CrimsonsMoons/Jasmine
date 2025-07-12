@@ -7,13 +7,16 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxSize = Vector3.new(10, 50, 10) -- Wider and TALLER box
-	local thickness = 0.2 -- Wall thickness
+	local baseSize = Vector3.new(10, 1, 10) -- Floor size
+	local wallHeight = 80 -- Very tall walls
+	local ceilingHeightOffset = 40 -- Distance from center to ceiling
+	local wallOffset = 6 -- How far out walls are from center
+	local wallThickness = 0.2
+
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
 	partsFolder.Parent = workspace
 
-	-- Helper to create a wall part
 	local function createWall(position, size)
 		local part = Instance.new("Part")
 		part.Anchored = true
@@ -21,22 +24,24 @@ local function createBoxAroundCharacter(char)
 		part.Size = size
 		part.Position = position
 		part.Transparency = 0.3
-		part.Color = Color3.new(1, 0, 0) -- Red
+		part.Color = Color3.new(1, 0, 0)
+		part.Material = Enum.Material.Neon
 		part.Parent = partsFolder
 	end
 
 	local rootPos = root.Position
-	local half = boxSize / 2
 
-	-- 4 vertical side walls
-	createWall(rootPos + Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Right wall
-	createWall(rootPos - Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Left wall
-	createWall(rootPos + Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Front wall
-	createWall(rootPos - Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Back wall
+	-- Floor
+	createWall(rootPos - Vector3.new(0, 2, 0), baseSize)
 
-	-- Floor and ceiling
-	createWall(rootPos - Vector3.new(0, half.Y, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Floor
-	createWall(rootPos + Vector3.new(0, half.Y, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Ceiling
+	-- Walls (tall, offset slightly outward)
+	createWall(rootPos + Vector3.new(wallOffset, wallHeight / 2, 0), Vector3.new(wallThickness, wallHeight, baseSize.Z + 4))
+	createWall(rootPos - Vector3.new(wallOffset, -wallHeight / 2, 0), Vector3.new(wallThickness, wallHeight, baseSize.Z + 4))
+	createWall(rootPos + Vector3.new(0, wallHeight / 2, wallOffset), Vector3.new(baseSize.X + 4, wallHeight, wallThickness))
+	createWall(rootPos - Vector3.new(0, -wallHeight / 2, wallOffset), Vector3.new(baseSize.X + 4, wallHeight, wallThickness))
+
+	-- Raised ceiling
+	createWall(rootPos + Vector3.new(0, ceilingHeightOffset + wallHeight / 2, 0), baseSize + Vector3.new(4, 0, 4))
 end
 
 -- Destroy the box if it exists
@@ -48,7 +53,7 @@ local function destroyBox()
 	end
 end
 
--- Keybind to destroy box with K
+-- Keybind to destroy with K
 UserInputService.InputBegan:Connect(function(input, isTyping)
 	if isTyping then return end
 	if input.KeyCode == Enum.KeyCode.K then
