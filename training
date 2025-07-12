@@ -1,135 +1,32 @@
---// Services
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
+local player = game.Players.LocalPlayer
 
---// Player & Character
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HurryScurryToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
---// Route folder
-local routeFolder = workspace.Islands["Training Island"]["Cross Country"].CheckpointActivity.Routes["1"]
+-- Create Toggle Button
+local toggle = Instance.new("TextButton")
+toggle.Name = "HurryToggle"
+toggle.Size = UDim2.new(0, 180, 0, 50)
+toggle.Position = UDim2.new(0, 20, 0, 100)
+toggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 20
+toggle.Text = "⏵ Start Hurry Scurry"
+toggle.Parent = screenGui
 
---// Tween Settings
-local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-local isTweening = false
-local currentTween = nil
+-- Make the toggle draggable
+local dragging = false
+local dragInput, mousePos, framePos
 
---// GUI Setup
-local gui = Instance.new("ScreenGui")
-gui.Name = "CrossCountryTweenGui"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
--- Frame (top-left)
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 60)
-
-local savedX = gui:GetAttribute("SavedPosX")
-local savedY = gui:GetAttribute("SavedPosY")
-if savedX and savedY then
-	frame.Position = UDim2.new(0, savedX, 0, savedY)
-else
-	frame.Position = UDim2.new(0, 10, 0.02, 0)
-end
-
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Parent = gui
-
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-local stroke = Instance.new("UIStroke", frame)
-stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-stroke.Color = Color3.fromRGB(90, 90, 90)
-stroke.Thickness = 1.5
-
--- Button
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -20, 1, -20)
-button.Position = UDim2.new(0, 10, 0, 10)
-button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Text = "Start Cross Country"
-button.Font = Enum.Font.GothamBold
-button.TextSize = 18
-button.Parent = frame
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
-
--- Disable movement and jump
-local function disableControls()
-	ContextActionService:BindAction("DisableMovement", function()
-		return Enum.ContextActionResult.Sink
-	end, false,
-		Enum.PlayerActions.CharacterJump,
-		Enum.PlayerActions.MoveForward,
-		Enum.PlayerActions.MoveBackward,
-		Enum.PlayerActions.MoveLeft,
-		Enum.PlayerActions.MoveRight
-	)
-end
-
--- Re-enable movement and jump
-local function enableControls()
-	ContextActionService:UnbindAction("DisableMovement")
-end
-
--- Tween to a part
-local function tweenTo(part)
-	if currentTween then currentTween:Cancel() end
-	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
-	currentTween = tween
-	tween:Play()
-	return tween
-end
-
--- Tween in order from 1 to 15
-local function tweenSequence()
-	isTweening = true
-	button.Text = "Stop"
-
-	disableControls()
-	hrp.Anchored = true
-
-	for i = 1, 15 do
-		local part = routeFolder:FindFirstChild(tostring(i))
-		if part and part:IsA("BasePart") and isTweening then
-			local tween = tweenTo(part)
-			tween.Completed:Wait()
-			task.wait(0.1)
-		end
-	end
-
-	-- End of tweening
-	isTweening = false
-	button.Text = "Start Cross Country"
-	hrp.Anchored = false
-	enableControls()
-end
-
--- Button click logic
-button.MouseButton1Click:Connect(function()
-	if isTweening then
-		isTweening = false
-		if currentTween then currentTween:Cancel() end
-		button.Text = "Start Cross Country"
-		hrp.Anchored = false
-		enableControls()
-	else
-		coroutine.wrap(tweenSequence)()
-	end
-end)
-
--- Dragging logic
-local dragging, dragInput, dragStart, startPos
-
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+toggle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
+		mousePos = input.Position
+		framePos = toggle.Position
 
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
@@ -139,18 +36,72 @@ frame.InputBegan:Connect(function(input)
 	end
 end)
 
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
+toggle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 		dragInput = input
 	end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
 	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		local newPos = startPos + UDim2.new(0, delta.X, 0, delta.Y)
-		frame.Position = newPos
-		gui:SetAttribute("SavedPosX", newPos.X.Offset)
-		gui:SetAttribute("SavedPosY", newPos.Y.Offset)
+		local delta = input.Position - mousePos
+		toggle.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
 	end
 end)
+
+-- Tween Logic
+local TweenService = game:GetService("TweenService")
+local checkpointsFolder = workspace:WaitForChild("Islands"):WaitForChild("Training Island"):WaitForChild("Outdoor Arena").DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+
+local hurryScurryEnabled = false
+local currentTween = nil
+
+local function tweenTo(hrp, part)
+	if currentTween then currentTween:Cancel() end
+	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
+	currentTween = tween
+	tween:Play()
+	return tween
+end
+
+local function startHurryScurry()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	while hurryScurryEnabled do
+		for i = 1, 6 do
+			if not hurryScurryEnabled then break end
+			local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+			if checkpoint and checkpoint:IsA("BasePart") then
+				local tween = tweenTo(hrp, checkpoint)
+				tween.Completed:Wait()
+				task.wait(0.1)
+			end
+		end
+	end
+end
+
+-- Toggle Logic
+local function updateToggleAppearance()
+	if hurryScurryEnabled then
+		toggle.Text = "⏹ Stop Hurry Scurry"
+		toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	else
+		toggle.Text = "⏵ Start Hurry Scurry"
+		toggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	end
+end
+
+toggle.MouseButton1Click:Connect(function()
+	hurryScurryEnabled = not hurryScurryEnabled
+	updateToggleAppearance()
+
+	if hurryScurryEnabled then
+		coroutine.wrap(startHurryScurry)()
+	else
+		if currentTween then currentTween:Cancel() end
+	end
+end)
+
+updateToggleAppearance()
