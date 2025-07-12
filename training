@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -13,28 +14,96 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
 
 local checkpointOrder = {"1", "2", "3", "4"}
 local teleporting = false
-local moveTime = 0.1     -- Fast tween speed
-local waitTime = 0.6     -- Delay between points
+local moveTime = 0.1
+local waitTime = 0.6
 
--- GUI Setup with draggable button
+-- GUI Setup
 local gui = Instance.new("ScreenGui")
 gui.ResetOnSpawn = false
+gui.Name = "CheckpointGUI"
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Draggable Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 160, 0, 120)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Start/Stop Button
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 100, 0, 30)
+button.Size = UDim2.new(1, -20, 0, 30)
 button.Position = UDim2.new(0, 10, 0, 10)
 button.Text = "Start"
-button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.BorderSizePixel = 0
-button.AutoButtonColor = true
+button.Parent = frame
 
--- Make button draggable
-button.Active = true
-button.Selectable = true
-button.Draggable = true
-button.Parent = gui
+-- Speed Label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -20, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 45)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.Text = "Speed: 0.1s"
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 14
+speedLabel.Parent = frame
+
+-- Slider Bar
+local sliderBar = Instance.new("Frame")
+sliderBar.Size = UDim2.new(1, -20, 0, 6)
+sliderBar.Position = UDim2.new(0, 10, 0, 75)
+sliderBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+sliderBar.BorderSizePixel = 0
+sliderBar.Parent = frame
+
+-- Slider Handle
+local sliderHandle = Instance.new("Frame")
+sliderHandle.Size = UDim2.new(0, 10, 1, 0)
+sliderHandle.Position = UDim2.new(0, 0, 0, 0)
+sliderHandle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+sliderHandle.BorderSizePixel = 0
+sliderHandle.Parent = sliderBar
+
+-- Slider drag logic
+local dragging = false
+local function updateSlider(inputX)
+    local barAbsPos = sliderBar.AbsolutePosition.X
+    local barAbsSize = sliderBar.AbsoluteSize.X
+    local clampedX = math.clamp(inputX - barAbsPos, 0, barAbsSize)
+    local percent = clampedX / barAbsSize
+
+    -- Move handle
+    sliderHandle.Position = UDim2.new(0, clampedX - sliderHandle.Size.X.Offset / 2, 0, 0)
+
+    -- Convert percent to move time (min 0.05 to max 1)
+    moveTime = math.floor((0.05 + (1 - 0.05) * (1 - percent)) * 1000) / 1000
+    speedLabel.Text = "Speed: " .. tostring(moveTime) .. "s"
+end
+
+sliderHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateSlider(input.Position.X)
+    end
+end)
 
 -- Tween teleporting function
 local function startTeleporting()
@@ -62,7 +131,7 @@ local function startTeleporting()
     button.Text = "Start"
 end
 
--- Button click toggle
+-- Button toggle
 button.MouseButton1Click:Connect(function()
     teleporting = not teleporting
     if teleporting then
