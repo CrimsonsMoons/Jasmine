@@ -11,6 +11,7 @@ local function createBoxAroundCharacter(char)
 	local boxDepth = 50
 	local boxHeight = 100
 	local wallThickness = 1
+	local verticalOffset = Vector3.new(0, 20, 0) -- 🔼 raise the whole box
 
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
@@ -23,13 +24,15 @@ local function createBoxAroundCharacter(char)
 		part.Size = size
 		part.Position = position
 		part.Transparency = 0.3
-		part.Color = Color3.new(1, 0, 0) -- Red
+		part.Color = Color3.new(1, 0, 0)
 		part.Material = Enum.Material.Neon
 		part.Parent = partsFolder
 	end
 
-	local rootPos = root.Position
-	local halfW, halfD, halfH = boxWidth / 2, boxDepth / 2, boxHeight / 2
+	local rootPos = root.Position + verticalOffset
+	local halfW = boxWidth / 2
+	local halfD = boxDepth / 2
+	local halfH = boxHeight / 2
 
 	-- Floor
 	createWall(rootPos - Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
@@ -37,19 +40,20 @@ local function createBoxAroundCharacter(char)
 	-- Ceiling
 	createWall(rootPos + Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
 
-	-- Walls
+	-- Side walls
 	createWall(rootPos + Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Right
 	createWall(rootPos - Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Left
+
+	-- Front/back walls
 	createWall(rootPos + Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Front
 	createWall(rootPos - Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Back
 end
 
--- Destroy the box if it exists
+-- Destroy the box
 local function destroyBox()
 	local box = workspace:FindFirstChild(boxFolderName)
 	if box then
 		box:Destroy()
-		print("Box destroyed.")
 	end
 end
 
@@ -61,11 +65,11 @@ UserInputService.InputBegan:Connect(function(input, isTyping)
 	end
 end)
 
--- Main
+-- Create box on character load
 local character = player.Character or player.CharacterAdded:Wait()
 createBoxAroundCharacter(character)
 
--- Recreate box on respawn
+-- Rebuild on respawn
 player.CharacterAdded:Connect(function(char)
 	task.wait(1)
 	destroyBox()
