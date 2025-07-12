@@ -1,49 +1,67 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local islandsFolder = workspace:WaitForChild("Islands")
+
+-- 🗺️ Display Name → Folder Name map
+local islandMap = {
+    ["Mainland"] = "Mainland",
+    ["Forest"] = "Forest Island",
+    ["Mountain"] = "Mountain Island",
+    ["Lunar"] = "Lunar Islands",
+    ["Royal"] = "Royal Island",
+    ["Blizzard"] = "Blizzard Island",
+    ["Jungle"] = "Jungle Island",
+    ["Volcano"] = "Volcano Island",
+    ["Desert"] = "Desert Island",
+}
+
+-- ❌ Exclusions
+local excludedBodies = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
+-- 📦 GUI Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportGui"
+screenGui.Name = "IslandTeleportUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Parent = playerGui
 
--- GUI Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 100)
-frame.Position = UDim2.new(0.5, -100, 0.5, -50)
-frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
+-- 🪟 Main container
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 270)
+mainFrame.Position = UDim2.new(0, 30, 0, 30)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundTransparency = 1
-title.Text = "Teleport Toggle"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 20
-title.Font = Enum.Font.SourceSansBold
-title.Parent = frame
+-- 🧷 Title bar (draggable)
+local titleBar = Instance.new("TextLabel")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.Text = "Island Teleport"
+titleBar.Font = Enum.Font.GothamBold
+titleBar.TextColor3 = Color3.new(1, 1, 1)
+titleBar.TextScaled = true
+titleBar.Parent = mainFrame
 
--- Toggle Button
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 40)
-button.Position = UDim2.new(0, 10, 0, 50)
-button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.TextSize = 18
-button.Font = Enum.Font.SourceSans
-button.Text = "Teleport: OFF"
-button.Parent = frame
+-- 🎣 Drag logic
+local dragging, dragInput, dragStart, startPos
 
--- Make frame draggable
-local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
-
-frame.InputBegan:Connect(function(input)
+titleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
-		startPos = frame.Position
+		startPos = mainFrame.Position
 
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
@@ -53,82 +71,113 @@ frame.InputBegan:Connect(function(input)
 	end
 end)
 
-frame.InputChanged:Connect(function(input)
+titleBar.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		dragInput = input
 	end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
 		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
 
--- Teleport Logic
-local isToggled = false
-local teleporting = false
+-- 📂 Button container
+local buttonFrame = Instance.new("Frame")
+buttonFrame.Size = UDim2.new(1, 0, 1, -30)
+buttonFrame.Position = UDim2.new(0, 0, 0, 30)
+buttonFrame.BackgroundTransparency = 1
+buttonFrame.Parent = mainFrame
 
-local function getAllValidRocksParts()
-	local parts = {}
-	local islands = workspace:FindFirstChild("Islands")
-	local mainland = islands and islands:FindFirstChild("Mainland")
-	if not mainland then return parts end
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = buttonFrame
 
-	for _, folder in ipairs(mainland:GetChildren()) do
-		if folder:IsA("Folder") then
-			local rocks = folder:FindFirstChild("Rocks")
-			if rocks and rocks:IsA("BasePart") then
-				table.insert(parts, rocks)
-			end
-		end
+-- 🔄 State
+local currentConnection = nil
+local isFollowing = false
+local currentIsland = nil
+
+local function stopFollowing()
+	if currentConnection then
+		currentConnection:Disconnect()
+		currentConnection = nil
 	end
-
-	return parts
+	isFollowing = false
+	currentIsland = nil
 end
 
-local function startTeleporting()
-	print("Starting teleporting loop...")
-	teleporting = true
+-- 🚀 NEW: Follow Rocks
+local function followIslandRocks(folderName)
+	stopFollowing()
 
-	while teleporting do
-		local rocksParts = getAllValidRocksParts()
-		print("Found", #rocksParts, "Rocks parts")
-		if #rocksParts == 0 then
-			warn("No valid Rocks parts found.")
-			break
-		end
+	local islandFolder = islandsFolder:FindFirstChild(folderName)
+	if not islandFolder then
+		warn("Island not found: " .. folderName)
+		return
+	end
 
-		for _, part in ipairs(rocksParts) do
-			if not teleporting then break end
-			if part and part.Parent then
-				local character = player.Character or player.CharacterAdded:Wait()
-				local hrp = character:FindFirstChild("HumanoidRootPart")
-				if hrp then
-					print("Teleporting to:", part:GetFullName())
-					hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-				end
-				wait(3)
-			end
+	local rocksList = {}
+	for _, item in ipairs(islandFolder:GetChildren()) do
+		local rocks = item:FindFirstChild("Rocks")
+		if rocks and rocks:IsA("BasePart") and not excludedBodies[item.Name] then
+			table.insert(rocksList, rocks)
 		end
 	end
 
-	-- Reset
-	teleporting = false
-	isToggled = false
-	button.Text = "Teleport: OFF"
+	if #rocksList == 0 then
+		warn("No valid rocks in " .. folderName)
+		return
+	end
+
+	isFollowing = true
+	currentIsland = folderName
+
+	for _, rock in ipairs(rocksList) do
+		if not isFollowing then break end
+
+		currentConnection = RunService.RenderStepped:Connect(function()
+			if rock and rock.Parent and isFollowing then
+				hrp.CFrame = rock.CFrame + Vector3.new(0, 5, 0)
+			end
+		end)
+
+		while rock and rock.Parent and isFollowing do
+			task.wait(0.1)
+		end
+
+		if currentConnection then
+			currentConnection:Disconnect()
+			currentConnection = nil
+		end
+	end
+
+	stopFollowing()
 end
 
--- Button click logic
-button.MouseButton1Click:Connect(function()
-	print("Button clicked. isToggled =", not isToggled)
-	isToggled = not isToggled
-	button.Text = isToggled and "Teleport: ON" or "Teleport: OFF"
+-- 🧭 Buttons
+for displayName, folderName in pairs(islandMap) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.Gotham
+	btn.Text = displayName
+	btn.TextScaled = true
+	btn.Parent = buttonFrame
 
-	if isToggled then
-		startTeleporting()
-	else
-		teleporting = false
-	end
-end)
+	btn.MouseButton1Click:Connect(function()
+		if isFollowing and currentIsland == folderName then
+			stopFollowing()
+			btn.Text = displayName
+		else
+			btn.Text = "Following..."
+			followIslandRocks(folderName)
+			btn.Text = displayName
+		end
+	end)
+end
