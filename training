@@ -11,8 +11,8 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
 	.DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
 
---// Tween Settings (FAST)
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+--// Tween Settings (slower to hit checkpoints)
+local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 
 --// Create GUI
 local gui = Instance.new("ScreenGui")
@@ -20,17 +20,17 @@ gui.Name = "TweenGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
---// Main draggable frame
+-- Draggable frame (TOP RIGHT position)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 60)
-frame.Position = UDim2.new(0.5, -100, 0.85, 0)
+frame.Position = UDim2.new(1, -210, 0.02, 0) -- top right
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
--- Style
+-- Styling
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
@@ -41,7 +41,7 @@ stroke.Color = Color3.fromRGB(80, 80, 80)
 stroke.Thickness = 1.5
 stroke.Parent = frame
 
---// Tween button
+-- Tween button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -20, 1, -20)
 button.Position = UDim2.new(0, 10, 0, 10)
@@ -57,11 +57,11 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8)
 buttonCorner.Parent = button
 
---// Tween state
+-- Tween state
 local isTweening = false
 local currentTween = nil
 
---// Tween to one part
+-- Tween to a single part
 local function tweenTo(part)
 	if currentTween then
 		currentTween:Cancel()
@@ -72,7 +72,7 @@ local function tweenTo(part)
 	return tween
 end
 
---// Tween through all 6 checkpoints
+-- Tween through all 6 checkpoints
 local function tweenSequence()
 	isTweening = true
 	button.Text = "Stop Tween"
@@ -81,9 +81,16 @@ local function tweenSequence()
 		if not isTweening then break end
 		local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
 		if checkpoint and checkpoint:IsA("BasePart") then
+			-- Make player jump
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+
+			-- Tween to checkpoint
 			local tween = tweenTo(checkpoint)
 			tween.Completed:Wait()
-			task.wait(0.05)
+			task.wait(0.1) -- buffer for hit detection
 		end
 	end
 
@@ -91,7 +98,7 @@ local function tweenSequence()
 	button.Text = "Start Tween"
 end
 
---// Button behavior
+-- Button toggle
 button.MouseButton1Click:Connect(function()
 	if isTweening then
 		isTweening = false
