@@ -14,6 +14,7 @@ local TrainSection = TrainTab:NewSection("Training Features")
 
 local OresTab = Window:NewTab("Ores")
 local OresSection = OresTab:NewSection("Ore Auto-Teleport")
+local OreTrackerSection = OresTab:NewSection("Ore Tracker")
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -145,12 +146,16 @@ end)
 local oreTeleportEnabled = false
 local oreLoopRunning = false
 local oreRenderConn = nil
+local oreCount = 0
+local oreCounterLabel = OreTrackerSection:NewLabel("Ores Cleared: 0")
 
 OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function(state)
     oreTeleportEnabled = state
 
     if state and not oreLoopRunning then
         oreLoopRunning = true
+        oreCount = 0
+        oreCounterLabel:UpdateLabel("Ores Cleared: 0")
 
         coroutine.wrap(function()
             local RunService = game:GetService("RunService")
@@ -205,6 +210,9 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                         oreRenderConn:Disconnect()
                         oreRenderConn = nil
                     end
+
+                    oreCount += 1
+                    oreCounterLabel:UpdateLabel("Ores Cleared: " .. tostring(oreCount))
 
                     task.wait(0.1)
                 end
