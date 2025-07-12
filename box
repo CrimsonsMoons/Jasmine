@@ -7,10 +7,8 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxSize = Vector3.new(15, 15, 15) -- Size of the entire box
-	local thickness = 0.1 -- Wall thickness
-	local height = boxSize.Y
-
+	local boxSize = Vector3.new(10, 10, 10) -- 10x10x10 box
+	local thickness = 0.2 -- Wall thickness
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
 	partsFolder.Parent = workspace
@@ -25,20 +23,20 @@ local function createBoxAroundCharacter(char)
 		part.Transparency = 0.3
 		part.Color = Color3.new(1, 0, 0) -- Red
 		part.Parent = partsFolder
-		return part
 	end
 
 	local rootPos = root.Position
+	local half = boxSize / 2
 
-	-- Create 4 walls
-	createWall(rootPos + Vector3.new(boxSize.X / 2, height / 2, 0), Vector3.new(thickness, height, boxSize.Z)) -- Right
-	createWall(rootPos - Vector3.new(boxSize.X / 2, -height / 2, 0), Vector3.new(thickness, height, boxSize.Z)) -- Left
-	createWall(rootPos + Vector3.new(0, height / 2, boxSize.Z / 2), Vector3.new(boxSize.X, height, thickness)) -- Front
-	createWall(rootPos - Vector3.new(0, -height / 2, boxSize.Z / 2), Vector3.new(boxSize.X, height, thickness)) -- Back
+	-- 4 side walls
+	createWall(rootPos + Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Right
+	createWall(rootPos - Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Left
+	createWall(rootPos + Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Front
+	createWall(rootPos - Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Back
 
 	-- Floor and ceiling
-	createWall(rootPos - Vector3.new(0, height / 2, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Floor
-	createWall(rootPos + Vector3.new(0, height / 2, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Ceiling
+	createWall(rootPos - Vector3.new(0, half.Y, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Floor
+	createWall(rootPos + Vector3.new(0, half.Y, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Ceiling
 end
 
 -- Destroy the box if it exists
