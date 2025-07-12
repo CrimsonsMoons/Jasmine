@@ -1,0 +1,178 @@
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local RunService = game:GetService("RunService")
+local islandsFolder = workspace:WaitForChild("Islands")
+
+-- 🗺️ Display Name → Folder Name map (updated)
+local islandMap = {
+    ["Mainland"] = "Mainland",
+    ["Forest"] = "Forest Island",
+    ["Mountain"] = "Mountain Island",
+    ["Lunar"] = "Lunar Islands",
+    ["Royal"] = "Royal Island",
+    ["Blizzard"] = "Blizzard Island"
+}
+
+-- 📦 GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "IslandTeleportUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- 🪟 Main container
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 270)
+mainFrame.Position = UDim2.new(0, 30, 0, 30)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- 🧷 Title bar (draggable)
+local titleBar = Instance.new("TextLabel")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.Text = "Island Teleport"
+titleBar.Font = Enum.Font.GothamBold
+titleBar.TextColor3 = Color3.new(1, 1, 1)
+titleBar.TextScaled = true
+titleBar.Parent = mainFrame
+
+-- 🎣 Dragging logic
+local dragging, dragInput, dragStart, startPos
+
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- 📂 Button container
+local buttonFrame = Instance.new("Frame")
+buttonFrame.Size = UDim2.new(1, 0, 1, -30)
+buttonFrame.Position = UDim2.new(0, 0, 0, 30)
+buttonFrame.BackgroundTransparency = 1
+buttonFrame.Parent = mainFrame
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = buttonFrame
+
+-- 🔄 State
+local currentConnection = nil
+local isFollowing = false
+local currentIsland = nil
+
+local function stopFollowing()
+	if currentConnection then
+		currentConnection:Disconnect()
+		currentConnection = nil
+	end
+	isFollowing = false
+	currentIsland = nil
+end
+
+local function followIslandBodies(folderName)
+	stopFollowing()
+
+	local islandFolder = islandsFolder:FindFirstChild(folderName)
+	if not islandFolder then
+		warn("Island not found: " .. folderName)
+		return
+	end
+
+	local bodies = {}
+	for _, item in ipairs(islandFolder:GetChildren()) do
+		local body = item:FindFirstChild("Body")
+		if body and body:IsA("BasePart") then
+			local isExcluded = false
+
+			-- ❌ Exclude Mountain Island's Travel Boat Body
+			if folderName == "Mountain Island" and item.Name == "Travel Boat" then
+				isExcluded = true
+			end
+
+			if not isExcluded then
+				table.insert(bodies, body)
+			end
+		end
+	end
+
+	if #bodies == 0 then
+		warn("No valid bodies in " .. folderName)
+		return
+	end
+
+	isFollowing = true
+	currentIsland = folderName
+
+	for _, body in ipairs(bodies) do
+		if not isFollowing then break end
+		currentConnection = RunService.RenderStepped:Connect(function()
+			if not body or not body.Parent or not isFollowing then
+				stopFollowing()
+				return
+			end
+			hrp.CFrame = body.CFrame
+		end)
+
+		while isFollowing and body and body.Parent do
+			task.wait(0.1)
+		end
+
+		if currentConnection then
+			currentConnection:Disconnect()
+			currentConnection = nil
+		end
+	end
+
+	stopFollowing()
+end
+
+-- 🧭 Create buttons
+for displayName, folderName in pairs(islandMap) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.Gotham
+	btn.Text = displayName
+	btn.TextScaled = true
+	btn.Parent = buttonFrame
+
+	btn.MouseButton1Click:Connect(function()
+		if isFollowing and currentIsland == folderName then
+			stopFollowing()
+			btn.Text = displayName
+		else
+			btn.Text = "Following..."
+			followIslandBodies(folderName)
+			btn.Text = displayName
+		end
+	end)
+end
