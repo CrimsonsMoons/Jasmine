@@ -10,10 +10,10 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.5
+local teleportDelay = 0.1
 local teleporting = false
 
--- GUI Setup
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGUI"
 screenGui.ResetOnSpawn = false
@@ -29,33 +29,22 @@ toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 20
 toggleButton.Parent = screenGui
 
--- Teleport loop with freeze
+-- Teleport loop in a coroutine
 local function startTeleporting()
     teleporting = true
     toggleButton.Text = "Stop Teleport"
-
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                -- Freeze character
-                humanoidRootPart.Anchored = true
-
-                -- Move to checkpoint with slight offset
-                humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
-
-                -- Unfreeze character
-                humanoidRootPart.Anchored = false
+                humanoidRootPart.CFrame = checkpoint.CFrame + Vector3.new(0, 5, 0)
             end
             task.wait(teleportDelay)
         end
     end
-
-    toggleButton.Text = "Start Teleport"
 end
 
--- Toggle button
 toggleButton.MouseButton1Click:Connect(function()
     teleporting = not teleporting
     if teleporting then
