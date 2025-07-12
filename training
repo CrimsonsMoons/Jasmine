@@ -3,7 +3,6 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
@@ -16,23 +15,6 @@ local checkpointOrder = {"1", "2", "3", "4"}
 local teleporting = false
 local moveTime = 0.1     -- Fast tween speed
 local waitTime = 0.6     -- Delay between points
-
--- Helper to anchor all parts
-local function anchorCharacter()
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = true
-        end
-    end
-end
-
-local function unanchorCharacter()
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Anchored = false
-        end
-    end
-end
 
 -- GUI Setup with draggable button
 local gui = Instance.new("ScreenGui")
@@ -58,7 +40,6 @@ button.Parent = gui
 local function startTeleporting()
     teleporting = true
     button.Text = "Stop"
-    anchorCharacter()
 
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
@@ -68,7 +49,6 @@ local function startTeleporting()
             if checkpoint and checkpoint:IsA("BasePart") then
                 local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
 
-                -- Tween to new CFrame
                 local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
                 local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = goalCFrame})
                 tween:Play()
@@ -79,7 +59,6 @@ local function startTeleporting()
         end
     end
 
-    unanchorCharacter()
     button.Text = "Start"
 end
 
