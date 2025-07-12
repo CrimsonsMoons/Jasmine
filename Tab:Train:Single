@@ -138,3 +138,13 @@ button.MouseButton1Click:Connect(function()
         task.spawn(startTeleporting)
     end
 end)
+
+-- K key to destroy script and GUI
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        teleporting = false -- Stop the loop
+        gui:Destroy() -- Remove the GUI
+        script:Destroy() -- Destroy the script itself
+    end
+end)
