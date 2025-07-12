@@ -3,32 +3,43 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-
--- Create GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
+screenGui.Name = "TeleportGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- GUI Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0.5, -100, 0.5, -50)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
--- Dragging support (mouse + touch)
-local dragging
-local dragInput
-local dragStart
-local startPos
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "Teleport Toggle"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 20
+title.Font = Enum.Font.SourceSansBold
+title.Parent = frame
 
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
+-- Toggle Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 180, 0, 40)
+button.Position = UDim2.new(0, 10, 0, 50)
+button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.TextSize = 18
+button.Font = Enum.Font.SourceSans
+button.Text = "Teleport: OFF"
+button.Parent = frame
+
+-- Make frame draggable
+local dragging = false
+local dragInput, dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -51,81 +62,69 @@ frame.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
+	if dragging and input == dragInput then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
 
--- Toggle button
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 180, 0, 40)
-toggleButton.Position = UDim2.new(0, 10, 0, 30)
-toggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.TextSize = 18
-toggleButton.Text = "Teleport: OFF"
-toggleButton.Parent = frame
-
--- Label
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 0, 30)
-label.Position = UDim2.new(0, 0, 0, 0)
-label.BackgroundTransparency = 1
-label.Text = "Teleport Toggle"
-label.TextColor3 = Color3.new(1, 1, 1)
-label.TextSize = 20
-label.Font = Enum.Font.SourceSansBold
-label.Parent = frame
-
--- Logic
+-- Teleport Logic
 local isToggled = false
 local teleporting = false
-local activeRocksPart = nil
 
-local function findFirstRocksPart()
+local function getAllValidRocksParts()
+	local parts = {}
 	local mainland = workspace:FindFirstChild("Islands") and workspace.Islands:FindFirstChild("Mainland")
-	if not mainland then return nil end
+	if not mainland then return parts end
 
-	for _, child in pairs(mainland:GetChildren()) do
-		if child:IsA("Folder") and child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart") then
-			return child.Rocks
+	for _, folder in ipairs(mainland:GetChildren()) do
+		if folder:IsA("Folder") then
+			local rocks = folder:FindFirstChild("Rocks")
+			if rocks and rocks:IsA("BasePart") then
+				table.insert(parts, rocks)
+			end
 		end
 	end
-	return nil
+
+	return parts
 end
 
-local function startTeleportLoop()
+local function startTeleporting()
 	teleporting = true
-
-	while teleporting and activeRocksPart and activeRocksPart.Parent do
-		local char = player.Character or player.CharacterAdded:Wait()
-		local hrp = char:FindFirstChild("HumanoidRootPart")
-		if hrp and activeRocksPart then
-			hrp.CFrame = activeRocksPart.CFrame + Vector3.new(0, 5, 0)
+	while teleporting do
+		local rocksParts = getAllValidRocksParts()
+		if #rocksParts == 0 then
+			warn("No valid Rocks parts found.")
+			break
 		end
-		wait(3)
+
+		for _, part in ipairs(rocksParts) do
+			if not teleporting then break end
+			if part and part.Parent then
+				local character = player.Character or player.CharacterAdded:Wait()
+				local hrp = character:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					print("Teleporting to:", part:GetFullName())
+					hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
+				end
+				wait(3)
+			end
+		end
 	end
 
-	-- Stop if target is gone
-	toggleButton.Text = "Teleport: OFF"
-	isToggled = false
+	-- Reset state
 	teleporting = false
-	activeRocksPart = nil
+	isToggled = false
+	button.Text = "Teleport: OFF"
 end
 
-toggleButton.MouseButton1Click:Connect(function()
+-- Toggle Button Click
+button.MouseButton1Click:Connect(function()
 	isToggled = not isToggled
-	toggleButton.Text = isToggled and "Teleport: ON" or "Teleport: OFF"
+	button.Text = isToggled and "Teleport: ON" or "Teleport: OFF"
 
 	if isToggled then
-		activeRocksPart = findFirstRocksPart()
-		if activeRocksPart then
-			startTeleportLoop()
-		else
-			warn("No Rocks part found.")
-			toggleButton.Text = "Teleport: OFF"
-			isToggled = false
-		end
+		startTeleporting()
 	else
 		teleporting = false
 	end
