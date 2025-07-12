@@ -1,55 +1,60 @@
+-- Kavo UI Loader
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Checkpoint Teleporter", "Midnight")
+
+-- Roblox Services
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+-- Checkpoint path
 local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     :WaitForChild("_LAYOUT")
     :WaitForChild("CheckpointActivity")
     :WaitForChild("Routes")
     :WaitForChild("Checkpoints")
 
+-- Settings
 local checkpointOrder = {"1", "2", "3", "4"}
 local teleportDelay = 0.1
 local teleporting = false
 
--- Create GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- Kavo UI Tab & Section
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("Teleports")
 
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 120, 0, 40)
-toggleButton.Position = UDim2.new(0, 20, 0, 100)
-toggleButton.Text = "Start Teleport"
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 170, 255)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 20
-toggleButton.Parent = screenGui
-
--- Teleport loop in a coroutine
-local function startTeleporting()
-    teleporting = true
-    toggleButton.Text = "Stop Teleport"
-    while teleporting do
-        for _, checkpointName in ipairs(checkpointOrder) do
-            if not teleporting then break end
-            local checkpoint = checkpoints:FindFirstChild(checkpointName)
-            if checkpoint and checkpoint:IsA("BasePart") then
-                humanoidRootPart.CFrame = checkpoint.CFrame + Vector3.new(0, 5, 0)
-            end
-            task.wait(teleportDelay)
-        end
-    end
-end
-
-toggleButton.MouseButton1Click:Connect(function()
-    teleporting = not teleporting
+-- 🌀 Loop Teleport Toggle
+MainSection:NewToggle("Loop Teleport", "Teleports through all checkpoints repeatedly", function(state)
+    teleporting = state
     if teleporting then
-        task.spawn(startTeleporting)
+        task.spawn(function()
+            while teleporting do
+                for _, checkpointName in ipairs(checkpointOrder) do
+                    if not teleporting then break end
+                    local checkpoint = checkpoints:FindFirstChild(checkpointName)
+                    if checkpoint and checkpoint:IsA("BasePart") then
+                        humanoidRootPart.Anchored = true
+                        humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+                        humanoidRootPart.Anchored = false
+                    end
+                    task.wait(teleportDelay)
+                end
+            end
+        end)
+    end
+end)
+
+-- 📋 Dropdown of custom checkpoint names (you can edit these)
+local customCheckpoints = {"1-1", "1-2", "1-3", "1-4"}
+
+MainSection:NewDropdown("Custom Teleport", "Teleport to a specific checkpoint", customCheckpoints, function(selected)
+    local checkpoint = checkpoints:FindFirstChild(selected)
+    if checkpoint and checkpoint:IsA("BasePart") then
+        humanoidRootPart.Anchored = true
+        humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+        humanoidRootPart.Anchored = false
     else
-        toggleButton.Text = "Start Teleport"
+        warn("Checkpoint not found:", selected)
     end
 end)
