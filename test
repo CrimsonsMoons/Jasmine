@@ -143,6 +143,11 @@ end)
 
 -- === Single Checkpoint Route ===
 local teleporting = false
+local moveTime = 0.1
+
+TrainSection:NewSlider("Speed", "Set checkpoint tween time", 3, 0.05, 0.1, function(val)
+    moveTime = val
+end)
 
 TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(state)
     teleporting = state
@@ -159,7 +164,7 @@ TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(s
                     local checkpoint = checkpoints:FindFirstChild(checkpointName)
                     if checkpoint and checkpoint:IsA("BasePart") then
                         local goalCFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
-                        local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+                        local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
                         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = goalCFrame})
                         tween:Play()
                         tween.Completed:Wait()
@@ -172,7 +177,7 @@ TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(s
 end)
 
 -- === Trap Character Button ===
-TrainSection:NewButton("Trap Character", "click K to destroy must be off horse first", function()
+TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
