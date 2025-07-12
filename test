@@ -172,7 +172,7 @@ TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(s
 end)
 
 -- === Trap Character Button ===
-TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
+TrainSection:NewButton("Trap Character", "Creates a invisable box around your character click K to destroy must be off horse first", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
