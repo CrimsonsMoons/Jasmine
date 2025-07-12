@@ -1,5 +1,4 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
@@ -38,11 +37,10 @@ button.Text = "Teleport: OFF"
 button.Parent = frame
 
 -- Make frame draggable
-local dragging = false
-local dragInput, dragStart, startPos
+local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
 
 frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
 		startPos = frame.Position
@@ -56,7 +54,7 @@ frame.InputBegan:Connect(function(input)
 end)
 
 frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
 		dragInput = input
 	end
 end)
@@ -74,7 +72,8 @@ local teleporting = false
 
 local function getAllValidRocksParts()
 	local parts = {}
-	local mainland = workspace:FindFirstChild("Islands") and workspace.Islands:FindFirstChild("Mainland")
+	local islands = workspace:FindFirstChild("Islands")
+	local mainland = islands and islands:FindFirstChild("Mainland")
 	if not mainland then return parts end
 
 	for _, folder in ipairs(mainland:GetChildren()) do
@@ -90,9 +89,12 @@ local function getAllValidRocksParts()
 end
 
 local function startTeleporting()
+	print("Starting teleporting loop...")
 	teleporting = true
+
 	while teleporting do
 		local rocksParts = getAllValidRocksParts()
+		print("Found", #rocksParts, "Rocks parts")
 		if #rocksParts == 0 then
 			warn("No valid Rocks parts found.")
 			break
@@ -112,14 +114,15 @@ local function startTeleporting()
 		end
 	end
 
-	-- Reset state
+	-- Reset
 	teleporting = false
 	isToggled = false
 	button.Text = "Teleport: OFF"
 end
 
--- Toggle Button Click
+-- Button click logic
 button.MouseButton1Click:Connect(function()
+	print("Button clicked. isToggled =", not isToggled)
 	isToggled = not isToggled
 	button.Text = isToggled and "Teleport: ON" or "Teleport: OFF"
 
