@@ -143,10 +143,15 @@ end)
 
 -- === Ores Teleport Toggle ===
 local oreTeleportEnabled = false
+local oreLoopRunning = false
+local oreRenderConn = nil
 
 OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function(state)
     oreTeleportEnabled = state
-    if state then
+
+    if state and not oreLoopRunning then
+        oreLoopRunning = true
+
         coroutine.wrap(function()
             local RunService = game:GetService("RunService")
             local islandMap = {
@@ -173,7 +178,7 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
 
             local function followIslandRocks(folderName)
                 local islandFolder = islandsFolder:FindFirstChild(folderName)
-                if not islandFolder then warn("Island not found:", folderName) return end
+                if not islandFolder then return end
 
                 local rocksList = {}
                 for _, item in ipairs(islandFolder:GetChildren()) do
@@ -184,20 +189,20 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                 end
 
                 for _, rock in ipairs(rocksList) do
-                    if not rock or not rock.Parent then continue end
+                    if not oreTeleportEnabled or not rock or not rock.Parent then break end
 
-                    local conn
-                    conn = RunService.RenderStepped:Connect(function()
+                    if oreRenderConn then oreRenderConn:Disconnect() end
+                    oreRenderConn = RunService.RenderStepped:Connect(function()
                         if rock and rock.Parent then
                             hrp.CFrame = rock.CFrame + Vector3.new(0, 5, 0)
                         end
                     end)
 
-                    while rock and rock.Parent do
+                    while oreTeleportEnabled and rock and rock.Parent do
                         task.wait(0.1)
                     end
 
-                    if conn then conn:Disconnect() end
+                    if oreRenderConn then oreRenderConn:Disconnect() end
                 end
             end
 
@@ -205,6 +210,11 @@ OresSection:NewToggle("Ore Follow", "Teleport to rocks on all islands", function
                 if not oreTeleportEnabled then break end
                 followIslandRocks(folderName)
             end
+
+            oreLoopRunning = false
         end)()
+    elseif not state then
+        if oreRenderConn then oreRenderConn:Disconnect() end
+        oreLoopRunning = false
     end
 end)
