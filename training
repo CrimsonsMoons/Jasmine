@@ -1,4 +1,6 @@
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -11,10 +13,11 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.6
 local teleporting = false
+local moveTime = 0.1     -- Fast tween speed
+local waitTime = 0.6     -- Delay between points
 
--- Freeze helper functions
+-- Helper to anchor all parts
 local function anchorCharacter()
     for _, part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
@@ -31,17 +34,27 @@ local function unanchorCharacter()
     end
 end
 
--- Simple GUI Setup
+-- GUI Setup with draggable button
 local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 100, 0, 30)
 button.Position = UDim2.new(0, 10, 0, 10)
 button.Text = "Start"
+button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BorderSizePixel = 0
+button.AutoButtonColor = true
+
+-- Make button draggable
+button.Active = true
+button.Selectable = true
+button.Draggable = true
 button.Parent = gui
 
--- Teleport loop
+-- Tween teleporting function
 local function startTeleporting()
     teleporting = true
     button.Text = "Stop"
@@ -50,11 +63,19 @@ local function startTeleporting()
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
+
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
+                local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+
+                -- Tween to new CFrame
+                local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
+                local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = goalCFrame})
+                tween:Play()
+                tween.Completed:Wait()
+
+                task.wait(waitTime)
             end
-            task.wait(teleportDelay)
         end
     end
 
