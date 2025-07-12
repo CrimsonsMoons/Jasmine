@@ -7,11 +7,10 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local baseSize = Vector3.new(10, 1, 10) -- Floor size
-	local wallHeight = 80 -- Very tall walls
-	local ceilingHeightOffset = 40 -- Distance from center to ceiling
-	local wallOffset = 6 -- How far out walls are from center
-	local wallThickness = 0.2
+	local boxWidth = 50
+	local boxDepth = 50
+	local boxHeight = 100
+	local wallThickness = 1
 
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
@@ -24,24 +23,25 @@ local function createBoxAroundCharacter(char)
 		part.Size = size
 		part.Position = position
 		part.Transparency = 0.3
-		part.Color = Color3.new(1, 0, 0)
+		part.Color = Color3.new(1, 0, 0) -- Red
 		part.Material = Enum.Material.Neon
 		part.Parent = partsFolder
 	end
 
 	local rootPos = root.Position
+	local halfW, halfD, halfH = boxWidth / 2, boxDepth / 2, boxHeight / 2
 
 	-- Floor
-	createWall(rootPos - Vector3.new(0, 2, 0), baseSize)
+	createWall(rootPos - Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
 
-	-- Walls (tall, offset slightly outward)
-	createWall(rootPos + Vector3.new(wallOffset, wallHeight / 2, 0), Vector3.new(wallThickness, wallHeight, baseSize.Z + 4))
-	createWall(rootPos - Vector3.new(wallOffset, -wallHeight / 2, 0), Vector3.new(wallThickness, wallHeight, baseSize.Z + 4))
-	createWall(rootPos + Vector3.new(0, wallHeight / 2, wallOffset), Vector3.new(baseSize.X + 4, wallHeight, wallThickness))
-	createWall(rootPos - Vector3.new(0, -wallHeight / 2, wallOffset), Vector3.new(baseSize.X + 4, wallHeight, wallThickness))
+	-- Ceiling
+	createWall(rootPos + Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
 
-	-- Raised ceiling
-	createWall(rootPos + Vector3.new(0, ceilingHeightOffset + wallHeight / 2, 0), baseSize + Vector3.new(4, 0, 4))
+	-- Walls
+	createWall(rootPos + Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Right
+	createWall(rootPos - Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Left
+	createWall(rootPos + Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Front
+	createWall(rootPos - Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Back
 end
 
 -- Destroy the box if it exists
