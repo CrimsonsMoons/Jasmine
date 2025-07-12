@@ -8,63 +8,78 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 
---// Checkpoint folder
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
-	.DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+--// Cross Country checkpoint folder
+local checkpointsFolder = workspace.Islands["Training Island"]["Cross Country"]
+	.CheckpointActivity.Routes["1"]
 
 --// Tween Settings
 local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+local isTweening = false
+local currentTween = nil
 
---// Create GUI
+--// GUI Setup
 local gui = Instance.new("ScreenGui")
-gui.Name = "TweenGui"
+gui.Name = "CrossCountryTweenGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- GUI Frame (Top Right or last saved position)
+-- Draggable frame (Top Left or saved position)
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 60)
 
--- Load saved position if available
+-- Restore saved position if it exists
 local savedX = gui:GetAttribute("SavedPosX")
 local savedY = gui:GetAttribute("SavedPosY")
 
 if savedX and savedY then
 	frame.Position = UDim2.new(0, savedX, 0, savedY)
 else
-	frame.Position = UDim2.new(1, -210, 0.02, 0) -- default top right
+	frame.Position = UDim2.new(0, 10, 0.02, 0) -- top-left default
 end
 
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Parent = gui
 
--- Rounded corners & stroke
+-- Rounded edges & stroke
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 local stroke = Instance.new("UIStroke", frame)
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-stroke.Color = Color3.fromRGB(80, 80, 80)
+stroke.Color = Color3.fromRGB(90, 90, 90)
 stroke.Thickness = 1.5
 
--- Tween Button
+-- Button inside frame
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(1, -20, 1, -20)
 button.Position = UDim2.new(0, 10, 0, 10)
 button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
-button.Text = "Start Tween"
+button.Text = "Start Cross Country"
 button.Font = Enum.Font.GothamBold
 button.TextSize = 18
-button.AutoButtonColor = true
 button.Parent = frame
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
--- Tween state
-local isTweening = false
-local currentTween = nil
+-- Collect nested BaseParts in order
+local function getAllCheckpoints(folder)
+	local parts = {}
 
--- Tween to part
+	local function collectParts(container)
+		for _, item in ipairs(container:GetChildren()) do
+			if item:IsA("BasePart") then
+				table.insert(parts, item)
+			elseif item:IsA("Folder") or item:IsA("Model") then
+				collectParts(item)
+			end
+		end
+	end
+
+	collectParts(folder)
+	return parts
+end
+
+-- Tween to a part
 local function tweenTo(part)
 	if currentTween then
 		currentTween:Cancel()
@@ -75,37 +90,36 @@ local function tweenTo(part)
 	return tween
 end
 
--- Tween through checkpoints
+-- Tween sequence
 local function tweenSequence()
 	isTweening = true
-	button.Text = "Stop Tween"
+	button.Text = "Stop"
 
-	for i = 1, 6 do
+	local parts = getAllCheckpoints(checkpointsFolder)
+
+	for _, part in ipairs(parts) do
 		if not isTweening then break end
-		local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
-		if checkpoint and checkpoint:IsA("BasePart") then
-			local tween = tweenTo(checkpoint)
-			tween.Completed:Wait()
-			task.wait(0.1)
-		end
+		local tween = tweenTo(part)
+		tween.Completed:Wait()
+		task.wait(0.1)
 	end
 
 	isTweening = false
-	button.Text = "Start Tween"
+	button.Text = "Start Cross Country"
 end
 
--- Button toggle
+-- Button click toggle
 button.MouseButton1Click:Connect(function()
 	if isTweening then
 		isTweening = false
-		button.Text = "Start Tween"
+		button.Text = "Start Cross Country"
 		if currentTween then currentTween:Cancel() end
 	else
 		coroutine.wrap(tweenSequence)()
 	end
 end)
 
--- Better drag support
+-- Better Drag Support
 local dragging, dragInput, dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
@@ -133,8 +147,6 @@ UserInputService.InputChanged:Connect(function(input)
 		local delta = input.Position - dragStart
 		local newPos = startPos + UDim2.new(0, delta.X, 0, delta.Y)
 		frame.Position = newPos
-
-		-- Save position to attributes
 		gui:SetAttribute("SavedPosX", newPos.X.Offset)
 		gui:SetAttribute("SavedPosY", newPos.Y.Offset)
 	end
