@@ -7,7 +7,7 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxSize = Vector3.new(10, 10, 10) -- 10x10x10 box
+	local boxSize = Vector3.new(10, 50, 10) -- Wider and TALLER box
 	local thickness = 0.2 -- Wall thickness
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
@@ -28,11 +28,11 @@ local function createBoxAroundCharacter(char)
 	local rootPos = root.Position
 	local half = boxSize / 2
 
-	-- 4 side walls
-	createWall(rootPos + Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Right
-	createWall(rootPos - Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Left
-	createWall(rootPos + Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Front
-	createWall(rootPos - Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Back
+	-- 4 vertical side walls
+	createWall(rootPos + Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Right wall
+	createWall(rootPos - Vector3.new(half.X, 0, 0), Vector3.new(thickness, boxSize.Y, boxSize.Z)) -- Left wall
+	createWall(rootPos + Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Front wall
+	createWall(rootPos - Vector3.new(0, 0, half.Z), Vector3.new(boxSize.X, boxSize.Y, thickness)) -- Back wall
 
 	-- Floor and ceiling
 	createWall(rootPos - Vector3.new(0, half.Y, 0), Vector3.new(boxSize.X, thickness, boxSize.Z)) -- Floor
@@ -48,7 +48,7 @@ local function destroyBox()
 	end
 end
 
--- Handle keybind
+-- Keybind to destroy box with K
 UserInputService.InputBegan:Connect(function(input, isTyping)
 	if isTyping then return end
 	if input.KeyCode == Enum.KeyCode.K then
