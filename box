@@ -7,11 +7,11 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxWidth = 50
-	local boxDepth = 50
-	local boxHeight = 100
-	local wallThickness = 1
-	local verticalOffset = Vector3.new(0, 20, 0) -- 🔼 raise the whole box
+	local boxWidth = 100 -- way wider
+	local boxDepth = 100 -- way deeper
+	local boxHeight = 200 -- very tall
+	local wallThickness = 2
+	local verticalOffset = Vector3.new(0, boxHeight/2, 0) -- lifts box to start from ground
 
 	local partsFolder = Instance.new("Folder")
 	partsFolder.Name = boxFolderName
@@ -40,16 +40,15 @@ local function createBoxAroundCharacter(char)
 	-- Ceiling
 	createWall(rootPos + Vector3.new(0, halfH, 0), Vector3.new(boxWidth, wallThickness, boxDepth))
 
-	-- Side walls
-	createWall(rootPos + Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Right
-	createWall(rootPos - Vector3.new(halfW, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Left
+	-- Side walls (left & right)
+	createWall(rootPos + Vector3.new(halfW + wallThickness/2, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Right
+	createWall(rootPos - Vector3.new(halfW + wallThickness/2, 0, 0), Vector3.new(wallThickness, boxHeight, boxDepth)) -- Left
 
-	-- Front/back walls
-	createWall(rootPos + Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Front
-	createWall(rootPos - Vector3.new(0, 0, halfD), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Back
+	-- Front & back walls
+	createWall(rootPos + Vector3.new(0, 0, halfD + wallThickness/2), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Front
+	createWall(rootPos - Vector3.new(0, 0, halfD + wallThickness/2), Vector3.new(boxWidth, boxHeight, wallThickness)) -- Back
 end
 
--- Destroy the box
 local function destroyBox()
 	local box = workspace:FindFirstChild(boxFolderName)
 	if box then
@@ -57,7 +56,6 @@ local function destroyBox()
 	end
 end
 
--- Keybind to destroy with K
 UserInputService.InputBegan:Connect(function(input, isTyping)
 	if isTyping then return end
 	if input.KeyCode == Enum.KeyCode.K then
@@ -65,11 +63,9 @@ UserInputService.InputBegan:Connect(function(input, isTyping)
 	end
 end)
 
--- Create box on character load
 local character = player.Character or player.CharacterAdded:Wait()
 createBoxAroundCharacter(character)
 
--- Rebuild on respawn
 player.CharacterAdded:Connect(function(char)
 	task.wait(1)
 	destroyBox()
