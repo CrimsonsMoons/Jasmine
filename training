@@ -1,0 +1,103 @@
+--// Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+--// Player & Character
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+--// Checkpoint folder
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
+	.DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+
+--// Tween Settings (FAST)
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+
+--// Create GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "TweenGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+--// Main draggable frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 60)
+frame.Position = UDim2.new(0.5, -100, 0.85, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Style
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Color = Color3.fromRGB(80, 80, 80)
+stroke.Thickness = 1.5
+stroke.Parent = frame
+
+--// Tween button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(1, -20, 1, -20)
+button.Position = UDim2.new(0, 10, 0, 10)
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Text = "Start Tween"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 18
+button.AutoButtonColor = true
+button.Parent = frame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = button
+
+--// Tween state
+local isTweening = false
+local currentTween = nil
+
+--// Tween to one part
+local function tweenTo(part)
+	if currentTween then
+		currentTween:Cancel()
+	end
+	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
+	currentTween = tween
+	tween:Play()
+	return tween
+end
+
+--// Tween through all 6 checkpoints
+local function tweenSequence()
+	isTweening = true
+	button.Text = "Stop Tween"
+
+	for i = 1, 6 do
+		if not isTweening then break end
+		local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+		if checkpoint and checkpoint:IsA("BasePart") then
+			local tween = tweenTo(checkpoint)
+			tween.Completed:Wait()
+			task.wait(0.05)
+		end
+	end
+
+	isTweening = false
+	button.Text = "Start Tween"
+end
+
+--// Button behavior
+button.MouseButton1Click:Connect(function()
+	if isTweening then
+		isTweening = false
+		button.Text = "Start Tween"
+		if currentTween then currentTween:Cancel() end
+	else
+		coroutine.wrap(tweenSequence)()
+	end
+end)
