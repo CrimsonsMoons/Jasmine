@@ -141,9 +141,38 @@ TrainSection:NewToggle("Hurry Scurry", "Auto-tween through Outdoor Arena checkpo
     end
 end)
 
--- === Single Checkpoint Route Button ===
-TrainSection:NewButton("Single", "Loop 1–4 checkpoints with tween", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/Tab%3ATrain%3ASingle"))();
+-- === Single Checkpoint Route Toggle ===
+local singleEnabled = false
+
+TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(state)
+    singleEnabled = state
+    if state then
+        coroutine.wrap(function()
+            local checkpointOrder = {"1", "2", "3", "4"}
+            local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes.Checkpoints
+            local TweenService = game:GetService("TweenService")
+            local moveTime = 1
+            local waitTime = 0.6
+
+            while singleEnabled do
+                for _, checkpointName in ipairs(checkpointOrder) do
+                    if not singleEnabled then break end
+
+                    local checkpoint = checkpoints:FindFirstChild(checkpointName)
+                    if checkpoint and checkpoint:IsA("BasePart") then
+                        local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+
+                        local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
+                        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = goalCFrame})
+                        tween:Play()
+                        tween.Completed:Wait()
+
+                        task.wait(waitTime)
+                    end
+                end
+            end
+        end)()
+    end
 end)
 
 -- === Trap Character Button ===
