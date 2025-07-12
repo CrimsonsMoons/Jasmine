@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
@@ -12,6 +13,26 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
 local checkpointOrder = {"1", "2", "3", "4"}
 local teleportDelay = 0.4
 local teleporting = false
+
+-- Freeze helper functions
+local function freezeCharacter()
+    humanoidRootPart.Anchored = true
+    humanoid.AutoRotate = false
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
+
+    -- Disable animations
+    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+        track:Stop()
+    end
+end
+
+local function unfreezeCharacter()
+    humanoidRootPart.Anchored = false
+    humanoid.AutoRotate = true
+    humanoid.WalkSpeed = 16
+    humanoid.JumpPower = 50
+end
 
 -- Simple GUI Setup
 local gui = Instance.new("ScreenGui")
@@ -27,18 +48,20 @@ button.Parent = gui
 local function startTeleporting()
     teleporting = true
     button.Text = "Stop"
+    freezeCharacter()
+    
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                humanoidRootPart.Anchored = true
                 humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
-                humanoidRootPart.Anchored = false
             end
             task.wait(teleportDelay)
         end
     end
+
+    unfreezeCharacter()
     button.Text = "Start"
 end
 
