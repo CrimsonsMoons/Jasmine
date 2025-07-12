@@ -7,8 +7,8 @@ local boxFolderName = "BoxTrap"
 local function createBoxAroundCharacter(char)
 	local root = char:WaitForChild("HumanoidRootPart")
 
-	local boxSize = Vector3.new(6, 8, 6) -- Size of the entire box
-	local thickness = 0.2 -- Wall thickness
+	local boxSize = Vector3.new(15, 15, 15) -- Size of the entire box
+	local thickness = 0.1 -- Wall thickness
 	local height = boxSize.Y
 
 	local partsFolder = Instance.new("Folder")
