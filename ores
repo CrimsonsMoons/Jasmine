@@ -9,8 +9,8 @@ local TeleportSection = TeleportTab:NewSection("Teleport Controls")
 local TravelTab = Window:NewTab("Island Travel")
 local TravelSection = TravelTab:NewSection("Quick TP Buttons")
 
-local OresTab = Window:NewTab("Ores")
-local OresSection = OresTab:NewSection("Universal Ore Teleport")
+local TrainTab = Window:NewTab("Train")
+local TrainSection = TrainTab:NewSection("Training Features")
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -103,44 +103,37 @@ for islandName, _ in pairs(islandConfigs) do
     createTravelButton(islandName)
 end
 
--- === Universal Ore Teleport ===
-local universalOreTP = false
+-- === Hurry Scurry Tween Toggle ===
+local hurryScurryEnabled = false
 
-OresSection:NewToggle("Teleport All Ores (All Islands)", "Teleports to every ore in 'Meshes/Rocks 2' and 'Rocks' folders across all islands", function(state)
-    universalOreTP = state
-end)
+TrainSection:NewToggle("Hurry Scurry", "Auto-tween through Outdoor Arena checkpoints", function(state)
+    hurryScurryEnabled = state
+    if state then
+        coroutine.wrap(function()
+            local TweenService = game:GetService("TweenService")
+            local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+            local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+            local currentTween = nil
 
-task.spawn(function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local hrp = character:WaitForChild("HumanoidRootPart")
+            local function tweenTo(part)
+                if currentTween then currentTween:Cancel() end
+                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
+                currentTween = tween
+                tween:Play()
+                return tween
+            end
 
-    local islands = workspace:WaitForChild("Islands")
-
-    while true do
-        if universalOreTP then
-            for _, island in ipairs(islands:GetChildren()) do
-                for _, instance in ipairs(island:GetDescendants()) do
-                    if (instance.Name == "Meshes/Rocks 2" or instance.Name == "Rocks") and instance:IsA("Folder") then
-                        for _, ore in ipairs(instance:GetChildren()) do
-                            if not universalOreTP then break end
-
-                            local part = ore:IsA("BasePart") and ore
-                                or (ore:IsA("Model") and ore:FindFirstChild("Main"))
-
-                            if part and part:IsA("BasePart") then
-                                hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, 5, 0))
-
-                                while universalOreTP and part:IsDescendantOf(workspace) do
-                                    task.wait(0.1)
-                                end
-                            end
-                        end
+            while hurryScurryEnabled do
+                for i = 1, 6 do
+                    if not hurryScurryEnabled then break end
+                    local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+                    if checkpoint and checkpoint:IsA("BasePart") then
+                        local tween = tweenTo(checkpoint)
+                        tween.Completed:Wait()
+                        task.wait(0.1)
                     end
                 end
             end
-        else
-            task.wait(0.5)
-        end
+        end)()
     end
 end)
