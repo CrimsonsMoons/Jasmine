@@ -29,26 +29,7 @@ toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 20
 toggleButton.Parent = screenGui
 
--- Weld and teleport function
-local function teleportAndWeldToCheckpoint(checkpoint)
-    -- Remove existing weld
-    local existingWeld = humanoidRootPart:FindFirstChild("CheckpointWeld")
-    if existingWeld then
-        existingWeld:Destroy()
-    end
-
-    -- Move character above checkpoint
-    humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
-
-    -- Weld character to checkpoint
-    local weld = Instance.new("WeldConstraint")
-    weld.Name = "CheckpointWeld"
-    weld.Part0 = humanoidRootPart
-    weld.Part1 = checkpoint
-    weld.Parent = humanoidRootPart
-end
-
--- Teleport loop
+-- Teleport loop with freeze
 local function startTeleporting()
     teleporting = true
     toggleButton.Text = "Stop Teleport"
@@ -58,7 +39,14 @@ local function startTeleporting()
             if not teleporting then break end
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                teleportAndWeldToCheckpoint(checkpoint)
+                -- Freeze character
+                humanoidRootPart.Anchored = true
+
+                -- Move to checkpoint with slight offset
+                humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 1, 0)
+
+                -- Unfreeze character
+                humanoidRootPart.Anchored = false
             end
             task.wait(teleportDelay)
         end
@@ -73,11 +61,6 @@ toggleButton.MouseButton1Click:Connect(function()
     if teleporting then
         task.spawn(startTeleporting)
     else
-        -- Stop teleport loop and remove any existing weld
-        local existingWeld = humanoidRootPart:FindFirstChild("CheckpointWeld")
-        if existingWeld then
-            existingWeld:Destroy()
-        end
         toggleButton.Text = "Start Teleport"
     end
 end)
