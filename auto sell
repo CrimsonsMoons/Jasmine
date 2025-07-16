@@ -1,26 +1,46 @@
--- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Hardcoded known-good index (change to 17, 18, etc. if needed)
-local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
-    :WaitForChild("Events", 9e9):GetChildren()[18] -- <-- Update this index as needed
+-- 🔁 Remote indices to test
+local POSSIBLE_INDICES = {17, 18, 16}
 
--- Check if it's a valid UUID
+-- ✅ Find the correct SellItems remote
+local function findWorkingRemote()
+    local events = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
+    for _, index in ipairs(POSSIBLE_INDICES) do
+        local remote = events:GetChildren()[index]
+        if remote and remote:IsA("RemoteEvent") then
+            local success = pcall(function()
+                remote:FireServer("SellItems", {})
+            end)
+            if success then
+                print("✅ Found SellItems remote at index:", index)
+                return remote
+            end
+        end
+    end
+    error("❌ Could not find working SellItems remote.")
+end
+
+local sellRemote = findWorkingRemote()
+
+-- 🧠 UUID checker
 local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- Get the correct UUID list folder dynamically
-local function getUUIDListFolder()
-    local contentList
-    pcall(function()
-        contentList = LocalPlayer.PlayerGui.Menus.Backpack.Main.Inventory.Content.List
-    end)
-    if not contentList then return nil end
+-- 🔍 Scan for folder containing UUID items
+local function findListFolder()
+    local listRoot = LocalPlayer:WaitForChild("PlayerGui")
+        :WaitForChild("Menus")
+        :WaitForChild("Backpack")
+        :WaitForChild("Main")
+        :WaitForChild("Inventory")
+        :WaitForChild("Content")
+        :WaitForChild("List")
 
-    for _, folder in ipairs(contentList:GetChildren()) do
+    for _, folder in ipairs(listRoot:GetChildren()) do
         local list = folder:FindFirstChild("List")
         if list then
             for _, item in ipairs(list:GetChildren()) do
@@ -30,12 +50,14 @@ local function getUUIDListFolder()
             end
         end
     end
+
+    warn("❌ No valid inventory list folder found.")
     return nil
 end
 
--- Build the exact args table you used manually
-local function buildArgs()
-    local listFolder = getUUIDListFolder()
+-- 💰 Build sell table
+local function buildSellTable()
+    local listFolder = findListFolder()
     if not listFolder then return nil end
 
     local sellTable = {}
@@ -46,25 +68,17 @@ local function buildArgs()
             sellTable[item.Name] = 1
         end
     end
-
-    if next(sellTable) then
-        return {
-            [1] = "SellItems",
-            [2] = sellTable
-        }
-    end
-
-    return nil
+    return sellTable
 end
 
--- Auto-sell loop using unpack(args)
+-- 🔁 Auto-sell loop
 while true do
-    local args = buildArgs()
-    if args then
-        sellRemote:FireServer(unpack(args)) -- ✅ MATCHES YOUR WORKING FORMAT
-        print("✅ Sold items:", args[2])
+    local sellTable = buildSellTable()
+    if sellTable and next(sellTable) then
+        sellRemote:FireServer("SellItems", sellTable)
+        print("✅ Sold:", sellTable)
     else
-        print("⚠️ Nothing to sell or folder missing.")
+        print("⚠️ No sellable items found.")
     end
     task.wait(5)
 end
