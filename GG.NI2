@@ -218,8 +218,19 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in Mainland"
 
             while autoCatchEnabled do
                 local playerPos = getPlayerPosition()
+
                 if playerPos then
                     for _, child in ipairs(mainland:GetChildren()) do
+                        if isUUIDName(child.Name) and child:FindFirstChild("Body") and not exclusions[child.Name] then
+                            local targetPart = child:FindFirstChild("Body")
+                            local distance = (targetPart.Position - playerPos).Magnitude
+                            if distance <= 10 then
+                                remote:FireServer(TOOL_UUID, "Activate", child)
+                            end
+                        end
+                    end
+
+                    for _, child in ipairs(Workspace:GetChildren()) do
                         if isUUIDName(child.Name) and child:FindFirstChild("Body") and not exclusions[child.Name] then
                             local targetPart = child:FindFirstChild("Body")
                             local distance = (targetPart.Position - playerPos).Magnitude
@@ -229,6 +240,7 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in Mainland"
                         end
                     end
                 end
+
                 task.wait(0.01)
             end
         end)()
