@@ -1,55 +1,84 @@
+-- SERVICES
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Use the known working index you tested (update if needed)
-local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
-    :WaitForChild("Events", 9e9):GetChildren()[17] -- ✅ Change this if needed
-
--- List folder with UUIDs
-local listFolder = LocalPlayer:WaitForChild("PlayerGui")
-    :WaitForChild("Menus")
-    :WaitForChild("Backpack")
-    :WaitForChild("Main")
-    :WaitForChild("Inventory")
-    :WaitForChild("Content")
-    :WaitForChild("List"):GetChildren()[9]
-    :WaitForChild("List")
-
--- Check if the name is UUID format
-local function isUUID(name)
-    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+-- 🧠 DYNAMIC SELL REMOTE DETECTION
+local function getSellItemsRemote()
+    local events = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
+    for _, remote in ipairs(events:GetChildren()) do
+        if remote:IsA("RemoteEvent") then
+            -- Try calling it with fake data to check response
+            local success = pcall(function()
+                remote:FireServer("SellItems", {})
+            end)
+            if success then
+                print("✅ Found SellItems Remote:", remote:GetFullName())
+                return remote
+            end
+        end
+    end
+    error("❌ Could not find SellItems RemoteEvent.")
 end
 
--- Sell function with debug
-local function sellAllUnlocked()
+local sellRemote = getSellItemsRemote()
+
+-- 🔍 UUID ITEMS LIST LOCATION
+local function getUUIDListFolder()
+    local contentList = LocalPlayer:WaitForChild("PlayerGui")
+        :WaitForChild("Menus")
+        :WaitForChild("Backpack")
+        :WaitForChild("Main")
+        :WaitForChild("Inventory")
+        :WaitForChild("Content")
+        :WaitForChild("List")
+
+    local ninthSlot = contentList:GetChildren()[9]
+    return ninthSlot and ninthSlot:FindFirstChild("List")
+end
+
+-- 🧹 UUID FORMAT CHECK
+local function isUUID(str)
+    return typeof(str) == "string" and str:match("^%b{}$") ~= nil
+end
+
+-- 💰 BUILD SELL TABLE (skipping Locked & Special)
+local function buildSellTable()
     local sellTable = {}
+    local listFolder = getUUIDListFolder()
+    if not listFolder then return {} end
 
     for _, item in ipairs(listFolder:GetChildren()) do
-        local isLocked = item:FindFirstChild("Locked")
-        local isSpecial = item:FindFirstChild("SpecialIndicator")
-
-        if isUUID(item.Name) and not isLocked and not isSpecial then
+        if isUUID(item.Name)
+            and not item:FindFirstChild("Locked")
+            and not item:FindFirstChild("SpecialIndicator") then
             sellTable[item.Name] = 1
         end
     end
 
-    if next(sellTable) then
-        print("✅ Attempting to sell:", sellTable)
+    return sellTable
+end
 
+-- 🧠 SELL FUNCTION
+local function sellAllUnlocked()
+    local sellTable = buildSellTable()
+    if next(sellTable) then
         local args = {
             [1] = "SellItems",
             [2] = sellTable
         }
-
         sellRemote:FireServer(unpack(args))
+        print("✅ Auto-sold items:", sellTable)
     else
-        warn("⚠️ Nothing to sell: either all locked/special or missing UUIDs.")
+        warn("⚠️ No sellable items (Locked or Special).")
     end
 end
 
--- Run every 5 seconds
-while true do
-    sellAllUnlocked()
-    task.wait(5)
-end
+-- 🔁 AUTO SELL LOOP
+local INTERVAL = 5 -- Seconds
+task.spawn(function()
+    while true do
+        sellAllUnlocked()
+        task.wait(INTERVAL)
+    end
+end)
