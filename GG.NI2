@@ -245,43 +245,54 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
     end
 end)
 
--- === Sell All Button ===
-AutoSection:NewButton("Sell All", "Sells all non-locked, non-special items", function()
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local LocalPlayer = Players.LocalPlayer
+-- === Auto Sell Toggle ===
+local autoSellEnabled = false
 
-    local listFolder = LocalPlayer:WaitForChild("PlayerGui")
-        :WaitForChild("Menus")
-        :WaitForChild("Backpack")
-        :WaitForChild("Main")
-        :WaitForChild("Inventory")
-        :WaitForChild("Content")
-        :WaitForChild("List"):GetChildren()[9]
-        :WaitForChild("List")
+AutoSection:NewToggle("Auto Sell", "Sells all non-locked, non-special items every 5s", function(state)
+    autoSellEnabled = state
+    if state then
+        coroutine.wrap(function()
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local LocalPlayer = Players.LocalPlayer
 
-    local remote = ReplicatedStorage:WaitForChild("Communication")
-        :WaitForChild("Events"):GetChildren()[18]
+            local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
+                :WaitForChild("Events", 9e9):GetChildren()[17]
 
-    local function isUUID(name)
-        return typeof(name) == "string" and name:match("^%b{}$") ~= nil
-    end
+            local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+                :WaitForChild("Menus")
+                :WaitForChild("Backpack")
+                :WaitForChild("Main")
+                :WaitForChild("Inventory")
+                :WaitForChild("Content")
+                :WaitForChild("List"):GetChildren()[9]
+                :WaitForChild("List")
 
-    local sellTable = {}
-    for _, item in ipairs(listFolder:GetChildren()) do
-        if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
-            sellTable[item.Name] = 1
-        end
-    end
+            local function isUUID(name)
+                return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+            end
 
-    if next(sellTable) then
-        local args = {
-            [1] = "SellItems",
-            [2] = sellTable
-        }
-        remote:FireServer(unpack(args))
-        print("✅ Sold items (excluding Locked & Special):", sellTable)
-    else
-        warn("⚠️ No sellable UUIDs found (all Locked or Special).")
+            while autoSellEnabled do
+                local sellTable = {}
+                for _, item in ipairs(listFolder:GetChildren()) do
+                    if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
+                        sellTable[item.Name] = 1
+                    end
+                end
+
+                if next(sellTable) then
+                    local args = {
+                        [1] = "SellItems",
+                        [2] = sellTable
+                    }
+                    sellRemote:FireServer(unpack(args))
+                    print("✅ Sold:", sellTable)
+                else
+                    warn("⚠️ Nothing to sell (Locked or Special only)")
+                end
+
+                task.wait(5)
+            end
+        end)()
     end
 end)
