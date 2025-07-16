@@ -291,8 +291,49 @@ AutoSection:NewToggle("Auto Sell", "Sells all non-locked, non-special items ever
                     warn("⚠️ Nothing to sell (Locked or Special only)")
                 end
 
-                task.wait(.5)
+                task.wait(5)
             end
         end)()
+    end
+end)
+
+-- === Manual Sell Button ===
+AutoSection:NewButton("Sell All 1", "Sells unlocked + non-special backpack UUIDs", function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local LocalPlayer = Players.LocalPlayer
+
+    local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+        :WaitForChild("Menus")
+        :WaitForChild("Backpack")
+        :WaitForChild("Main")
+        :WaitForChild("Inventory")
+        :WaitForChild("Content")
+        :WaitForChild("List"):GetChildren()[9]
+        :WaitForChild("List")
+
+    local remote = ReplicatedStorage:WaitForChild("Communication")
+        :WaitForChild("Events"):GetChildren()[18]
+
+    local function isUUID(name)
+        return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+    end
+
+    local sellTable = {}
+    for _, item in ipairs(listFolder:GetChildren()) do
+        if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
+            sellTable[item.Name] = 1
+        end
+    end
+
+    if next(sellTable) then
+        local args = {
+            [1] = "SellItems",
+            [2] = sellTable
+        }
+        remote:FireServer(unpack(args))
+        print("✅ Sold items (excluding Locked & Special):", sellTable)
+    else
+        warn("⚠️ No sellable UUIDs found (all Locked or Special).")
     end
 end)
