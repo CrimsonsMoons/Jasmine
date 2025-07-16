@@ -177,7 +177,7 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
--- === Auto Catch Toggle (with multiple tools) ===
+-- === Auto Catch Toggle (All Islands with Recursion) ===
 local autoCatchEnabled = false
 
 AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islands", function(state)
@@ -196,10 +196,7 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
                 "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
                 "{06905d54-7826-417e-bfc7-82d326a30885}",
                 "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
-                "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
-                "{}",
-                "{}",
-                "{}"
+                "{5dab28e4-4bfb-430b-86fe-530bafa237b5}"
             }
             local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
 
@@ -225,34 +222,23 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
                 end
             end
 
-            while autoCatchEnabled do
-                local playerPos = getPlayerPosition()
-                if playerPos then
-                    for _, island in ipairs(Workspace.Islands:GetChildren()) do
-                        for _, child in ipairs(island:GetChildren()) do
-                            if isUUIDName(child.Name) and child:FindFirstChild("Body") and not exclusions[child.Name] then
-                                local targetPart = child:FindFirstChild("Body")
-                                local distance = (targetPart.Position - playerPos).Magnitude
-                                if distance <= 15 then
-                                    for _, toolId in ipairs(TOOL_UUIDS) do
-                                        remote:FireServer(toolId, "Activate", child)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    for _, child in ipairs(Workspace:GetChildren()) do
-                        if isUUIDName(child.Name) and child:FindFirstChild("Body") and not exclusions[child.Name] then
-                            local targetPart = child:FindFirstChild("Body")
-                            local distance = (targetPart.Position - playerPos).Magnitude
-                            if distance <= 15 then
-                                for _, toolId in ipairs(TOOL_UUIDS) do
-                                    remote:FireServer(toolId, "Activate", child)
-                                end
+            local function scanForAnimals(folder)
+                for _, descendant in ipairs(folder:GetDescendants()) do
+                    if isUUIDName(descendant.Name) and descendant:FindFirstChild("Body") and not exclusions[descendant.Name] then
+                        local targetPart = descendant:FindFirstChild("Body")
+                        local distance = (targetPart.Position - getPlayerPosition()).Magnitude
+                        if distance <= 15 then
+                            for _, toolId in ipairs(TOOL_UUIDS) do
+                                remote:FireServer(toolId, "Activate", descendant)
                             end
                         end
                     end
                 end
+            end
+
+            while autoCatchEnabled do
+                scanForAnimals(Workspace.Islands)
+                scanForAnimals(Workspace)
                 task.wait(0.01)
             end
         end)()
