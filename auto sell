@@ -1,98 +1,70 @@
--- SERVICES
+-- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- ⏳ Wait until the backpack GUI exists
-local function waitForInventoryList()
-	local maxTries = 30
-	while maxTries > 0 do
-		local success, result = pcall(function()
-			local contentList = LocalPlayer.PlayerGui.Menus.Backpack.Main.Inventory.Content.List
-			return contentList
-		end)
-		if success and result then return result end
-		maxTries -= 1
-		task.wait(0.5)
-	end
-	warn("❌ Failed to find inventory content list.")
-	return nil
-end
+-- Hardcoded known-good index (change to 17, 18, etc. if needed)
+local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9):GetChildren()[18] -- <-- Update this index as needed
 
--- 🔍 Find the correct UUID folder dynamically
-local function getUUIDListFolder()
-	local contentList = waitForInventoryList()
-	if not contentList then return end
-
-	for _, child in ipairs(contentList:GetChildren()) do
-		local list = child:FindFirstChild("List")
-		if list then
-			for _, item in ipairs(list:GetChildren()) do
-				if typeof(item.Name) == "string" and item.Name:match("^%b{}$") then
-					return list
-				end
-			end
-		end
-	end
-
-	warn("⚠️ No valid UUID folder found in inventory list.")
-	return nil
-end
-
--- 🧠 Try to detect the right SellItems RemoteEvent
-local function findSellRemote()
-	local events = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
-	for _, remote in ipairs(events:GetChildren()) do
-		if remote:IsA("RemoteEvent") then
-			local success = pcall(function()
-				remote:FireServer("SellItems", {}) -- harmless test
-			end)
-			if success then
-				print("✅ Found SellItems remote:", remote:GetFullName())
-				return remote
-			end
-		end
-	end
-	warn("❌ Could not auto-detect SellItems remote.")
-	return nil
-end
-
-local sellRemote = findSellRemote()
-
--- 📦 UUID name checker
+-- Check if it's a valid UUID
 local function isUUID(name)
-	return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- 💰 Build sell table (skip Locked & Special)
-local function buildSellTable(listFolder)
-	local sellTable = {}
-	for _, item in ipairs(listFolder:GetChildren()) do
-		if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
-			sellTable[item.Name] = 1
-		end
-	end
-	return sellTable
+-- Get the correct UUID list folder dynamically
+local function getUUIDListFolder()
+    local contentList
+    pcall(function()
+        contentList = LocalPlayer.PlayerGui.Menus.Backpack.Main.Inventory.Content.List
+    end)
+    if not contentList then return nil end
+
+    for _, folder in ipairs(contentList:GetChildren()) do
+        local list = folder:FindFirstChild("List")
+        if list then
+            for _, item in ipairs(list:GetChildren()) do
+                if isUUID(item.Name) then
+                    return list
+                end
+            end
+        end
+    end
+    return nil
 end
 
--- 🚀 Main sell loop
-local function startAutoSellLoop(interval)
-	while true do
-		if sellRemote then
-			local listFolder = getUUIDListFolder()
-			if listFolder then
-				local sellTable = buildSellTable(listFolder)
-				if next(sellTable) then
-					sellRemote:FireServer("SellItems", sellTable)
-					print("✅ Auto-sold:", sellTable)
-				else
-					print("⚠️ No sellable items found.")
-				end
-			end
-		end
-		task.wait(interval)
-	end
+-- Build the exact args table you used manually
+local function buildArgs()
+    local listFolder = getUUIDListFolder()
+    if not listFolder then return nil end
+
+    local sellTable = {}
+    for _, item in ipairs(listFolder:GetChildren()) do
+        if isUUID(item.Name)
+        and not item:FindFirstChild("Locked")
+        and not item:FindFirstChild("SpecialIndicator") then
+            sellTable[item.Name] = 1
+        end
+    end
+
+    if next(sellTable) then
+        return {
+            [1] = "SellItems",
+            [2] = sellTable
+        }
+    end
+
+    return nil
 end
 
--- 🔁 Start the loop (adjust interval here)
-startAutoSellLoop(5) -- every 5 seconds
+-- Auto-sell loop using unpack(args)
+while true do
+    local args = buildArgs()
+    if args then
+        sellRemote:FireServer(unpack(args)) -- ✅ MATCHES YOUR WORKING FORMAT
+        print("✅ Sold items:", args[2])
+    else
+        print("⚠️ Nothing to sell or folder missing.")
+    end
+    task.wait(5)
+end
