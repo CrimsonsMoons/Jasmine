@@ -291,7 +291,7 @@ AutoSection:NewToggle("Auto Sell", "Sells all non-locked, non-special items ever
                     warn("⚠️ Nothing to sell (Locked or Special only)")
                 end
 
-                task.wait(5)
+                task.wait(.5)
             end
         end)()
     end
