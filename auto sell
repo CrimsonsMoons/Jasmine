@@ -80,5 +80,5 @@ while true do
     else
         print("⚠️ No sellable items found.")
     end
-    task.wait(5)
+    task.wait(.1)
 end
