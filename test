@@ -1,12 +1,9 @@
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- ✅ Confirmed working SellItems remote index
-local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
-    :WaitForChild("Events", 9e9):GetChildren()[17]
-
--- 📦 UUID list location
+-- Get the item list folder
 local listFolder = LocalPlayer:WaitForChild("PlayerGui")
     :WaitForChild("Menus")
     :WaitForChild("Backpack")
@@ -16,31 +13,31 @@ local listFolder = LocalPlayer:WaitForChild("PlayerGui")
     :WaitForChild("List"):GetChildren()[9]
     :WaitForChild("List")
 
--- 🧠 UUID name checker
+-- SellItems RemoteEvent
+local remote = ReplicatedStorage:WaitForChild("Communication")
+    :WaitForChild("Events"):GetChildren()[18]
+
+-- Helper: Check for UUID format
 local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- 💰 Sell function
-local function sellAllUnlocked()
-    local sellTable = {}
-    for _, item in ipairs(listFolder:GetChildren()) do
-        if isUUID(item.Name)
-            and not item:FindFirstChild("Locked")
-            and not item:FindFirstChild("SpecialIndicator") then
-            sellTable[item.Name] = 1
-        end
-    end
-
-    if next(sellTable) then
-        local args = {
-            [1] = "SellItems",
-            [2] = sellTable
-        }
-        sellRemote:FireServer(unpack(args))
-        print("✅ Sold:", sellTable)
-    else
-        warn("⚠️ Nothing to sell (Locked or Special only)")
+-- Build sell list, skipping Locked and Special items
+local sellTable = {}
+for _, item in ipairs(listFolder:GetChildren()) do
+    if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
+        sellTable[item.Name] = 1
     end
 end
 
+-- Fire the remote if there's anything to sell
+if next(sellTable) then
+    local args = {
+        [1] = "SellItems",
+        [2] = sellTable
+    }
+    remote:FireServer(unpack(args))
+    print("✅ Sold items (excluding Locked & Special):", sellTable)
+else
+    warn("⚠️ No sellable UUIDs found (all Locked or Special).")
+end
