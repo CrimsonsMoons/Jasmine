@@ -23,6 +23,7 @@ local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
+local explorerFolder = workspace:FindFirstChild("Explorer")
 
 -- === Island Configuration ===
 local islandConfigs = {
@@ -44,6 +45,7 @@ for _, config in pairs(islandConfigs) do
     config["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true
     config["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true
     config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
+    config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
     config["Horse"] = true
     config["Travel Boat"] = true
 end
@@ -59,7 +61,7 @@ for islandName, excludedIds in pairs(islandConfigs) do
     end)
 
     task.spawn(function()
-        local folder = islandsFolder:FindFirstChild(islandName)
+        local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
         if not folder then warn("Island not found: " .. islandName) return end
         while true do
             if teleportToggles[islandName] then
