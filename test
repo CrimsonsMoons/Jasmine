@@ -4,11 +4,19 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Events = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
-local remote = Events:GetChildren()[13] -- Adjust this index if needed
 
--- Island folders to search
-local islandNames = {
+-- Tool UUIDs
+local TOOL_UUIDS = {
+    "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
+    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+    "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
+    "{06905d54-7826-417e-bfc7-82d326a30885}",
+    "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
+    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+}
+
+-- All island folders to scan
+local islandConfigs = {
     "Mainland",
     "Forest Island",
     "Mountain Island",
@@ -17,20 +25,14 @@ local islandNames = {
     "Blizzard Island",
     "Jungle Island",
     "Volcano Island",
-    "Desert Island"
+    "Desert Island",
 }
 
--- All tool UUIDs
-local TOOL_UUIDS = {
-    "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
-    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
-    "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
-    "{06905d54-7826-417e-bfc7-82d326a30885}",
-    "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
-    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}"
-}
+-- Remote Events (try all in case different tools use different ones)
+local eventFolder = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
+local allRemotes = eventFolder:GetChildren()
 
--- Skip these
+-- Exclusions (names or UUIDs to skip)
 local exclusions = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
@@ -42,40 +44,41 @@ local exclusions = {
     ["Travel Boat"] = true,
 }
 
--- Checks for UUID string
-local function isUUID(str)
-    return typeof(str) == "string" and str:match("^%b{}$") ~= nil
+-- Utility
+local function isUUIDName(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- Player position
-local function getPlayerPos()
+local function getPlayerPosition()
     local root = Character:FindFirstChild("HumanoidRootPart")
     return root and root.Position
 end
 
--- Auto catcher loop
-local autoCatch = true
-while autoCatch do
-    local pos = getPlayerPos()
-    if pos then
-        for _, islandName in ipairs(islandNames) do
-            local island = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
-            if island then
-                for _, creature in ipairs(island:GetChildren()) do
-                    if isUUID(creature.Name) and creature:FindFirstChild("Body") and not exclusions[creature.Name] then
-                        local body = creature.Body
-                        local distance = (body.Position - pos).Magnitude
-                        if distance <= 15 then
-                            for _, toolID in ipairs(TOOL_UUIDS) do
-                                pcall(function()
-                                    remote:FireServer(toolID, "Activate", creature)
-                                end)
+-- Auto catcher main loop
+local autoCatchEnabled = true
+
+task.spawn(function()
+    while autoCatchEnabled do
+        local playerPos = getPlayerPosition()
+        if playerPos then
+            for _, islandName in ipairs(islandConfigs) do
+                local island = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
+                if island then
+                    for _, model in ipairs(island:GetChildren()) do
+                        if isUUIDName(model.Name) and not exclusions[model.Name] and model:FindFirstChild("Body") then
+                            local distance = (model.Body.Position - playerPos).Magnitude
+                            if distance <= 15 then
+                                for _, uuid in ipairs(TOOL_UUIDS) do
+                                    for _, remote in ipairs(allRemotes) do
+                                        remote:FireServer(uuid, "Activate", model)
+                                    end
+                                end
                             end
                         end
                     end
                 end
             end
         end
+        task.wait(0.05)
     end
-    task.wait(0.05)
-end
+end)
