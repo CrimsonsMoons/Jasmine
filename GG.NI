@@ -139,6 +139,7 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
                 "{06905d54-7826-417e-bfc7-82d326a30885}",
                 "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
                 "{5dab28e4-4bfb-430b-86fe-530bafa237b5}"
+                "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}"
             }
             local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
 
