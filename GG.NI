@@ -15,9 +15,6 @@ local TrainSection = TrainTab:NewSection("Training Features")
 local AutoTab = Window:NewTab("Auto")
 local AutoSection = AutoTab:NewSection("Automation")
 
-local ShopTab = Window:NewTab("Shop")
-local ShopSection = ShopTab:NewSection("Shop Items")
-
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
@@ -139,7 +136,6 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
                 "{06905d54-7826-417e-bfc7-82d326a30885}",
                 "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
                 "{5dab28e4-4bfb-430b-86fe-530bafa237b5}"
-                "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}"
             }
             local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
 
@@ -182,7 +178,7 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
             while autoCatchEnabled do
                 scanForAnimals(Workspace.Islands)
                 scanForAnimals(Workspace)
-                task.wait(0.5)
+                task.wait(0.01)
             end
         end)()
     end
@@ -273,57 +269,4 @@ AutoSection:NewToggle("Auto Sell", "Auto sells unlocked & non-special items ever
             task.wait(5)
         end
     end)
-end)
-
--- === New Auto Sell 3 Toggle ===
-local autoSell3Enabled = false
-AutoSection:NewToggle("Auto Sell 3", "Runs auto sell 3 script every 0.5 seconds", function(state)
-    autoSell3Enabled = state
-    if state then
-        task.spawn(function()
-            while autoSell3Enabled do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3", true))()
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
--- === Shop Buttons ===
-ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
-    local args = {
-        [1] = "BuyShopItem";
-        [2] = "Mainland Shop";
-        [3] = 1;
-        [4] = 1000;
-    }
-
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
-end)
-
-ShopSection:NewButton("Tin", "Buys Tin from Mainland Shop", function()
-    local args = {
-        [1] = "BuyShopItem";
-        [2] = "Mainland Shop";
-        [3] = 10;
-        [4] = 1000;
-    }
-
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
-end)
-
-ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
-    local args = {
-        [1] = "Craft";
-        [2] = {
-            ["id"] = 18;
-            ["variants"] = {};
-            ["amt"] = 1000;
-        };
-    }
-
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
