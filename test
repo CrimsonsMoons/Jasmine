@@ -3,7 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Character = LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
+local Backpack = LocalPlayer:WaitForChild("Backpack")
 
 -- Tool UUIDs
 local TOOL_UUIDS = {
@@ -15,25 +16,19 @@ local TOOL_UUIDS = {
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
 }
 
--- All island folders to scan
-local islandConfigs = {
-    "Mainland",
-    "Forest Island",
-    "Mountain Island",
-    "Lunar Islands",
-    "Royal Island",
-    "Blizzard Island",
-    "Jungle Island",
-    "Volcano Island",
-    "Desert Island",
+-- Remote events
+local EventFolder = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
+local AllRemotes = EventFolder:GetChildren()
+
+-- Islands to scan
+local IslandNames = {
+    "Mainland", "Forest Island", "Mountain Island",
+    "Lunar Islands", "Royal Island", "Blizzard Island",
+    "Jungle Island", "Volcano Island", "Desert Island"
 }
 
--- Remote Events (try all in case different tools use different ones)
-local eventFolder = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
-local allRemotes = eventFolder:GetChildren()
-
--- Exclusions (names or UUIDs to skip)
-local exclusions = {
+-- Exclusion UUIDs or names
+local Excluded = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
     ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
@@ -44,32 +39,49 @@ local exclusions = {
     ["Travel Boat"] = true,
 }
 
--- Utility
-local function isUUIDName(name)
+-- Check if name looks like a UUID
+local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
-local function getPlayerPosition()
-    local root = Character:FindFirstChild("HumanoidRootPart")
-    return root and root.Position
+-- Equip any tool from backpack matching tool UUID
+local function equipToolMatchingUUID()
+    for _, tool in ipairs(Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local toolId = tostring(tool:GetAttribute("UUID") or tool.Name)
+            for _, validId in ipairs(TOOL_UUIDS) do
+                if toolId == validId then
+                    print("[EQUIP] Tool: " .. tool.Name)
+                    tool.Parent = Character
+                    return true
+                end
+            end
+        end
+    end
+    warn("No tool equipped")
+    return false
 end
 
--- Auto catcher main loop
-local autoCatchEnabled = true
-
+-- Main loop
 task.spawn(function()
-    while autoCatchEnabled do
-        local playerPos = getPlayerPosition()
-        if playerPos then
-            for _, islandName in ipairs(islandConfigs) do
+    while true do
+        equipToolMatchingUUID() -- try equip each loop (for testing)
+        local root = Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            for _, islandName in ipairs(IslandNames) do
                 local island = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
                 if island then
                     for _, model in ipairs(island:GetChildren()) do
-                        if isUUIDName(model.Name) and not exclusions[model.Name] and model:FindFirstChild("Body") then
-                            local distance = (model.Body.Position - playerPos).Magnitude
-                            if distance <= 15 then
+                        if isUUID(model.Name) and not Excluded[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") then
+                                local distance = (body.Position - root.Position).Magnitude
+                                print("[TARGET] " .. model.Name .. " @ " .. islandName .. " | Distance: " .. math.floor(distance))
+                                
+                                -- Try all tools + all remotes
                                 for _, uuid in ipairs(TOOL_UUIDS) do
-                                    for _, remote in ipairs(allRemotes) do
+                                    for _, remote in ipairs(AllRemotes) do
+                                        print("[FIRE] Remote:", remote.Name, "| Tool UUID:", uuid, "| Model:", model.Name)
                                         remote:FireServer(uuid, "Activate", model)
                                     end
                                 end
@@ -79,6 +91,6 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.05)
+        task.wait(1)
     end
 end)
