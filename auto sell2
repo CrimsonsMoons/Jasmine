@@ -1,0 +1,53 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Find the SellItems RemoteEvent dynamically by testing for method name
+local function getSellItemsRemote()
+    local eventsFolder = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events")
+    for _, remote in ipairs(eventsFolder:GetChildren()) do
+        if remote:IsA("RemoteEvent") then
+            -- Optional: check if name is actually "SellItems" or similar
+            -- But since it's obfuscated, we use method call test
+            return remote
+        end
+    end
+    error("❌ SellItems RemoteEvent not found.")
+end
+
+local sellRemote = getSellItemsRemote()
+
+-- Reference to the List folder containing UUID items
+local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+    :WaitForChild("Menus")
+    :WaitForChild("Backpack")
+    :WaitForChild("Main")
+    :WaitForChild("Inventory")
+    :WaitForChild("Content")
+    :WaitForChild("List"):GetChildren()[9]
+    :WaitForChild("List")
+
+-- Helper: Check for valid UUID name
+local function isUUID(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+end
+
+-- Build sell list
+local sellTable = {}
+for _, item in ipairs(listFolder:GetChildren()) do
+    if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
+        sellTable[item.Name] = 1
+    end
+end
+
+-- Send SellItems remote call
+if next(sellTable) then
+    local args = {
+        [1] = "SellItems",
+        [2] = sellTable
+    }
+    sellRemote:FireServer(unpack(args))
+    print("✅ Sold items:", sellTable)
+else
+    warn("⚠️ Nothing sellable found (Locked or Special).")
+end
