@@ -289,3 +289,65 @@ AutoSection:NewToggle("Auto Sell", "Sells all non-locked, non-special items once
         end
     end
 end)
+
+-- Sell Specials Toggle (Auto Tab)
+local sellSpecialsLooping = false
+
+AutoTab:CreateToggle("Sell Specials", false, function(state)
+    sellSpecialsLooping = state
+
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local LocalPlayer = Players.LocalPlayer
+
+    -- Confirmed working SellItems remote index
+    local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
+        :WaitForChild("Events", 9e9):GetChildren()[17]
+
+    -- UUID list location
+    local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+        :WaitForChild("Menus")
+        :WaitForChild("Backpack")
+        :WaitForChild("Main")
+        :WaitForChild("Inventory")
+        :WaitForChild("Content")
+        :WaitForChild("List"):GetChildren()[9]
+        :WaitForChild("List")
+
+    -- UUID name checker
+    local function isUUID(name)
+        return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+    end
+
+    -- Sell function for Specials only
+    local function sellSpecialsOnly()
+        local sellTable = {}
+        for _, item in ipairs(listFolder:GetChildren()) do
+            if isUUID(item.Name)
+                and not item:FindFirstChild("Locked")
+                and item:FindFirstChild("SpecialIndicator") then
+                sellTable[item.Name] = 1
+            end
+        end
+
+        if next(sellTable) then
+            local args = {
+                [1] = "SellItems",
+                [2] = sellTable
+            }
+            sellRemote:FireServer(unpack(args))
+            print("✅ Sold SPECIALS:", sellTable)
+        else
+            warn("⚠️ No SPECIAL items to sell")
+        end
+    end
+
+    -- Looping logic
+    task.spawn(function()
+        while sellSpecialsLooping do
+            sellSpecialsOnly()
+            task.wait(5)
+        end
+    end)
+end)
+
