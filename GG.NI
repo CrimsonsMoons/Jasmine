@@ -103,12 +103,20 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
--- === Auto Catch Toggle (Updated) ===
-local autoCatchEnabled = false
+-- === Auto Catch Toggles ===
+local autoCatchEnabled1 = false
 AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script", function(state)
-    autoCatchEnabled = state
+    autoCatchEnabled1 = state
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))()
+    end
+end)
+
+local autoCatchEnabled2 = false
+AutoSection:NewToggle("Islands 4,5,6", "Auto Catch Script", function(state)
+    autoCatchEnabled2 = state
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%202", true))()
     end
 end)
 
