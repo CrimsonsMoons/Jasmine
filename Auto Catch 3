@@ -1,12 +1,12 @@
--- Auto Animal Capture Script (Second Map Only)
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart")
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
+-- === Tool UUIDs ===
 local TOOL_UUIDS = {
     "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
@@ -14,10 +14,13 @@ local TOOL_UUIDS = {
     "{06905d54-7826-417e-bfc7-82d326a30885}",
     "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
-    "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}"
+    "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
+    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+    "{b2b4cf72-69d2-4191-8782-1dbb16771c09}",
 }
 
-local EXCLUSIONS = {
+-- === Excluded UUIDs and names ===
+local exclusions = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
     ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
@@ -27,57 +30,59 @@ local EXCLUSIONS = {
     ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["Horse"] = true,
-    ["Travel Boat"] = true
+    ["Travel Boat"] = true,
 }
 
-local REMOTE_EVENT = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[10]
-
-local ISLANDS = {
-    "Mainland",
-    "Forest Island",
-    "Mountain Island",
+-- === New map islands only ===
+local islandFolders = {
     "Lunar Islands",
-    "Royal Island",
-    "Blizzard Island",
-    "Jungle Island",
     "Volcano Island",
-    "Desert Island"
+    "Jungle Island"
 }
 
-local function isValidTarget(model)
-    if not model:IsA("Model") or EXCLUSIONS[model.Name] then return false end
-    local body = model:FindFirstChild("Body")
-    return body and (body.Position - HRP.Position).Magnitude <= 15
+-- === RemoteEvent for new map ===
+local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
+
+-- === Utility ===
+local function isUUID(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
-local function captureTarget(model)
-    for _, toolUuid in ipairs(TOOL_UUIDS) do
-        local args = {
-            [1] = toolUuid,
-            [2] = "Activate",
-            [3] = model
-        }
-        REMOTE_EVENT:FireServer(unpack(args))
-        wait(0.05)
-    end
-end
+-- === Main Loop ===
+while task.wait(0.05) do
+    local playerPos = HumanoidRootPart.Position
 
-while task.wait(0.25) do
-    -- Island folders
-    for _, islandName in ipairs(ISLANDS) do
-        local island = Workspace:FindFirstChild("Islands") and Workspace.Islands:FindFirstChild(islandName)
-        if island then
-            for _, model in ipairs(island:GetChildren()) do
-                if isValidTarget(model) then
-                    captureTarget(model)
+    -- Check Islands
+    local islands = Workspace:FindFirstChild("Islands")
+    if islands then
+        for _, islandName in ipairs(islandFolders) do
+            local island = islands:FindFirstChild(islandName)
+            if island then
+                for _, model in ipairs(island:GetChildren()) do
+                    if isUUID(model.Name) and not exclusions[model.Name] and model:FindFirstChild("Body") then
+                        local dist = (model.Body.Position - playerPos).Magnitude
+                        if dist <= 15 then
+                            for _, tool in ipairs(TOOL_UUIDS) do
+                                remote:FireServer(tool, "Activate", model)
+                            end
+                            print("Fired at", model.Name, "from", islandName, "Distance:", math.floor(dist))
+                        end
+                    end
                 end
             end
         end
     end
-    -- Top-level UUID animals in workspace
+
+    -- Check top-level UUID models in Workspace
     for _, model in ipairs(Workspace:GetChildren()) do
-        if model:FindFirstChild("Body") and isValidTarget(model) then
-            captureTarget(model)
+        if isUUID(model.Name) and not exclusions[model.Name] and model:FindFirstChild("Body") then
+            local dist = (model.Body.Position - playerPos).Magnitude
+            if dist <= 15 then
+                for _, tool in ipairs(TOOL_UUIDS) do
+                    remote:FireServer(tool, "Activate", model)
+                end
+                print("Fired at top-level:", model.Name, "Distance:", math.floor(dist))
+            end
         end
     end
 end
