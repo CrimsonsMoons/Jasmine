@@ -103,12 +103,12 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
--- === Auto Catch Toggle ===
+-- === Auto Catch Toggle (Updated) ===
 local autoCatchEnabled = false
-AutoSection:NewToggle("Auto Catch", "Catch all animals around you", function(state)
+AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script", function(state)
     autoCatchEnabled = state
     if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/autocatch-new.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))()
     end
 end)
 
@@ -117,7 +117,12 @@ local sellSpecials = false
 AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
     sellSpecials = toggle
     if toggle then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3", true))()
+        task.spawn(function()
+            while sellSpecials do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3", true))()
+                task.wait(5)
+            end
+        end)
     end
 end)
 
@@ -125,7 +130,12 @@ local autoSellAll = false
 AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
     autoSellAll = toggle
     if toggle then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2", true))()
+        task.spawn(function()
+            while autoSellAll do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2", true))()
+                task.wait(5)
+            end
+        end)
     end
 end)
 
