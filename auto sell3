@@ -44,8 +44,5 @@ local function sellAllUnlocked()
     end
 end
 
--- 🔁 Auto loop every 5 seconds
-while true do
-    sellAllUnlocked()
-    task.wait(5)
-end
+-- Call this function manually when needed
+-- sellAllUnlocked()
