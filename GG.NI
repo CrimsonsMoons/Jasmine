@@ -15,6 +15,9 @@ local TrainSection = TrainTab:NewSection("Training Features")
 local AutoTab = Window:NewTab("Auto")
 local AutoSection = AutoTab:NewSection("Automation")
 
+local ShopTab = Window:NewTab("Shop")
+local RopeSection = ShopTab:NewSection("Rope")
+
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
@@ -184,77 +187,140 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
     end
 end)
 
--- === Combined Auto Sell Toggle (Unlocked & Specials) ===
-local autoSellEnabled = false
-local autoSellCoroutine = nil
+-- === Sell Specials Toggle ===
+local sellSpecials = false
+AutoSection:NewToggle("Sell Specials", "Sells special (not locked) items every 5s", function(toggle)
+    sellSpecials = toggle
+    task.spawn(function()
+        local listFolder = player:WaitForChild("PlayerGui")
+            :WaitForChild("Menus")
+            :WaitForChild("Backpack")
+            :WaitForChild("Main")
+            :WaitForChild("Inventory")
+            :WaitForChild("Content")
+            :WaitForChild("List"):GetChildren()[9]
+            :WaitForChild("List")
 
-AutoSection:NewToggle("Auto Sell (Unlocked & Specials)", "Auto sells unlocked and special items every 5 seconds", function(state)
-    autoSellEnabled = state
+        local remote = game:GetService("ReplicatedStorage")
+            :WaitForChild("Communication")
+            :WaitForChild("Events"):GetChildren()[18]
 
-    if autoSellCoroutine then
-        coroutine.close(autoSellCoroutine)  -- close any existing coroutine to stop previous loop
-        autoSellCoroutine = nil
-    end
+        local function isUUID(name)
+            return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+        end
 
-    if autoSellEnabled then
-        autoSellCoroutine = coroutine.create(function()
-            local ReplicatedStorage = game:GetService("ReplicatedStorage")
-            local playerGui = player:WaitForChild("PlayerGui")
-            local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[18]
-
-            local listFolder = playerGui:WaitForChild("Menus")
-                :WaitForChild("Backpack")
-                :WaitForChild("Main")
-                :WaitForChild("Inventory")
-                :WaitForChild("Content")
-                :WaitForChild("List"):GetChildren()[9]
-                :WaitForChild("List")
-
-            local function isUUID(name)
-                return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+        while sellSpecials do
+            local sellTable = {}
+            for _, item in ipairs(listFolder:GetChildren()) do
+                if isUUID(item.Name) and not item:FindFirstChild("Locked") and item:FindFirstChild("SpecialIndicator") then
+                    sellTable[item.Name] = 1
+                end
             end
 
-            while autoSellEnabled do
-                local sellTableUnlocked = {}
-                local sellTableSpecials = {}
-
-                for _, item in ipairs(listFolder:GetChildren()) do
-                    if isUUID(item.Name) then
-                        local locked = item:FindFirstChild("Locked")
-                        local special = item:FindFirstChild("SpecialIndicator")
-
-                        if not locked and not special then
-                            sellTableUnlocked[item.Name] = 1
-                        elseif not locked and special then
-                            sellTableSpecials[item.Name] = 1
-                        end
-                    end
-                end
-
-                if next(sellTableUnlocked) then
-                    local args = {
-                        [1] = "SellItems",
-                        [2] = sellTableUnlocked
-                    }
-                    remote:FireServer(unpack(args))
-                    print("✅ Sold unlocked items:", sellTableUnlocked)
-                end
-
-                if next(sellTableSpecials) then
-                    local args = {
-                        [1] = "SellItems",
-                        [2] = sellTableSpecials
-                    }
-                    remote:FireServer(unpack(args))
-                    print("✅ Sold special items:", sellTableSpecials)
-                end
-
-                task.wait(5)
+            if next(sellTable) then
+                local args = {
+                    [1] = "SellItems",
+                    [2] = sellTable
+                }
+                remote:FireServer(unpack(args))
             end
-        end)
+            task.wait(5)
+        end
+    end)
+end)
 
-        coroutine.resume(autoSellCoroutine)
-    else
-        print("🛑 Auto Sell disabled.")
-    end
+-- === Auto Sell All Toggle ===
+local autoSellAll = false
+AutoSection:NewToggle("Auto Sell", "Auto sells unlocked & non-special items every 5s", function(toggle)
+    autoSellAll = toggle
+    task.spawn(function()
+        local sellRemote = game:GetService("ReplicatedStorage")
+            :WaitForChild("Communication")
+            :WaitForChild("Events"):GetChildren()[18]
+
+        local listFolder = player:WaitForChild("PlayerGui")
+            :WaitForChild("Menus")
+            :WaitForChild("Backpack")
+            :WaitForChild("Main")
+            :WaitForChild("Inventory")
+            :WaitForChild("Content")
+            :WaitForChild("List"):GetChildren()[9]
+            :WaitForChild("List")
+
+        local function isUUID(name)
+            return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+        end
+
+        while autoSellAll do
+            local sellTable = {}
+            for _, item in ipairs(listFolder:GetChildren()) do
+                local isLocked = item:FindFirstChild("Locked")
+                local isSpecial = item:FindFirstChild("SpecialIndicator")
+
+                if isUUID(item.Name) and not isLocked and not isSpecial then
+                    sellTable[item.Name] = 1
+                end
+            end
+
+            if next(sellTable) then
+                local args = {
+                    [1] = "SellItems",
+                    [2] = sellTable
+                }
+                sellRemote:FireServer(unpack(args))
+            end
+            task.wait(5)
+        end
+    end)
+end)
+
+-- === Shop Buttons ===
+RopeSection:NewButton("Rope", "Buy 1 Rope from Mainland Shop", function()
+    local args = {
+        [1] = "BuyShopItem",
+        [2] = "Mainland Shop",
+        [3] = 1,
+        [4] = 1000,
+    }
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local comm = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    local events = comm:WaitForChild("Events", 9e9)
+    local remote = events:GetChildren()[18]
+
+    remote:FireServer(unpack(args))
+end)
+
+RopeSection:NewButton("Tin", "Buy 10 Tin from Mainland Shop", function()
+    local args = {
+        [1] = "BuyShopItem",
+        [2] = "Mainland Shop",
+        [3] = 10,
+        [4] = 1000,
+    }
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local comm = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    local events = comm:WaitForChild("Events", 9e9)
+    local remote = events:GetChildren()[18]
+
+    remote:FireServer(unpack(args))
+end)
+
+RopeSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
+    local args = {
+        [1] = "Craft",
+        [2] = {
+            ["id"] = 18,
+            ["variants"] = {},
+            ["amt"] = 1000,
+        },
+    }
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local comm = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    local events = comm:WaitForChild("Events", 9e9)
+    local remote = events:GetChildren()[9]
+
+    remote:FireServer(unpack(args))
 end)
