@@ -16,7 +16,7 @@ local AutoTab = Window:NewTab("Auto")
 local AutoSection = AutoTab:NewSection("Automation")
 
 local ShopTab = Window:NewTab("Shop")
-local ShopSection = ShopTab:NewSection("Shop Actions")
+local ShopSection = ShopTab:NewSection("Shop Items")
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -109,70 +109,9 @@ for islandName, _ in pairs(islandConfigs) do
     createTravelButton(islandName)
 end
 
--- === Training Toggles ===
-
--- Hurry Scurry Tween Toggle
-local hurryScurryEnabled = false
-TrainSection:NewToggle("Hurry Scurry", "Auto-tween through Outdoor Arena checkpoints", function(state)
-    hurryScurryEnabled = state
-    if state then
-        coroutine.wrap(function()
-            local TweenService = game:GetService("TweenService")
-            local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
-            local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-            local currentTween = nil
-
-            local function tweenTo(part)
-                if currentTween then currentTween:Cancel() end
-                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
-                currentTween = tween
-                tween:Play()
-                return tween
-            end
-
-            while hurryScurryEnabled do
-                for i = 1, 6 do
-                    if not hurryScurryEnabled then break end
-                    local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
-                    if checkpoint and checkpoint:IsA("BasePart") then
-                        local tween = tweenTo(checkpoint)
-                        tween.Completed:Wait()
-                        task.wait(0.1)
-                    end
-                end
-            end
-        end)()
-    end
-end)
-
--- Single Checkpoint Route Toggle
-local singleEnabled = false
-TrainSection:NewToggle("Single", "Loop 1–4 checkpoints with tween", function(state)
-    singleEnabled = state
-    if singleEnabled then
-        task.spawn(function()
-            local TweenService = game:GetService("TweenService")
-            local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes.Checkpoints
-            local checkpointOrder = {"1", "2", "3", "4"}
-            local moveTime = 1
-            local waitTime = 0.6
-
-            while singleEnabled do
-                for _, checkpointName in ipairs(checkpointOrder) do
-                    if not singleEnabled then break end
-                    local checkpoint = checkpoints:FindFirstChild(checkpointName)
-                    if checkpoint and checkpoint:IsA("BasePart") then
-                        local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
-                        local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
-                        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = goalCFrame})
-                        tween:Play()
-                        tween.Completed:Wait()
-                        task.wait(waitTime)
-                    end
-                end
-            end
-        end)
-    end
+-- === Single Button Executes Script ===
+TrainSection:NewButton("Single", "Runs Single Route Script", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/Tab%3ATrain%3ASingle"))()
 end)
 
 -- === Trap Character Button ===
@@ -182,6 +121,7 @@ end)
 
 -- === Auto Catch Toggle (All Islands with Recursion) ===
 local autoCatchEnabled = false
+
 AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islands", function(state)
     autoCatchEnabled = state
     if state then
@@ -334,34 +274,46 @@ AutoSection:NewToggle("Auto Sell", "Auto sells unlocked & non-special items ever
     end)
 end)
 
--- === Shop Buttons ===
+-- === New Auto Sell 3 Toggle ===
+local autoSell3Enabled = false
+AutoSection:NewToggle("Auto Sell 3", "Runs auto sell 3 script every 0.5 seconds", function(state)
+    autoSell3Enabled = state
+    if state then
+        task.spawn(function()
+            while autoSell3Enabled do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3", true))()
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
 
--- Rope Button
-ShopSection:NewButton("Rope", "Buy Rope from Mainland Shop", function()
+-- === Shop Buttons ===
+ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
     local args = {
         [1] = "BuyShopItem";
         [2] = "Mainland Shop";
         [3] = 1;
         [4] = 1000;
     }
-    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[18]
-    remote:FireServer(unpack(args))
+
+    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
 end)
 
--- Tin Button
-ShopSection:NewButton("Tin", "Buy Tin from Mainland Shop", function()
+ShopSection:NewButton("Tin", "Buys Tin from Mainland Shop", function()
     local args = {
         [1] = "BuyShopItem";
         [2] = "Mainland Shop";
         [3] = 10;
         [4] = 1000;
     }
-    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[18]
-    remote:FireServer(unpack(args))
+
+    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
 end)
 
--- Craft Tin Lassos Button
-ShopSection:NewButton("Craft Tin Lassos", "Craft Tin Lassos with 1000 amount", function()
+ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
     local args = {
         [1] = "Craft";
         [2] = {
@@ -370,6 +322,7 @@ ShopSection:NewButton("Craft Tin Lassos", "Craft Tin Lassos with 1000 amount", f
             ["amt"] = 1000;
         };
     }
-    local remote = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[9]
-    remote:FireServer(unpack(args))
+
+    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+        :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
