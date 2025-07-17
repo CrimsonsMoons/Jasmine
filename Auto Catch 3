@@ -4,36 +4,96 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Root = Character:WaitForChild("HumanoidRootPart")
 
-local TOOL_UUID = "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}" -- Just use 1 for test
-local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
-
-local islandFolders = {
-    "Lunar Islands",
-    "Volcano Island",
-    "Jungle Island"
+-- TOOL UUIDs (including the new one confirmed in your example)
+local TOOL_UUIDS = {
+    "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
+    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+    "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
+    "{06905d54-7826-417e-bfc7-82d326a30885}",
+    "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
+    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+    "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
+    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}", -- newly added
 }
 
-local function isUUID(name)
+-- EXCLUDED UUIDs or model names
+local EXCLUSIONS = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
+-- The 3 active island names
+local ISLAND_NAMES = {
+    "Lunar Islands",
+    "Volcano Island",
+    "Jungle Island",
+}
+
+-- Correct RemoteEvent for the 3-island map
+local remote = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[10]
+
+-- Utility to check if a name is UUID format
+local function isUUIDName(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- Try capture one animal
-for _, islandName in ipairs(islandFolders) do
-    local island = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
-    if island then
-        for _, model in ipairs(island:GetChildren()) do
-            if isUUID(model.Name) and model:FindFirstChild("Body") then
-                local dist = (model.Body.Position - Root.Position).Magnitude
-                if dist <= 15 then
-                    remote:FireServer(TOOL_UUID, "Activate", model)
-                    print("✅ Fired on", model.Name, "in", islandName)
-                    return
+local function getPlayerPosition()
+    local root = Character:FindFirstChild("HumanoidRootPart")
+    return root and root.Position or nil
+end
+
+while true do
+    local playerPos = getPlayerPosition()
+
+    if playerPos then
+        local foundAny = false
+
+        -- 1. Scan only the 3-island folders
+        for _, islandName in ipairs(ISLAND_NAMES) do
+            local island = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
+            if island then
+                for _, child in ipairs(island:GetChildren()) do
+                    if isUUIDName(child.Name) and not EXCLUSIONS[child.Name] and child:FindFirstChild("Body") then
+                        local dist = (child.Body.Position - playerPos).Magnitude
+                        if dist <= 15 then
+                            for _, tool in ipairs(TOOL_UUIDS) do
+                                remote:FireServer(tool, "Activate", child)
+                            end
+                            foundAny = true
+                            print("Fired on:", child.Name, "from", islandName, "Distance:", math.floor(dist))
+                        end
+                    end
                 end
             end
         end
-    end
-end
 
-print("❌ No valid nearby targets found.")
+        -- 2. Also check top-level Workspace UUIDs
+        for _, model in ipairs(Workspace:GetChildren()) do
+            if isUUIDName(model.Name) and not EXCLUSIONS[model.Name] and model:FindFirstChild("Body") then
+                local dist = (model.Body.Position - playerPos).Magnitude
+                if dist <= 15 then
+                    for _, tool in ipairs(TOOL_UUIDS) do
+                        remote:FireServer(tool, "Activate", model)
+                    end
+                    foundAny = true
+                    print("Fired on top-level UUID:", model.Name, "Distance:", math.floor(dist))
+                end
+            end
+        end
+
+        if not foundAny then
+            warn("No valid targets within 15 studs.")
+        end
+    end
+
+    task.wait(0.05)
+end
