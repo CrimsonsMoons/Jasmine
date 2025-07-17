@@ -182,7 +182,7 @@ AutoSection:NewToggle("Auto Catch", "Fires remote on nearby animals in all islan
             while autoCatchEnabled do
                 scanForAnimals(Workspace.Islands)
                 scanForAnimals(Workspace)
-                task.wait(0.01)
+                task.wait(0.5)
             end
         end)()
     end
