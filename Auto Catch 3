@@ -95,5 +95,5 @@ while true do
         end
     end
 
-    task.wait(0.05)
+    task.wait(0.5)
 end
