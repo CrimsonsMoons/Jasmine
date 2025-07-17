@@ -140,6 +140,20 @@ AutoSection:NewToggle("Auto Sell 3", "Loop auto sell3 every 0.5 seconds", functi
     end
 end)
 
+-- === Auto Sell 4 ===
+local autoSell4Enabled = false
+AutoSection:NewToggle("Auto Sell 4", "Loop auto sell4 every 0.5 seconds", function(state)
+    autoSell4Enabled = state
+    if state then
+        task.spawn(function()
+            while autoSell4Enabled do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell4", true))()
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
+
 -- === Shop Buttons ===
 ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
     local args = {"BuyShopItem", "Mainland Shop", 1, 1000}
