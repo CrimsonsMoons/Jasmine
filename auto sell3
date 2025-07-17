@@ -2,11 +2,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- ✅ Confirmed working SellItems remote index
+-- Use the known working index you tested (update if needed)
 local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
-    :WaitForChild("Events", 9e9):GetChildren()[17]
+    :WaitForChild("Events", 9e9):GetChildren()[17] -- ✅ Change this if needed
 
--- 📦 UUID list location
+-- List folder with UUIDs
 local listFolder = LocalPlayer:WaitForChild("PlayerGui")
     :WaitForChild("Menus")
     :WaitForChild("Backpack")
@@ -16,33 +16,34 @@ local listFolder = LocalPlayer:WaitForChild("PlayerGui")
     :WaitForChild("List"):GetChildren()[9]
     :WaitForChild("List")
 
--- 🧠 UUID name checker
+-- Check if the name is UUID format
 local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
--- 💰 Sell function
+-- Sell function with debug
 local function sellAllUnlocked()
     local sellTable = {}
+
     for _, item in ipairs(listFolder:GetChildren()) do
-        if isUUID(item.Name)
-            and not item:FindFirstChild("Locked")
-            and not item:FindFirstChild("SpecialIndicator") then
+        local isLocked = item:FindFirstChild("Locked")
+        local isSpecial = item:FindFirstChild("SpecialIndicator")
+
+        if isUUID(item.Name) and not isLocked and not isSpecial then
             sellTable[item.Name] = 1
         end
     end
 
     if next(sellTable) then
+        print("✅ Attempting to sell:", sellTable)
+
         local args = {
             [1] = "SellItems",
             [2] = sellTable
         }
+
         sellRemote:FireServer(unpack(args))
-        print("✅ Sold:", sellTable)
     else
-        warn("⚠️ Nothing to sell (Locked or Special only)")
+        warn("⚠️ Nothing to sell: either all locked/special or missing UUIDs.")
     end
 end
-
--- Call this function manually when needed
--- sellAllUnlocked()
