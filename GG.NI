@@ -154,7 +154,7 @@ ShopSection:NewButton("Tin", "Buys Tin from Mainland Shop", function()
 end)
 
 ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
-    local args = {"Craft", {["id"] = 18, ["variants"] = {}, ["amt"] = 1000}}
+    local args = {"Craft", {id = 18, variants = {}, amt = 1000}}
     game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
         :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
