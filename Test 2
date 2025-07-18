@@ -245,29 +245,23 @@ task.spawn(function()
         if lunarToggle then
             for i, pos in ipairs(lunarPositions) do
                 if not lunarToggle then break end
+                -- Teleport to position first (optional)
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                task.wait(0.5)
 
+                -- Find folder for Lunar Island bodies (Workspace and Explorer)
                 local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
                 if not folder then warn("Lunar Islands folder not found") break end
 
-                local hasBodies = false
-                -- Check if any bodies exist before teleporting
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not exclusions[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                            hasBodies = true
-                            break
-                        end
-                    end
-                end
-
-                if hasBodies then
-                    -- Teleport repeatedly to each Body
+                local hasBodies = true
+                while lunarToggle and hasBodies do
+                    hasBodies = false
                     for _, model in ipairs(folder:GetChildren()) do
-                        if not lunarToggle then break end
-                        if not exclusions[model.Name] then
+                        if lunarToggle and not exclusions[model.Name] then
                             local body = model:FindFirstChild("Body")
                             if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                hasBodies = true
+                                -- Teleport repeatedly to this body until it no longer exists
                                 while lunarToggle and body:IsDescendantOf(workspace) do
                                     hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
                                     task.wait(0.05)
@@ -275,11 +269,9 @@ task.spawn(function()
                             end
                         end
                     end
-                else
-                    -- No bodies found, teleport to position and wait 15 seconds
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(0.1)
                 end
+                -- After no more bodies, move to next position immediately
             end
         else
             task.wait(0.5)
@@ -298,27 +290,20 @@ task.spawn(function()
         if volcanoToggle then
             for i, pos in ipairs(volcanoPositions) do
                 if not volcanoToggle then break end
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                task.wait(0.5)
 
                 local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
                 if not folder then warn("Volcano Island folder not found") break end
 
-                local hasBodies = false
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not exclusions[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                            hasBodies = true
-                            break
-                        end
-                    end
-                end
-
-                if hasBodies then
+                local hasBodies = true
+                while volcanoToggle and hasBodies do
+                    hasBodies = false
                     for _, model in ipairs(folder:GetChildren()) do
-                        if not volcanoToggle then break end
-                        if not exclusions[model.Name] then
+                        if volcanoToggle and not exclusions[model.Name] then
                             local body = model:FindFirstChild("Body")
                             if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                hasBodies = true
                                 while volcanoToggle and body:IsDescendantOf(workspace) do
                                     hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
                                     task.wait(0.05)
@@ -326,9 +311,7 @@ task.spawn(function()
                             end
                         end
                     end
-                else
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(0.1)
                 end
             end
         else
