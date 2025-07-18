@@ -269,7 +269,7 @@ end)
 
 -- === Volcano Island Teleport Toggle ===
 local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Teleport", "Teleport to all 'Body' parts on Volcano Island", function(state)
+LunarVolcanoSection:NewToggle("Volcano Island Teleportt", "Teleport to all 'Body' parts on Volcano Island", function(state)
     volcanoToggle = state
     if volcanoToggle then
         task.spawn(function()
