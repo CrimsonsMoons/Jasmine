@@ -28,31 +28,6 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 local explorerFolder = workspace:FindFirstChild("Explorer")
 
--- Notification Label Setup
-local function createNotificationLabel()
-    local screenGui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportNotificationGui")
-    if screenGui then
-        screenGui:Destroy()
-    end
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "TeleportNotificationGui"
-    screenGui.Parent = player.PlayerGui
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 350, 0, 50)
-    label.Position = UDim2.new(0.5, -175, 0.05, 0)
-    label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    label.BackgroundTransparency = 0.5
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextScaled = true
-    label.Font = Enum.Font.GothamBold
-    label.Text = ""
-    label.Parent = screenGui
-    return label
-end
-
-local notifLabel = createNotificationLabel()
-
 -- Reconnect HRP on respawn
 local function setupCharacter(newChar)
     character = newChar
@@ -86,17 +61,28 @@ for _, config in pairs(islandConfigs) do
     config["Travel Boat"] = true
 end
 
--- Anti-stuck/anti-fall respawn function
+-- Anti-fall respawn
 local function checkAndRespawn()
-    if hrp and hrp.Parent and hrp.Position.Y < -50 then -- Fell below threshold
+    if hrp and hrp.Parent and hrp.Position.Y < -50 then
         if player and player.Character then
             player.Character:BreakJoints()
-            notifLabel.Text = "You fell! Respawning..."
-            task.wait(2)
-            notifLabel.Text = ""
         end
     end
 end
+
+-- === Teleport Control Variables ===
+local teleportDelay = 0.1 -- default delay between teleport moves
+local globalPause = false
+
+-- Teleport speed slider
+TeleportSection:NewSlider("Teleport Speed (Delay)", "Adjust delay between teleports in seconds (smaller = faster)", 1, 0.01, function(value)
+    teleportDelay = value
+end)
+
+-- Global pause/resume toggle
+TeleportSection:NewToggle("Pause All Teleports", "Pause or resume all teleport toggles temporarily", function(state)
+    globalPause = state
+end)
 
 -- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
@@ -109,32 +95,30 @@ for islandName, excludedIds in pairs(islandConfigs) do
 
     task.spawn(function()
         while true do
-            if teleportToggles[islandName] then
+            if teleportToggles[islandName] and not globalPause then
                 local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
                 if not folder then 
                     warn("Island not found: " .. islandName)
                     break
                 end
                 for _, model in ipairs(folder:GetChildren()) do
-                    if not teleportToggles[islandName] then break end
+                    if not teleportToggles[islandName] or globalPause then break end
                     if not excludedIds[model.Name] then
                         local body = model:FindFirstChild("Body")
                         if body and body:IsA("BasePart") then
                             local timer = 0
-                            while teleportToggles[islandName] and body:IsDescendantOf(workspace) and timer < 10 do
+                            while teleportToggles[islandName] and not globalPause and body:IsDescendantOf(workspace) and timer < 10 do
                                 if hrp and hrp.Parent then
                                     hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                    notifLabel.Text = "Teleporting to " .. islandName .. " - " .. model.Name
                                     checkAndRespawn()
                                 end
-                                task.wait(0.1)
-                                timer = timer + 0.1
+                                task.wait(teleportDelay)
+                                timer = timer + teleportDelay
                             end
                         end
                     end
-                    task.wait(0.1)
+                    task.wait(teleportDelay)
                 end
-                notifLabel.Text = ""
             else
                 task.wait(0.5)
             end
@@ -148,10 +132,6 @@ for islandName in pairs(islandConfigs) do
         local args = {"\1", "Travel", islandName, 1}
         game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
             :WaitForChild("Functions", 9e9):GetChildren()[2]:FireServer(unpack(args))
-        notifLabel.Text = "Traveling to " .. islandName
-        task.delay(3, function()
-            notifLabel.Text = ""
-        end)
     end)
 end
 
@@ -289,54 +269,55 @@ local exclusions = {
 local function exploreIslandBodies(islandName, positions, toggleFlag)
     task.spawn(function()
         while _G[toggleFlag] do
-            local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-            if not folder then
-                warn(islandName .. " folder not found")
-                break
-            end
-
-            for _, pos in ipairs(positions) do
-                if not _G[toggleFlag] then break end
-
-                local hasBodies = false
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not exclusions[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                            hasBodies = true
-                            break
-                        end
-                    end
+            if globalPause then
+                task.wait(0.5)
+            else
+                local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
+                if not folder then
+                    warn(islandName .. " folder not found")
+                    break
                 end
 
-                if hasBodies then
+                for _, pos in ipairs(positions) do
+                    if not _G[toggleFlag] or globalPause then break end
+
+                    local hasBodies = false
                     for _, model in ipairs(folder:GetChildren()) do
-                        if not _G[toggleFlag] then break end
                         if not exclusions[model.Name] then
                             local body = model:FindFirstChild("Body")
                             if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                                local timer = 0
-                                while _G[toggleFlag] and body:IsDescendantOf(workspace) and timer < 10 do
-                                    if hrp and hrp.Parent then
-                                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                        notifLabel.Text = "Teleporting to " .. islandName .. " - " .. model.Name
-                                        checkAndRespawn()
-                                    end
-                                    task.wait(0.1)
-                                    timer = timer + 0.1
-                                end
+                                hasBodies = true
+                                break
                             end
                         end
                     end
-                else
-                    if hrp and hrp.Parent then
-                        hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                        notifLabel.Text = "Teleporting to " .. islandName .. " - position"
+
+                    if hasBodies then
+                        for _, model in ipairs(folder:GetChildren()) do
+                            if not _G[toggleFlag] or globalPause then break end
+                            if not exclusions[model.Name] then
+                                local body = model:FindFirstChild("Body")
+                                if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                    local timer = 0
+                                    while _G[toggleFlag] and not globalPause and body:IsDescendantOf(workspace) and timer < 10 do
+                                        if hrp and hrp.Parent then
+                                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                            checkAndRespawn()
+                                        end
+                                        task.wait(teleportDelay)
+                                        timer = timer + teleportDelay
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        if hrp and hrp.Parent then
+                            hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                        end
+                        task.wait(15)
                     end
-                    task.wait(15)
                 end
             end
-            notifLabel.Text = ""
         end
     end)
 end
@@ -347,8 +328,6 @@ LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UU
     _G.lunarToggle = state
     if state then
         exploreIslandBodies("Lunar Islands", lunarPositions, "lunarToggle")
-    else
-        notifLabel.Text = ""
     end
 end)
 
@@ -358,8 +337,6 @@ LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to 
     _G.volcanoToggle = state
     if state then
         exploreIslandBodies("Volcano Island", volcanoPositions, "volcanoToggle")
-    else
-        notifLabel.Text = ""
     end
 end)
 
@@ -370,27 +347,21 @@ LunarVolcanoSection:NewToggle("Remove Lava", "Removes TouchTransmitters from Lav
     if state then
         task.spawn(function()
             while _G.removeLavaToggle do
-                local lavaFolder = islandsFolder:FindFirstChild("Volcano Island")
+                local lavaFolder = islandsFolder:FindFirstChild("Volcano Island") and islandsFolder["Volcano Island"]:FindFirstChild("LavaParts") and islandsFolder["Volcano Island"]["LavaParts"]:FindFirstChild("Folder")
                 if lavaFolder then
-                    local lavaPartsFolder = lavaFolder:FindFirstChild("LavaParts") and lavaFolder.LavaParts:FindFirstChild("Folder")
-                    if lavaPartsFolder then
-                        for _, part in ipairs(lavaPartsFolder:GetChildren()) do
-                            if part:IsA("BasePart") then
-                                for _, child in ipairs(part:GetChildren()) do
-                                    if child:IsA("TouchTransmitter") then
-                                        child:Destroy()
-                                    end
+                    for _, part in ipairs(lavaFolder:GetChildren()) do
+                        if part:IsA("BasePart") then
+                            for _, child in ipairs(part:GetChildren()) do
+                                if child:IsA("TouchTransmitter") then
+                                    child:Destroy()
                                 end
                             end
                         end
                     end
+                    print("All TouchTransmitters removed from Lava.")
                 end
-                notifLabel.Text = "Removing Lava TouchTransmitters..."
                 task.wait(5)
             end
-            notifLabel.Text = ""
         end)
-    else
-        notifLabel.Text = ""
     end
 end)
