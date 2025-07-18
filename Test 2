@@ -245,8 +245,8 @@ LunarVolcanoSection:NewToggle("Lunar Island", "Teleport Lunar Island Bodies via 
                 if not lunarToggle then break end
                 -- Teleport to position first to load map
                 hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                task.wait(15) -- wait for map to load and bodies to spawn
-                -- Get Lunar Island folder to scan
+                task.wait(15) -- initial wait to load map
+                
                 local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
                 if folder then
                     local bodiesFound = false
@@ -261,13 +261,15 @@ LunarVolcanoSection:NewToggle("Lunar Island", "Teleport Lunar Island Bodies via 
                             end
                         end
                     end
+
+                    -- If no bodies found, skip wait and continue to next pos
                     if not bodiesFound then
-                        -- No bodies found, proceed to next pos immediately
                         continue
                     end
                 end
+
                 if not lunarToggle then break end
-                task.wait(15) -- wait before next pos
+                task.wait(15)
             end
         end
     end)
@@ -281,7 +283,8 @@ LunarVolcanoSection:NewToggle("Volcano Island", "Teleport Volcano Island Bodies 
             for _, pos in ipairs(volcanoPositions) do
                 if not volcanoToggle then break end
                 hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                task.wait(15)
+                task.wait(15) -- initial wait to load map
+                
                 local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
                 if folder then
                     local bodiesFound = false
@@ -296,10 +299,13 @@ LunarVolcanoSection:NewToggle("Volcano Island", "Teleport Volcano Island Bodies 
                             end
                         end
                     end
+
+                    -- If no bodies found, skip wait and continue to next pos
                     if not bodiesFound then
                         continue
                     end
                 end
+
                 if not volcanoToggle then break end
                 task.wait(15)
             end
