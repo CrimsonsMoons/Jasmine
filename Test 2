@@ -234,108 +234,44 @@ local exclusions = {
     ["Travel Boat"] = true,
 }
 
--- Lunar Island Teleport Toggle (like Main tab teleporting to Bodies)
-local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    lunarToggle = state
-end)
-
-task.spawn(function()
-    while true do
-        if lunarToggle then
-            for i, pos in ipairs(lunarPositions) do
-                if not lunarToggle then break end
-
-                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
-                if not folder then warn("Lunar Islands folder not found") break end
-
-                local hasBodies = false
-                -- Check if any bodies exist before teleporting
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not exclusions[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                            hasBodies = true
-                            break
-                        end
+while toggleEnabled do
+    local bodies = {}
+    -- Collect Bodies from Island and Explorer folders (you can customize as needed)
+    local function collectBodies(folder)
+        if folder then
+            for _, model in ipairs(folder:GetChildren()) do
+                if not excludedIds[model.Name] then
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") then
+                        table.insert(bodies, body)
                     end
-                end
-
-                if hasBodies then
-                    -- Teleport repeatedly to each Body
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if not lunarToggle then break end
-                        if not exclusions[model.Name] then
-                            local body = model:FindFirstChild("Body")
-                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                                while lunarToggle and body:IsDescendantOf(workspace) do
-                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                    task.wait(0.05)
-                                end
-                            end
-                        end
-                    end
-                else
-                    -- No bodies found, teleport to position and wait 15 seconds
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
                 end
             end
-        else
-            task.wait(0.5)
         end
     end
-end)
 
--- Volcano Island Teleport Toggle (same logic)
-local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    volcanoToggle = state
-end)
+    collectBodies(workspace:Islands:FindFirstChild(islandName))
+    collectBodies(workspace:FindFirstChild("Explorer") and workspace.Explorer:FindFirstChild(islandName))
 
-task.spawn(function()
-    while true do
-        if volcanoToggle then
-            for i, pos in ipairs(volcanoPositions) do
-                if not volcanoToggle then break end
-
-                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
-                if not folder then warn("Volcano Island folder not found") break end
-
-                local hasBodies = false
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not exclusions[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                            hasBodies = true
-                            break
-                        end
-                    end
-                end
-
-                if hasBodies then
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if not volcanoToggle then break end
-                        if not exclusions[model.Name] then
-                            local body = model:FindFirstChild("Body")
-                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                                while volcanoToggle and body:IsDescendantOf(workspace) do
-                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                    task.wait(0.05)
-                                end
-                            end
-                        end
-                    end
-                else
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
-                end
+    if #bodies > 0 then
+        for _, body in ipairs(bodies) do
+            if not toggleEnabled then break end
+            while toggleEnabled and body:IsDescendantOf(workspace) do
+                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                task.wait(0.05)
             end
-        else
-            task.wait(0.5)
+        end
+    else
+        -- No bodies found, teleport to position and wait 15 seconds
+        hrp.CFrame = CFrame.new(position + Vector3.new(0, 5, 0))
+        local waited = 0
+        while toggleEnabled and waited < 15 do
+            task.wait(1)
+            waited = waited + 1
         end
     end
-end)
+end
+
 
 
 -- Remove Lava Button and Loop
