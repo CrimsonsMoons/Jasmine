@@ -74,7 +74,10 @@ for islandName, excludedIds in pairs(islandConfigs) do
         while true do
             if teleportToggles[islandName] then
                 local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-                if not folder then warn("Island not found: " .. islandName) break end
+                if not folder then 
+                    warn("Island not found: " .. islandName)
+                    break
+                end
                 for _, model in ipairs(folder:GetChildren()) do
                     if not teleportToggles[islandName] then break end
                     if excludedIds[model.Name] then continue end
@@ -336,7 +339,6 @@ task.spawn(function()
         end
     end
 end)
-
 
 -- Remove Lava Button and Loop
 LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
