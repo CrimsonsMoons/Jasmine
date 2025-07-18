@@ -1,391 +1,189 @@
--- === GUI Library Setup ===
+-- Full GUI Script with Respawn Handling and All Features
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- GUI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
+local Window = Library.CreateLib("Island Tools", "DarkTheme")
 
--- === Tabs ===
-local TeleportTab = Window:NewTab("Main")
-local TeleportSection = TeleportTab:NewSection("Teleport Controls")
-
-local TravelTab = Window:NewTab("Island Travel")
-local TravelSection = TravelTab:NewSection("Quick TP Buttons")
-
-local TrainTab = Window:NewTab("Train")
-local TrainSection = TrainTab:NewSection("Training Features")
-
-local AutoTab = Window:NewTab("Auto")
-local AutoSection = AutoTab:NewSection("Automation")
-
-local ShopTab = Window:NewTab("Shop")
-local ShopSection = ShopTab:NewSection("Shop Items")
-
-local LVTab = Window:NewTab("Lunar/Volcano")
-local LVSection = LVTab:NewSection("Lunar & Volcano Teleports")
-
--- === Initialization ===
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local islandsFolder = workspace:WaitForChild("Islands")
-local explorerFolder = workspace:FindFirstChild("Explorer")
-
--- === Island Configuration ===
-local islandConfigs = {
-    ["Mainland"] = {},
-    ["Forest Island"] = {},
-    ["Mountain Island"] = {},
-    ["Lunar Islands"] = {},
-    ["Royal Island"] = {},
-    ["Blizzard Island"] = {},
-    ["Jungle Island"] = {},
-    ["Volcano Island"] = {},
-    ["Desert Island"] = {},
+-- Persistent State
+local state = {
+    autoSell3 = false,
+    autoSell4 = false,
+    catch123 = false,
+    catch456 = false,
+    catch789 = false,
+    islandTravel = false,
+    lunarTeleport = false,
+    volcanoTeleport = false,
+    removeLava = false,
 }
 
--- === Universal Exclusions ===
+-- === Helper Functions === --
 local exclusions = {
-    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
-    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
-    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
-    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
-    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
-    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
-    ["Horse"] = true,
-    ["Travel Boat"] = true,
+    ["2c0549c7-f2d0-4828-bc2a-6d484e792cdd"] = true,
+    ["de31ac95-029b-4c26-b9f8-4b61faed7335"] = true
 }
 
--- Add exclusions to islandConfigs
-for _, config in pairs(islandConfigs) do
-    for k,v in pairs(exclusions) do
-        config[k] = v
-    end
-end
-
--- === Helper function to gather all folders for teleport searches ===
-local function getAllFoldersForIsland(islandName)
-    local folders = {}
-    local f1 = islandsFolder:FindFirstChild(islandName)
-    if f1 then table.insert(folders, f1) end
-    if explorerFolder then
-        local f2 = explorerFolder:FindFirstChild(islandName)
-        if f2 then table.insert(folders, f2) end
-    end
-    -- Also check direct children of workspace named islandName
-    local f3 = workspace:FindFirstChild(islandName)
-    if f3 then table.insert(folders, f3) end
-    return folders
-end
-
--- === Teleport Toggles (Main Tab) ===
-local teleportToggles = {}
-
-for islandName, excludedIds in pairs(islandConfigs) do
-    teleportToggles[islandName] = false
-
-    TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName, function(state)
-        teleportToggles[islandName] = state
-    end)
-
-    task.spawn(function()
-        while true do
-            if teleportToggles[islandName] then
-                local folders = getAllFoldersForIsland(islandName)
-                for _, folder in ipairs(folders) do
-                    if not teleportToggles[islandName] then break end
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if not teleportToggles[islandName] then break end
-                        if exclusions[model.Name] or (islandConfigs[islandName] and islandConfigs[islandName][model.Name]) then
-                            continue
-                        end
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") then
-                            while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
-                                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                task.wait(0.05)
-                            end
-                        end
-                        task.wait(0.1)
-                    end
-                end
-            else
-                task.wait(0.5)
-            end
+local function teleportToBodies(folder)
+    for _, island in ipairs(folder:GetChildren()) do
+        if exclusions[island.Name] then continue end
+        local body = island:FindFirstChild("Body")
+        if body and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = body.CFrame + Vector3.new(0, 5, 0)
+            task.wait(1)
         end
-    end)
+    end
 end
 
--- === Travel Buttons (Island Travel Tab) ===
-for islandName in pairs(islandConfigs) do
-    TravelSection:NewButton("Travel to " .. islandName, "Use teleport remote", function()
-        local args = {"\1", "Travel", islandName, 1}
-        game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-            :WaitForChild("Functions", 9e9):GetChildren()[2]:FireServer(unpack(args))
-    end)
-end
+-- === Main Tab === --
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("Teleport & Sell")
 
--- === Training Buttons (Train Tab) ===
-TrainSection:NewButton("Single", "Runs Single Route Script", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/Tab%3ATrain%3ASingle"))()
-end)
-
-TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
-end)
-
--- === Auto Catch Toggles (Auto Tab) ===
-local autoCatchEnabled1 = false
-AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script", function(state)
-    autoCatchEnabled1 = state
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))()
-    end
-end)
-
-local autoCatchEnabled2 = false
-AutoSection:NewToggle("4,5,6", "Auto Catch Script 2", function(state)
-    autoCatchEnabled2 = state
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%202", true))()
-    end
-end)
-
-local autoCatchEnabled3 = false
-AutoSection:NewToggle("7,8,9", "Auto Catch Script 3", function(state)
-    autoCatchEnabled3 = state
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%203", true))()
-    end
-end)
-
--- === Sell Toggles (Auto Tab) ===
-local sellSpecials = false
-AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
-    sellSpecials = toggle
-    if toggle then
-        task.spawn(function()
-            while sellSpecials do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials", true))()
+MainSection:NewToggle("Island Travel", "Teleport to island Body parts", function(t)
+    state.islandTravel = t
+    if t then
+        coroutine.wrap(function()
+            while state.islandTravel do
+                teleportToBodies(workspace)
+                if workspace:FindFirstChild("Islands") then
+                    teleportToBodies(workspace.Islands)
+                end
                 task.wait(5)
             end
-        end)
+        end)()
     end
 end)
 
-local autoSellAll = false
-AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
-    autoSellAll = toggle
-    if toggle then
-        task.spawn(function()
-            while autoSellAll do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2", true))()
+MainSection:NewButton("Sell Specials", "One-time sell", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials", true))()
+end)
+
+MainSection:NewToggle("Auto Sell 3", "Loops auto sell", function(v)
+    state.autoSell3 = v
+    if v then
+        coroutine.wrap(function()
+            while state.autoSell3 do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/main/AutoSell3"))()
+                task.wait(0.5)
+            end
+        end)()
+    end
+end)
+
+MainSection:NewToggle("Auto Sell 4", "Loops auto sell", function(v)
+    state.autoSell4 = v
+    if v then
+        coroutine.wrap(function()
+            while state.autoSell4 do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/main/AutoSell4"))()
+                task.wait(0.5)
+            end
+        end)()
+    end
+end)
+
+-- === Auto Catch Tab === --
+local CatchTab = Window:NewTab("Auto Catch")
+local CatchSection = CatchTab:NewSection("Catch Modes")
+
+CatchSection:NewToggle("Catch Islands 1-3", "", function(v)
+    state.catch123 = v
+    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))() end
+end)
+
+CatchSection:NewToggle("Catch Islands 4-6", "", function(v)
+    state.catch456 = v
+    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%202"))() end
+end)
+
+CatchSection:NewToggle("Catch Islands 7-9", "", function(v)
+    state.catch789 = v
+    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%203"))() end
+end)
+
+-- === Lunar / Volcano Tab === --
+local IslandTab = Window:NewTab("Lunar/Volcano")
+local IslandSection = IslandTab:NewSection("Exploration")
+
+local lunarPoints = {
+    Vector3.new(-3097, 17, -3681), Vector3.new(-2759, 6, -2589),
+    Vector3.new(-2207, 139, -1223), Vector3.new(-3266, 15, -1436),
+    Vector3.new(-3357, 24, -2428)
+}
+
+local volcanoPoints = {
+    Vector3.new(2964, 108, -7078), Vector3.new(4134, 27, -6894),
+    Vector3.new(4757, 26, -7939), Vector3.new(3487, 21, -8586)
+}
+
+local function exploreAndTeleport(points, stateKey)
+    coroutine.wrap(function()
+        for _, pos in ipairs(points) do
+            if not state[stateKey] then break end
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(0, 6, 0))
+            end
+            local found = false
+            for _, folder in ipairs({workspace, workspace:FindFirstChild("Islands")}) do
+                if folder then
+                    for _, obj in ipairs(folder:GetChildren()) do
+                        if not exclusions[obj.Name] and obj:FindFirstChild("Body") then
+                            found = true
+                        end
+                    end
+                end
+            end
+            task.wait(found and 15 or 0.5)
+        end
+    end)()
+end
+
+IslandSection:NewToggle("Lunar Island", "Explores Lunar", function(v)
+    state.lunarTeleport = v
+    if v then exploreAndTeleport(lunarPoints, "lunarTeleport") end
+end)
+
+IslandSection:NewToggle("Volcano Island", "Explores Volcano", function(v)
+    state.volcanoTeleport = v
+    if v then exploreAndTeleport(volcanoPoints, "volcanoTeleport") end
+end)
+
+-- === Remove Lava === --
+IslandSection:NewButton("Remove Lava", "Deletes Lava Hitboxes every 5s", function()
+    state.removeLava = true
+    coroutine.wrap(function()
+        while state.removeLava do
+            local folder = workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
+                :WaitForChild("LavaParts"):WaitForChild("Folder")
+            for _, part in ipairs(folder:GetChildren()) do
+                if part:IsA("BasePart") then
+                    for _, child in ipairs(part:GetChildren()) do
+                        if child:IsA("TouchTransmitter") then
+                            child:Destroy()
+                        end
+                    end
+                end
+            end
+            task.wait(5)
+        end
+    end)()
+end)
+
+-- === Respawn Recovery === --
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(2)
+    if state.islandTravel then
+        coroutine.wrap(function()
+            while state.islandTravel do
+                teleportToBodies(workspace)
+                if workspace:FindFirstChild("Islands") then
+                    teleportToBodies(workspace.Islands)
+                end
                 task.wait(5)
             end
-        end)
+        end)()
     end
-end)
-
-local autoSell3Enabled = false
-AutoSection:NewToggle("Auto Sell 3", "Loop auto sell3 every 0.5 seconds", function(state)
-    autoSell3Enabled = state
-    if state then
-        task.spawn(function()
-            while autoSell3Enabled do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3", true))()
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
-local autoSell4Enabled = false
-AutoSection:NewToggle("Auto Sell 4", "Loop auto sell4 every 0.5 seconds", function(state)
-    autoSell4Enabled = state
-    if state then
-        task.spawn(function()
-            while autoSell4Enabled do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell4", true))()
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
--- === Shop Buttons (Shop Tab) ===
-ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
-    local args = {"BuyShopItem", "Mainland Shop", 1, 1000}
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
-end)
-
-ShopSection:NewButton("Tin", "Buys Tin from Mainland Shop", function()
-    local args = {"BuyShopItem", "Mainland Shop", 10, 1000}
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
-end)
-
-ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
-    local args = {"Craft", {id = 18, variants = {}, amt = 1000}}
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
-end)
-
--- === Lunar/Volcano Teleports ===
-
-local lunarToggle = false
-local volcanoToggle = false
-
-local lunarPositions = {
-    Vector3.new(-3097.42, 17.63, -3681.29),
-    Vector3.new(-2759.49, 6.74, -2589.20),
-    Vector3.new(-2207.14, 139.06, -1223.94),
-    Vector3.new(-3266.90, 15.43, -1436.56),
-    Vector3.new(-3357.76, 24.34, -2428.62),
-}
-
-local volcanoPositions = {
-    Vector3.new(2964.74, 108.94, -7078.36),
-    Vector3.new(4134.52, 27.04, -6894.68),
-    Vector3.new(4757.52, 26.13, -7939.00),
-    Vector3.new(3487.48, 20.99, -8586.85),
-}
-
-local function getAllFoldersForLV(islandName)
-    local folders = {}
-    local f1 = islandsFolder:FindFirstChild(islandName)
-    if f1 then table.insert(folders, f1) end
-    if explorerFolder then
-        local f2 = explorerFolder:FindFirstChild(islandName)
-        if f2 then table.insert(folders, f2) end
-    end
-    local f3 = workspace:FindFirstChild(islandName)
-    if f3 then table.insert(folders, f3) end
-    return folders
-end
-
-local function teleportToBodiesInFolders(folders, exclusions)
-    for _, folder in ipairs(folders) do
-        for _, model in ipairs(folder:GetChildren()) do
-            if exclusions[model.Name] then
-                continue
-            end
-            local body = model:FindFirstChild("Body")
-            if body and body:IsA("BasePart") then
-                while body and body:IsDescendantOf(workspace) do
-                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                    task.wait(0.05)
-                end
-            end
-        end
-    end
-end
-
-LVSection:NewToggle("Lunar Island Teleport", "Teleport through Lunar Island points", function(state)
-    lunarToggle = state
-    task.spawn(function()
-        while lunarToggle do
-            local folders = getAllFoldersForLV("Lunar Islands")
-            local foundBody = false
-            for _, folder in ipairs(folders) do
-                for _, model in ipairs(folder:GetChildren()) do
-                    if exclusions[model.Name] then continue end
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        foundBody = true
-                        while body and body:IsDescendantOf(workspace) and lunarToggle do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
-                        end
-                    end
-                end
-            end
-            if not foundBody then
-                for _, pos in ipairs(lunarPositions) do
-                    if not lunarToggle then break end
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    local waitTime = 15
-                    local startTime = tick()
-                    while tick() - startTime < waitTime do
-                        if not lunarToggle then break end
-                        -- Check if Body spawns
-                        local bodySpawned = false
-                        for _, folder in ipairs(folders) do
-                            for _, model in ipairs(folder:GetChildren()) do
-                                if exclusions[model.Name] then continue end
-                                local body = model:FindFirstChild("Body")
-                                if body and body:IsDescendantOf(workspace) then
-                                    bodySpawned = true
-                                    break
-                                end
-                            end
-                            if bodySpawned then break end
-                        end
-                        if bodySpawned then break end
-                        task.wait(0.5)
-                    end
-                    if lunarToggle and not bodySpawned then
-                        -- No Body appeared, teleport to next position immediately
-                        continue
-                    elseif not lunarToggle then
-                        break
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-    end)
-end)
-
-LVSection:NewToggle("Volcano Island Teleport", "Teleport through Volcano Island points", function(state)
-    volcanoToggle = state
-    task.spawn(function()
-        while volcanoToggle do
-            local folders = getAllFoldersForLV("Volcano Island")
-            local foundBody = false
-            for _, folder in ipairs(folders) do
-                for _, model in ipairs(folder:GetChildren()) do
-                    if exclusions[model.Name] then continue end
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        foundBody = true
-                        while body and body:IsDescendantOf(workspace) and volcanoToggle do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
-                        end
-                    end
-                end
-            end
-            if not foundBody then
-                for _, pos in ipairs(volcanoPositions) do
-                    if not volcanoToggle then break end
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    local waitTime = 15
-                    local startTime = tick()
-                    while tick() - startTime < waitTime do
-                        if not volcanoToggle then break end
-                        local bodySpawned = false
-                        for _, folder in ipairs(folders) do
-                            for _, model in ipairs(folder:GetChildren()) do
-                                if exclusions[model.Name] then continue end
-                                local body = model:FindFirstChild("Body")
-                                if body and body:IsDescendantOf(workspace) then
-                                    bodySpawned = true
-                                    break
-                                end
-                            end
-                            if bodySpawned then break end
-                        end
-                        if bodySpawned then break end
-                        task.wait(0.5)
-                    end
-                    if volcanoToggle and not bodySpawned then
-                        -- No Body appeared, teleport to next position immediately
-                        continue
-                    elseif not volcanoToggle then
-                        break
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-    end)
 end)
