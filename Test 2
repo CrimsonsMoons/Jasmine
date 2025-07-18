@@ -1,162 +1,219 @@
--- Full GUI Script with Respawn Handling and All Features
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Island GUI", "DarkTheme")
+
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
--- GUI Library
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("Island Tools", "DarkTheme")
-
--- Persistent State
-local state = {
-    autoSell3 = false,
-    autoSell4 = false,
-    catch123 = false,
-    catch456 = false,
-    catch789 = false,
-    islandTravel = false,
-    lunarTeleport = false,
-    volcanoTeleport = false,
-    removeLava = false,
-}
-
--- === Helper Functions === --
+-- State
+local activeTeleports = {}
+local autoSellEnabled = false
+local sellLoopConn
 local exclusions = {
     ["2c0549c7-f2d0-4828-bc2a-6d484e792cdd"] = true,
     ["de31ac95-029b-4c26-b9f8-4b61faed7335"] = true
 }
 
-local function teleportToBodies(folder)
-    for _, island in ipairs(folder:GetChildren()) do
-        if exclusions[island.Name] then continue end
-        local body = island:FindFirstChild("Body")
-        if body and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = body.CFrame + Vector3.new(0, 5, 0)
-            task.wait(1)
+-- Helper function: Teleport to UUID.Body in Workspace and Workspace.Explorer
+local function teleportToUUIDBody(uuid)
+    for _, container in ipairs({Workspace, Workspace:FindFirstChild("Explorer")}) do
+        if container then
+            local instance = container:FindFirstChild(uuid)
+            if instance and instance:FindFirstChild("Body") then
+                Character:PivotTo(instance.Body.CFrame)
+                return true
+            end
         end
     end
+    return false
 end
 
--- === Main Tab === --
-local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Teleport & Sell")
-
-MainSection:NewToggle("Island Travel", "Teleport to island Body parts", function(t)
-    state.islandTravel = t
-    if t then
-        coroutine.wrap(function()
-            while state.islandTravel do
-                teleportToBodies(workspace)
-                if workspace:FindFirstChild("Islands") then
-                    teleportToBodies(workspace.Islands)
-                end
-                task.wait(5)
-            end
-        end)()
-    end
-end)
-
-MainSection:NewButton("Sell Specials", "One-time sell", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials", true))()
-end)
-
-MainSection:NewToggle("Auto Sell 3", "Loops auto sell", function(v)
-    state.autoSell3 = v
-    if v then
-        coroutine.wrap(function()
-            while state.autoSell3 do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/main/AutoSell3"))()
-                task.wait(0.5)
-            end
-        end)()
-    end
-end)
-
-MainSection:NewToggle("Auto Sell 4", "Loops auto sell", function(v)
-    state.autoSell4 = v
-    if v then
-        coroutine.wrap(function()
-            while state.autoSell4 do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/main/AutoSell4"))()
-                task.wait(0.5)
-            end
-        end)()
-    end
-end)
-
--- === Auto Catch Tab === --
-local CatchTab = Window:NewTab("Auto Catch")
-local CatchSection = CatchTab:NewSection("Catch Modes")
-
-CatchSection:NewToggle("Catch Islands 1-3", "", function(v)
-    state.catch123 = v
-    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))() end
-end)
-
-CatchSection:NewToggle("Catch Islands 4-6", "", function(v)
-    state.catch456 = v
-    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%202"))() end
-end)
-
-CatchSection:NewToggle("Catch Islands 7-9", "", function(v)
-    state.catch789 = v
-    if v then loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%203"))() end
-end)
-
--- === Lunar / Volcano Tab === --
-local IslandTab = Window:NewTab("Lunar/Volcano")
-local IslandSection = IslandTab:NewSection("Exploration")
-
-local lunarPoints = {
-    Vector3.new(-3097, 17, -3681), Vector3.new(-2759, 6, -2589),
-    Vector3.new(-2207, 139, -1223), Vector3.new(-3266, 15, -1436),
-    Vector3.new(-3357, 24, -2428)
-}
-
-local volcanoPoints = {
-    Vector3.new(2964, 108, -7078), Vector3.new(4134, 27, -6894),
-    Vector3.new(4757, 26, -7939), Vector3.new(3487, 21, -8586)
-}
-
-local function exploreAndTeleport(points, stateKey)
+-- Helper: Teleport chain
+local function teleportToPositions(label, positions)
     coroutine.wrap(function()
-        for _, pos in ipairs(points) do
-            if not state[stateKey] then break end
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(0, 6, 0))
-            end
-            local found = false
-            for _, folder in ipairs({workspace, workspace:FindFirstChild("Islands")}) do
-                if folder then
-                    for _, obj in ipairs(folder:GetChildren()) do
-                        if not exclusions[obj.Name] and obj:FindFirstChild("Body") then
+        activeTeleports[label] = true
+        while activeTeleports[label] do
+            for _, pos in ipairs(positions) do
+                if not activeTeleports[label] then break end
+                Character:PivotTo(CFrame.new(pos))
+                local start = tick()
+                while tick() - start < 15 do
+                    if not activeTeleports[label] then break end
+                    local found = false
+                    for _, item in ipairs(Workspace:GetDescendants()) do
+                        if item:IsA("Model") and item:FindFirstChild("Body") and not exclusions[item.Name] then
+                            Character:PivotTo(item.Body.CFrame)
                             found = true
+                            break
                         end
                     end
+                    if not found then break end
+                    task.wait(0.5)
                 end
             end
-            task.wait(found and 15 or 0.5)
+            task.wait(0.5)
         end
     end)()
 end
 
-IslandSection:NewToggle("Lunar Island", "Explores Lunar", function(v)
-    state.lunarTeleport = v
-    if v then exploreAndTeleport(lunarPoints, "lunarTeleport") end
+-- Helper: Stop teleport
+local function stopTeleport(label)
+    activeTeleports[label] = false
+end
+
+-- Helper: Sell script
+local function startAutoSell()
+    autoSellEnabled = true
+    sellLoopConn = RunService.Heartbeat:Connect(function()
+        if not autoSellEnabled then return end
+        local sellRemote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[17]
+        local listFolder = LocalPlayer:WaitForChild("PlayerGui").Menus.Backpack.Main.Inventory.Content.List:GetChildren()[9].List
+        local sellTable = {}
+
+        for _, item in ipairs(listFolder:GetChildren()) do
+            if item:FindFirstChild("Locked") or item:FindFirstChild("SpecialIndicator") or not item.Name:match("^%b{}$") then continue end
+            sellTable[item.Name] = 1
+        end
+
+        if next(sellTable) then
+            sellRemote:FireServer("SellItems", sellTable)
+        end
+    end)
+end
+
+local function stopAutoSell()
+    autoSellEnabled = false
+    if sellLoopConn then sellLoopConn:Disconnect() end
+end
+
+-- Tabs
+local mainTab = Window:NewTab("Main")
+local mainSection = mainTab:NewSection("Teleport")
+
+mainSection:NewToggle("Jungle Island", "Teleport to Jungle", function(state)
+    if state then
+        for _, folder in ipairs(Workspace:GetDescendants()) do
+            if folder:IsA("Folder") and folder.Name == "Jungle Island" then
+                for _, obj in ipairs(folder:GetDescendants()) do
+                    if exclusions[obj.Name] then continue end
+                    if obj:IsA("Model") and obj:FindFirstChild("Body") then
+                        Character:PivotTo(obj.Body.CFrame)
+                        break
+                    end
+                end
+            end
+        end
+    end
 end)
 
-IslandSection:NewToggle("Volcano Island", "Explores Volcano", function(v)
-    state.volcanoTeleport = v
-    if v then exploreAndTeleport(volcanoPoints, "volcanoTeleport") end
+mainSection:NewToggle("Mainland", "Teleport to Mainland", function(state)
+    if state then
+        local mainland = Workspace:FindFirstChild("Islands"):FindFirstChild("Mainland")
+        for _, obj in ipairs(mainland:GetDescendants()) do
+            if exclusions[obj.Name] then continue end
+            if obj:IsA("Model") and obj:FindFirstChild("Body") then
+                Character:PivotTo(obj.Body.CFrame)
+                break
+            end
+        end
+    end
 end)
 
--- === Remove Lava === --
-IslandSection:NewButton("Remove Lava", "Deletes Lava Hitboxes every 5s", function()
-    state.removeLava = true
+-- Travel Tab
+local travelTab = Window:NewTab("Travel")
+local travelSection = travelTab:NewSection("Island Travel")
+
+travelSection:NewButton("Travel All UUIDs", "Teleport to all UUID.Body", function()
+    for _, folder in ipairs(Workspace:GetDescendants()) do
+        if folder:IsA("Folder") then
+            for _, obj in ipairs(folder:GetDescendants()) do
+                if exclusions[obj.Name] then continue end
+                if obj:IsA("Model") and obj:FindFirstChild("Body") then
+                    Character:PivotTo(obj.Body.CFrame)
+                    task.wait(0.25)
+                end
+            end
+        end
+    end
+end)
+
+-- Train Tab
+local trainTab = Window:NewTab("Train")
+local trainSection = trainTab:NewSection("Catch")
+
+trainSection:NewToggle("Islands 1,2,3", "Auto Catch 1", function(state)
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201", true))()
+    end
+end)
+
+trainSection:NewToggle("4,5,6", "Auto Catch 2", function(state)
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%202", true))()
+    end
+end)
+
+trainSection:NewToggle("7,8,9", "Auto Catch 3", function(state)
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%203", true))()
+    end
+end)
+
+-- Auto Tab
+local autoTab = Window:NewTab("Auto")
+local autoSection = autoTab:NewSection("Selling")
+
+autoSection:NewToggle("Sell All", "Sell unlocked items", function(state)
+    if state then
+        startAutoSell()
+    else
+        stopAutoSell()
+    end
+end)
+
+autoSection:NewButton("Sell Specials", "Sell special items", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials", true))()
+end)
+
+-- Lunar/Volcano Tab
+local lvTab = Window:NewTab("Lunar/Volcano")
+local lvSection = lvTab:NewSection("Exploration")
+
+lvSection:NewToggle("Lunar Island", "Explore Lunar", function(state)
+    if state then
+        teleportToPositions("Lunar", {
+            Vector3.new(-3097,18,-3681),
+            Vector3.new(-2759,7,-2589),
+            Vector3.new(-2207,139,-1223),
+            Vector3.new(-3266,15,-1436),
+            Vector3.new(-3357,24,-2428)
+        })
+    else
+        stopTeleport("Lunar")
+    end
+end)
+
+lvSection:NewToggle("Volcano Island", "Explore Volcano", function(state)
+    if state then
+        teleportToPositions("Volcano", {
+            Vector3.new(2964,108,-7078),
+            Vector3.new(4134,27,-6894),
+            Vector3.new(4757,26,-7939),
+            Vector3.new(3487,20,-8586)
+        })
+    else
+        stopTeleport("Volcano")
+    end
+end)
+
+lvSection:NewButton("Remove Lava", "Remove Lava Touch", function()
     coroutine.wrap(function()
-        while state.removeLava do
-            local folder = workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
+        while true do
+            local folder = Workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
                 :WaitForChild("LavaParts"):WaitForChild("Folder")
             for _, part in ipairs(folder:GetChildren()) do
                 if part:IsA("BasePart") then
@@ -172,18 +229,7 @@ IslandSection:NewButton("Remove Lava", "Deletes Lava Hitboxes every 5s", functio
     end)()
 end)
 
--- === Respawn Recovery === --
+-- Reapply script on reset
 LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(2)
-    if state.islandTravel then
-        coroutine.wrap(function()
-            while state.islandTravel do
-                teleportToBodies(workspace)
-                if workspace:FindFirstChild("Islands") then
-                    teleportToBodies(workspace.Islands)
-                end
-                task.wait(5)
-            end
-        end)()
-    end
+    Character = char
 end)
