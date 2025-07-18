@@ -226,12 +226,22 @@ local volcanoPositions = {
     Vector3.new(3487.487548828125, 20.9999942779541, -8586.859375),
 }
 
--- === Exclusions for Lunar and Volcano Island (same universal exclusions) ===
-local specialExclusions = universalExclusions
+-- === Special exclusions for Lunar and Volcano ===
+local specialExclusions = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
 
 -- === Lunar Island Teleport Toggle ===
 local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Teleport", "Special teleport for Lunar Island", function(state)
+LunarVolcanoSection:NewToggle("Lunar Island Teleport", "Teleport to all 'Body' parts on Lunar Island", function(state)
     lunarToggle = state
     if lunarToggle then
         task.spawn(function()
@@ -239,16 +249,14 @@ LunarVolcanoSection:NewToggle("Lunar Island Teleport", "Special teleport for Lun
             if not folder then warn("Lunar Islands folder not found!") return end
             while lunarToggle do
                 for _, model in ipairs(folder:GetChildren()) do
-                    if lunarToggle == false then break end
+                    if not lunarToggle then break end
                     if specialExclusions[model.Name] then continue end
                     local body = model:FindFirstChild("Body")
                     if body and body:IsA("BasePart") then
-                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                        -- Wait max 15 seconds or until the body no longer exists in workspace
-                        local waitTime = 0
-                        while waitTime < 15 and lunarToggle and body:IsDescendantOf(workspace) do
-                            task.wait(0.5)
-                            waitTime = waitTime + 0.5
+                        -- Teleport repeatedly while Body exists and toggle is on
+                        while lunarToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                            task.wait(0.05)
                         end
                     end
                     task.wait(0.1)
@@ -261,7 +269,7 @@ end)
 
 -- === Volcano Island Teleport Toggle ===
 local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Teleportt", "Special teleport for Volcano Island", function(state)
+LunarVolcanoSection:NewToggle("Volcano Island Teleport", "Teleport to all 'Body' parts on Volcano Island", function(state)
     volcanoToggle = state
     if volcanoToggle then
         task.spawn(function()
@@ -269,16 +277,14 @@ LunarVolcanoSection:NewToggle("Volcano Island Teleportt", "Special teleport for 
             if not folder then warn("Volcano Island folder not found!") return end
             while volcanoToggle do
                 for _, model in ipairs(folder:GetChildren()) do
-                    if volcanoToggle == false then break end
+                    if not volcanoToggle then break end
                     if specialExclusions[model.Name] then continue end
                     local body = model:FindFirstChild("Body")
                     if body and body:IsA("BasePart") then
-                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                        -- Wait max 15 seconds or until the body no longer exists in workspace
-                        local waitTime = 0
-                        while waitTime < 15 and volcanoToggle and body:IsDescendantOf(workspace) do
-                            task.wait(0.5)
-                            waitTime = waitTime + 0.5
+                        -- Teleport repeatedly while Body exists and toggle is on
+                        while volcanoToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                            task.wait(0.05)
                         end
                     end
                     task.wait(0.1)
