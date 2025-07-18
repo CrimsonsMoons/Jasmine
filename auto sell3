@@ -45,7 +45,11 @@ local function sellAllUnlocked()
     end
 end
 
--- Loop to sell every 5 seconds
-while task.wait(5) do
+-- Run auto-sell loop for 10 seconds max
+local startTime = tick()
+while tick() - startTime < 10 do
     pcall(sellAllUnlocked)
+    task.wait(5)
 end
+
+print("🛑 Auto-sell loop ended after 10 seconds.")
