@@ -235,34 +235,25 @@ LunarVolcanoSection:NewToggle("Lunar Island Teleport", "Special teleport for Lun
     lunarToggle = state
     if lunarToggle then
         task.spawn(function()
-            local index = 1
+            local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+            if not folder then warn("Lunar Islands folder not found!") return end
             while lunarToggle do
-                local pos = lunarPositions[index]
-                -- Teleport to pos
-                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                -- Wait up to 15 seconds or until no "Body" parts in the folder
-                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
-                local waitTime = 0
-                while waitTime < 15 and lunarToggle do
-                    if not folder then break end
-                    local bodiesExist = false
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if specialExclusions[model.Name] then continue end
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsDescendantOf(workspace) then
-                            bodiesExist = true
-                            break
+                for _, model in ipairs(folder:GetChildren()) do
+                    if lunarToggle == false then break end
+                    if specialExclusions[model.Name] then continue end
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") then
+                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                        -- Wait max 15 seconds or until the body no longer exists in workspace
+                        local waitTime = 0
+                        while waitTime < 15 and lunarToggle and body:IsDescendantOf(workspace) do
+                            task.wait(0.5)
+                            waitTime = waitTime + 0.5
                         end
                     end
-                    if not bodiesExist then
-                        break
-                    end
-                    waitTime = waitTime + 0.5
-                    task.wait(0.5)
+                    task.wait(0.1)
                 end
-                if not lunarToggle then break end
-                index = index + 1
-                if index > #lunarPositions then index = 1 end
+                task.wait(0.5)
             end
         end)
     end
@@ -274,34 +265,25 @@ LunarVolcanoSection:NewToggle("Volcano Island Teleport", "Special teleport for V
     volcanoToggle = state
     if volcanoToggle then
         task.spawn(function()
-            local index = 1
+            local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+            if not folder then warn("Volcano Island folder not found!") return end
             while volcanoToggle do
-                local pos = volcanoPositions[index]
-                -- Teleport to pos
-                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                -- Wait up to 15 seconds or until no "Body" parts in the folder
-                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
-                local waitTime = 0
-                while waitTime < 15 and volcanoToggle do
-                    if not folder then break end
-                    local bodiesExist = false
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if specialExclusions[model.Name] then continue end
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsDescendantOf(workspace) then
-                            bodiesExist = true
-                            break
+                for _, model in ipairs(folder:GetChildren()) do
+                    if volcanoToggle == false then break end
+                    if specialExclusions[model.Name] then continue end
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") then
+                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                        -- Wait max 15 seconds or until the body no longer exists in workspace
+                        local waitTime = 0
+                        while waitTime < 15 and volcanoToggle and body:IsDescendantOf(workspace) do
+                            task.wait(0.5)
+                            waitTime = waitTime + 0.5
                         end
                     end
-                    if not bodiesExist then
-                        break
-                    end
-                    waitTime = waitTime + 0.5
-                    task.wait(0.5)
+                    task.wait(0.1)
                 end
-                if not volcanoToggle then break end
-                index = index + 1
-                if index > #volcanoPositions then index = 1 end
+                task.wait(0.5)
             end
         end)
     end
