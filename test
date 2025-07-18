@@ -234,19 +234,19 @@ LunarVolcanoSection:NewToggle("Lunar Island Teleport Loop", "Teleports through L
                         for _, model in ipairs(Workspace:GetChildren()) do
                             if isUUIDName(model.Name) and model:FindFirstChild("Body") then
                                 local body = model.Body
-                                if (body.Position - pos).Magnitude <= 100 then
+                                if (body.Position - pos).Magnitude <= 8000 then
                                     bodiesRemaining = true
                                     break
                                 end
                             end
                         end
                         if bodiesRemaining then
-                            task.wait(1)
+                            task.wait(.5)
                         end
                     end
 
                     if lunarTeleportEnabled then
-                        task.wait(5)
+                        task.wait(15)
                     end
                 end
             end
