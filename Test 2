@@ -261,7 +261,7 @@ end)
 
 -- === Volcano Island Teleport Toggle ===
 local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Teleport", "Special teleport for Volcano Island", function(state)
+LunarVolcanoSection:NewToggle("Volcano Island Teleportt", "Special teleport for Volcano Island", function(state)
     volcanoToggle = state
     if volcanoToggle then
         task.spawn(function()
