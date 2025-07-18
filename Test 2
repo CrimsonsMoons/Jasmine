@@ -281,7 +281,7 @@ task.spawn(function()
                 else
                     -- No bodies found, teleport to position and wait 15 seconds
                     hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(11.5)
                 end
             end
         else
@@ -331,7 +331,7 @@ task.spawn(function()
                     end
                 else
                     hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(11.5)
                 end
             end
         else
