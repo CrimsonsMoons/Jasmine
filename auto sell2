@@ -43,15 +43,18 @@ local function getValidListFolder()
     return nil
 end
 
--- Main auto-sell loop
+-- Main auto-sell loop (stop after 10 seconds)
 task.spawn(function()
-    while true do
+    local startTime = tick()
+    while tick() - startTime < 10 do
         local listFolder = getValidListFolder()
 
         if listFolder then
             local sellTable = {}
             for _, item in ipairs(listFolder:GetChildren()) do
-                if isUUID(item.Name) and not item:FindFirstChild("Locked") and not item:FindFirstChild("SpecialIndicator") then
+                if isUUID(item.Name)
+                    and not item:FindFirstChild("Locked")
+                    and not item:FindFirstChild("SpecialIndicator") then
                     sellTable[item.Name] = 1
                 end
             end
@@ -72,4 +75,6 @@ task.spawn(function()
 
         task.wait(5) -- Wait 5 seconds before selling again
     end
+
+    print("🛑 Auto-sell loop stopped after 10 seconds.")
 end)
