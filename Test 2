@@ -28,6 +28,31 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 local explorerFolder = workspace:FindFirstChild("Explorer")
 
+-- Notification Label Setup
+local function createNotificationLabel()
+    local screenGui = player:WaitForChild("PlayerGui"):FindFirstChild("TeleportNotificationGui")
+    if screenGui then
+        screenGui:Destroy()
+    end
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "TeleportNotificationGui"
+    screenGui.Parent = player.PlayerGui
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 350, 0, 50)
+    label.Position = UDim2.new(0.5, -175, 0.05, 0)
+    label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    label.BackgroundTransparency = 0.5
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Text = ""
+    label.Parent = screenGui
+    return label
+end
+
+local notifLabel = createNotificationLabel()
+
 -- Reconnect HRP on respawn
 local function setupCharacter(newChar)
     character = newChar
@@ -61,6 +86,18 @@ for _, config in pairs(islandConfigs) do
     config["Travel Boat"] = true
 end
 
+-- Anti-stuck/anti-fall respawn function
+local function checkAndRespawn()
+    if hrp and hrp.Parent and hrp.Position.Y < -50 then -- Fell below threshold
+        if player and player.Character then
+            player.Character:BreakJoints()
+            notifLabel.Text = "You fell! Respawning..."
+            task.wait(2)
+            notifLabel.Text = ""
+        end
+    end
+end
+
 -- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
 for islandName, excludedIds in pairs(islandConfigs) do
@@ -87,6 +124,8 @@ for islandName, excludedIds in pairs(islandConfigs) do
                             while teleportToggles[islandName] and body:IsDescendantOf(workspace) and timer < 10 do
                                 if hrp and hrp.Parent then
                                     hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                    notifLabel.Text = "Teleporting to " .. islandName .. " - " .. model.Name
+                                    checkAndRespawn()
                                 end
                                 task.wait(0.1)
                                 timer = timer + 0.1
@@ -95,6 +134,7 @@ for islandName, excludedIds in pairs(islandConfigs) do
                     end
                     task.wait(0.1)
                 end
+                notifLabel.Text = ""
             else
                 task.wait(0.5)
             end
@@ -108,6 +148,10 @@ for islandName in pairs(islandConfigs) do
         local args = {"\1", "Travel", islandName, 1}
         game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
             :WaitForChild("Functions", 9e9):GetChildren()[2]:FireServer(unpack(args))
+        notifLabel.Text = "Traveling to " .. islandName
+        task.delay(3, function()
+            notifLabel.Text = ""
+        end)
     end)
 end
 
@@ -275,6 +319,8 @@ local function exploreIslandBodies(islandName, positions, toggleFlag)
                                 while _G[toggleFlag] and body:IsDescendantOf(workspace) and timer < 10 do
                                     if hrp and hrp.Parent then
                                         hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                        notifLabel.Text = "Teleporting to " .. islandName .. " - " .. model.Name
+                                        checkAndRespawn()
                                     end
                                     task.wait(0.1)
                                     timer = timer + 0.1
@@ -285,10 +331,12 @@ local function exploreIslandBodies(islandName, positions, toggleFlag)
                 else
                     if hrp and hrp.Parent then
                         hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                        notifLabel.Text = "Teleporting to " .. islandName .. " - position"
                     end
                     task.wait(15)
                 end
             end
+            notifLabel.Text = ""
         end
     end)
 end
@@ -299,6 +347,8 @@ LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UU
     _G.lunarToggle = state
     if state then
         exploreIslandBodies("Lunar Islands", lunarPositions, "lunarToggle")
+    else
+        notifLabel.Text = ""
     end
 end)
 
@@ -308,26 +358,39 @@ LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to 
     _G.volcanoToggle = state
     if state then
         exploreIslandBodies("Volcano Island", volcanoPositions, "volcanoToggle")
+    else
+        notifLabel.Text = ""
     end
 end)
 
--- Remove Lava Button and Loop
-LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
-    task.spawn(function()
-        while true do
-            local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
-            for _, part in ipairs(folder:GetChildren()) do
-                if part:IsA("BasePart") then
-                    for _, child in ipairs(part:GetChildren()) do
-                        if child:IsA("TouchTransmitter") then
-                            child:Destroy()
+-- === Lava Removal Toggle ===
+_G.removeLavaToggle = false
+LunarVolcanoSection:NewToggle("Remove Lava", "Removes TouchTransmitters from Lava every 5 seconds", function(state)
+    _G.removeLavaToggle = state
+    if state then
+        task.spawn(function()
+            while _G.removeLavaToggle do
+                local lavaFolder = islandsFolder:FindFirstChild("Volcano Island")
+                if lavaFolder then
+                    local lavaPartsFolder = lavaFolder:FindFirstChild("LavaParts") and lavaFolder.LavaParts:FindFirstChild("Folder")
+                    if lavaPartsFolder then
+                        for _, part in ipairs(lavaPartsFolder:GetChildren()) do
+                            if part:IsA("BasePart") then
+                                for _, child in ipairs(part:GetChildren()) do
+                                    if child:IsA("TouchTransmitter") then
+                                        child:Destroy()
+                                    end
+                                end
+                            end
                         end
                     end
                 end
+                notifLabel.Text = "Removing Lava TouchTransmitters..."
+                task.wait(5)
             end
-            print("All TouchTransmitters removed.")
-            task.wait(5)
-        end
-    end)
+            notifLabel.Text = ""
+        end)
+    else
+        notifLabel.Text = ""
+    end
 end)
-----
