@@ -18,8 +18,8 @@ local AutoSection = AutoTab:NewSection("Automation")
 local ShopTab = Window:NewTab("Shop")
 local ShopSection = ShopTab:NewSection("Shop Items")
 
-local LunarVolcanoTab = Window:NewTab("Lunar/Volcano")
-local LunarVolcanoSection = LunarVolcanoTab:NewSection("Special Teleports")
+local LunarVolcanoTab = Window:NewTab("Lunar / Volcano")
+local LunarVolcanoSection = LunarVolcanoTab:NewSection("Lunar & Volcano Island Teleports")
 
 -- === Initialization ===
 local player = game.Players.LocalPlayer
@@ -28,7 +28,7 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 local explorerFolder = workspace:FindFirstChild("Explorer")
 
--- === Island Configuration & Exclusions ===
+-- === Island Configuration ===
 local islandConfigs = {
     ["Mainland"] = {},
     ["Forest Island"] = {},
@@ -41,31 +41,26 @@ local islandConfigs = {
     ["Desert Island"] = {},
 }
 
-local universalExclusions = {
-    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
-    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
-    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
-    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
-    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
-    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
-    ["Horse"] = true,
-    ["Travel Boat"] = true,
-}
-
+-- === Universal Exclusions ===
 for _, config in pairs(islandConfigs) do
-    for k,v in pairs(universalExclusions) do
-        config[k] = v
-    end
+    config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
+    config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
+    config["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true
+    config["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true
+    config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
+    config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
+    config["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true
+    config["Horse"] = true
+    config["Travel Boat"] = true
 end
 
--- === Teleport Toggles ===
+-- === Teleport Toggles for Islands ===
 local teleportToggles = {}
 
 for islandName, excludedIds in pairs(islandConfigs) do
     teleportToggles[islandName] = false
 
-    TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName, function(state)
+    TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName .. " Bodies", function(state)
         teleportToggles[islandName] = state
     end)
 
@@ -80,7 +75,7 @@ for islandName, excludedIds in pairs(islandConfigs) do
                     local body = model:FindFirstChild("Body")
                     if body and body:IsA("BasePart") then
                         while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
                             task.wait(0.05)
                         end
                     end
@@ -113,16 +108,14 @@ end)
 
 -- === Auto Catch Toggles ===
 local autoCatchEnabled1 = false
-local autoCatchEnabled2 = false
-local autoCatchEnabled3 = false
-
-AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script", function(state)
+AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script 1", function(state)
     autoCatchEnabled1 = state
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Catch%201"))()
     end
 end)
 
+local autoCatchEnabled2 = false
 AutoSection:NewToggle("4,5,6", "Auto Catch Script 2", function(state)
     autoCatchEnabled2 = state
     if state then
@@ -130,6 +123,7 @@ AutoSection:NewToggle("4,5,6", "Auto Catch Script 2", function(state)
     end
 end)
 
+local autoCatchEnabled3 = false
 AutoSection:NewToggle("7,8,9", "Auto Catch Script 3", function(state)
     autoCatchEnabled3 = state
     if state then
@@ -209,25 +203,28 @@ ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
         :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
 
--- === Lunar Island Special Teleport Positions ===
+-- === Lunar Island Positions for teleporting ===
 local lunarPositions = {
-    Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
-    Vector3.new(-2759.49609375, 6.74829626083374, -2589.205810546875),
-    Vector3.new(-2207.140380859375, 139.0631866455078, -1223.9427490234375),
-    Vector3.new(-3266.90771484375, 15.430882453918457, -1436.565673828125),
-    Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
+    Vector3.new(-3097.42, 17.63, -3681.29),
+    Vector3.new(-2759.50, 6.75, -2589.21),
+    Vector3.new(-2207.14, 139.06, -1223.94),
+    Vector3.new(-3266.91, 15.43, -1436.57),
+    Vector3.new(-3357.76, 24.35, -2428.63),
 }
 
--- === Volcano Island Special Teleport Positions ===
+-- === Volcano Island Positions for teleporting ===
 local volcanoPositions = {
-    Vector3.new(2964.748291015625, 108.94522857666016, -7078.3603515625),
-    Vector3.new(4134.52197265625, 27.04894256591797, -6894.68603515625),
-    Vector3.new(4757.5205078125, 26.138153076171875, -7939.00634765625),
-    Vector3.new(3487.487548828125, 20.9999942779541, -8586.859375),
+    Vector3.new(2964.75, 108.95, -7078.36),
+    Vector3.new(4134.52, 27.05, -6894.69),
+    Vector3.new(4757.52, 26.14, -7939.01),
+    Vector3.new(3487.49, 21.00, -8586.86),
 }
 
--- === Special exclusions for Lunar and Volcano ===
-local specialExclusions = {
+local lunarToggle = false
+local volcanoToggle = false
+
+-- === Helper: Exclusions for Lunar & Volcano Bodies ===
+local exclusions = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
     ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
@@ -239,58 +236,73 @@ local specialExclusions = {
     ["Travel Boat"] = true,
 }
 
--- === Lunar Island Teleport Toggle ===
-local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Teleport", "Teleport to all 'Body' parts on Lunar Island", function(state)
+-- === Lunar Island Toggle ===
+LunarVolcanoSection:NewToggle("Lunar Island", "Teleport Lunar Island Bodies via positions", function(state)
     lunarToggle = state
-    if lunarToggle then
-        task.spawn(function()
-            local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
-            if not folder then warn("Lunar Islands folder not found!") return end
-            while lunarToggle do
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not lunarToggle then break end
-                    if specialExclusions[model.Name] then continue end
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        -- Teleport repeatedly while Body exists and toggle is on
-                        while lunarToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
-                            task.wait(0.05)
+    task.spawn(function()
+        while lunarToggle do
+            for _, pos in ipairs(lunarPositions) do
+                if not lunarToggle then break end
+                -- Teleport to position first to load map
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                task.wait(15) -- wait for map to load and bodies to spawn
+                -- Get Lunar Island folder to scan
+                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+                if folder then
+                    local bodiesFound = false
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if exclusions[model.Name] then continue end
+                        local body = model:FindFirstChild("Body")
+                        if body and body:IsA("BasePart") then
+                            bodiesFound = true
+                            while lunarToggle and body:IsDescendantOf(workspace) do
+                                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                                task.wait(0.05)
+                            end
                         end
                     end
-                    task.wait(0.1)
+                    if not bodiesFound then
+                        -- No bodies found, proceed to next pos immediately
+                        continue
+                    end
                 end
-                task.wait(0.5)
+                if not lunarToggle then break end
+                task.wait(15) -- wait before next pos
             end
-        end)
-    end
+        end
+    end)
 end)
 
--- === Volcano Island Teleport Toggle ===
-local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Teleportt", "Teleport to all 'Body' parts on Volcano Island", function(state)
+-- === Volcano Island Toggle ===
+LunarVolcanoSection:NewToggle("Volcano Island", "Teleport Volcano Island Bodies via positions", function(state)
     volcanoToggle = state
-    if volcanoToggle then
-        task.spawn(function()
-            local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
-            if not folder then warn("Volcano Island folder not found!") return end
-            while volcanoToggle do
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not volcanoToggle then break end
-                    if specialExclusions[model.Name] then continue end
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        -- Teleport repeatedly while Body exists and toggle is on
-                        while volcanoToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
-                            task.wait(0.05)
+    task.spawn(function()
+        while volcanoToggle do
+            for _, pos in ipairs(volcanoPositions) do
+                if not volcanoToggle then break end
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                task.wait(15)
+                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+                if folder then
+                    local bodiesFound = false
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if exclusions[model.Name] then continue end
+                        local body = model:FindFirstChild("Body")
+                        if body and body:IsA("BasePart") then
+                            bodiesFound = true
+                            while volcanoToggle and body:IsDescendantOf(workspace) do
+                                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                                task.wait(0.05)
+                            end
                         end
                     end
-                    task.wait(0.1)
+                    if not bodiesFound then
+                        continue
+                    end
                 end
-                task.wait(0.5)
+                if not volcanoToggle then break end
+                task.wait(15)
             end
-        end)
-    end
+        end
+    end)
 end)
