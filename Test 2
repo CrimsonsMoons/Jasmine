@@ -213,40 +213,35 @@ local lunarPositions = {
     Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
 }
 
-LunarSection:NewToggle("Lunar/Volcano Teleport", "Teleport to key points waiting for 'Body' parts to clear", function(state)
+LunarSection:NewToggle("Lunar/Volcano Teleport", "Teleport to each 'Body' part and wait for clearing", function(state)
     lunarVolcanoToggle = state
 
     task.spawn(function()
+        local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+        if not folder then
+            warn("Lunar Islands folder not found")
+            return
+        end
+
         while lunarVolcanoToggle do
-            for _, pos in ipairs(lunarPositions) do
+            for _, model in ipairs(folder:GetChildren()) do
                 if not lunarVolcanoToggle then break end
-                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
+                local body = model:FindFirstChild("Body")
+                if body and body:IsA("BasePart") then
+                    -- Teleport to the Body part
+                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                    
+                    -- Wait until the Body part no longer exists or is removed from workspace
+                    repeat
+                        task.wait(1)
+                    until not body:IsDescendantOf(workspace) or not lunarVolcanoToggle
 
-                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
-                if not folder then
-                    warn("Lunar Islands folder not found")
-                    break
+                    -- Wait 15 seconds before moving to next
+                    task.wait(15)
                 end
-
-                -- Infinite range check for "Body" parts
-                local foundBody
-                repeat
-                    foundBody = false
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if model.Name and islandConfigs["Lunar Islands"][model.Name] then continue end
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") then
-                            foundBody = true
-                            break
-                        end
-                    end
-                    task.wait(1)
-                until not foundBody or not lunarVolcanoToggle
-
-                if not lunarVolcanoToggle then break end
-                task.wait(15)
             end
             task.wait(1)
         end
     end)
 end)
+
