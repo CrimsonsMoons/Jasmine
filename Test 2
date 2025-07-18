@@ -213,7 +213,7 @@ local lunarPositions = {
     Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
 }
 
-LunarSection:NewToggle("Lunar/Volcano Teleport", "Teleport to each 'Body' part and wait for clearing", function(state)
+LunarSection:NewToggle("Lunar/Volcano Teleport2", "Teleport to each 'Body' part and wait for clearing", function(state)
     lunarVolcanoToggle = state
 
     task.spawn(function()
