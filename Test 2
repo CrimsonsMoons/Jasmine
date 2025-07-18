@@ -1,4 +1,3 @@
-
 -- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
@@ -220,10 +219,7 @@ LunarSection:NewToggle("Lunar/Volcano Teleport", "Teleport to key points waiting
         while lunarVolcanoToggle do
             for _, pos in ipairs(lunarPositions) do
                 if not lunarVolcanoToggle then break end
-
-                -- Teleport to fixed position first to load the area
                 hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                task.wait(3)
 
                 local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
                 if not folder then
@@ -231,35 +227,23 @@ LunarSection:NewToggle("Lunar/Volcano Teleport", "Teleport to key points waiting
                     break
                 end
 
-                -- Exclusions for Lunar Islands (same as main exclusions)
-                local exclusions = {
-                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
-                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
-                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
-                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
-                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
-                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
-                    ["Horse"] = true,
-                    ["Travel Boat"] = true,
-                }
-
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not lunarVolcanoToggle then break end
-                    if exclusions[model.Name] then continue end
-
-                    local body = model:FindFirstChild("Body")
-                    if body and body:IsA("BasePart") then
-                        while lunarVolcanoToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
-                            task.wait(0.05)
+                -- Infinite range check for "Body" parts
+                local foundBody
+                repeat
+                    foundBody = false
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if model.Name and islandConfigs["Lunar Islands"][model.Name] then continue end
+                        local body = model:FindFirstChild("Body")
+                        if body and body:IsA("BasePart") then
+                            foundBody = true
+                            break
                         end
                     end
-                    task.wait(0.1)
-                end
+                    task.wait(1)
+                until not foundBody or not lunarVolcanoToggle
 
                 if not lunarVolcanoToggle then break end
-                task.wait(15) -- wait 15 seconds before next fixed position
+                task.wait(15)
             end
             task.wait(1)
         end
