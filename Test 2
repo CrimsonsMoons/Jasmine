@@ -234,9 +234,9 @@ local exclusions = {
     ["Travel Boat"] = true,
 }
 
--- Lunar Island Teleport Toggle
+-- Lunar Island Teleport Toggle (like Main tab teleporting to Bodies)
 local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport around Lunar Island points and Bodies", function(state)
+LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
     lunarToggle = state
 end)
 
@@ -245,33 +245,33 @@ task.spawn(function()
         if lunarToggle then
             for i, pos in ipairs(lunarPositions) do
                 if not lunarToggle then break end
+                -- Teleport to position first (optional)
                 hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                task.wait(15)
-                -- Check for Bodies near position in workspace and explorer
-                local function bodiesExist()
-                    for _, folder in pairs({workspace, explorerFolder}) do
-                        if folder then
-                            for _, child in ipairs(folder:GetChildren()) do
-                                for _, model in ipairs(child:GetChildren()) do
-                                    if exclusions[model.Name] then continue end
-                                    local body = model:FindFirstChild("Body")
-                                    if body and body:IsA("BasePart") then
-                                        -- Check distance infinite = always true for existence
-                                        if (body.Position - pos).Magnitude <= math.huge then
-                                            return true
-                                        end
-                                    end
+                task.wait(0.5)
+
+                -- Find folder for Lunar Island bodies (Workspace and Explorer)
+                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+                if not folder then warn("Lunar Islands folder not found") break end
+
+                local hasBodies = true
+                while lunarToggle and hasBodies do
+                    hasBodies = false
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if lunarToggle and not exclusions[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                hasBodies = true
+                                -- Teleport repeatedly to this body until it no longer exists
+                                while lunarToggle and body:IsDescendantOf(workspace) do
+                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                    task.wait(0.05)
                                 end
                             end
                         end
                     end
-                    return false
+                    task.wait(0.1)
                 end
-
-                -- Wait until no bodies
-                while bodiesExist() and lunarToggle do
-                    task.wait(1)
-                end
+                -- After no more bodies, move to next position immediately
             end
         else
             task.wait(0.5)
@@ -279,9 +279,9 @@ task.spawn(function()
     end
 end)
 
--- Volcano Island Teleport Toggle
+-- Volcano Island Teleport Toggle (same logic)
 local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport around Volcano Island points and Bodies", function(state)
+LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
     volcanoToggle = state
 end)
 
@@ -290,29 +290,28 @@ task.spawn(function()
         if volcanoToggle then
             for i, pos in ipairs(volcanoPositions) do
                 if not volcanoToggle then break end
-                hrp.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-                task.wait(15)
-                local function bodiesExist()
-                    for _, folder in pairs({workspace, explorerFolder}) do
-                        if folder then
-                            for _, child in ipairs(folder:GetChildren()) do
-                                for _, model in ipairs(child:GetChildren()) do
-                                    if exclusions[model.Name] then continue end
-                                    local body = model:FindFirstChild("Body")
-                                    if body and body:IsA("BasePart") then
-                                        if (body.Position - pos).Magnitude <= math.huge then
-                                            return true
-                                        end
-                                    end
+                hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                task.wait(0.5)
+
+                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+                if not folder then warn("Volcano Island folder not found") break end
+
+                local hasBodies = true
+                while volcanoToggle and hasBodies do
+                    hasBodies = false
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if volcanoToggle and not exclusions[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                hasBodies = true
+                                while volcanoToggle and body:IsDescendantOf(workspace) do
+                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                    task.wait(0.05)
                                 end
                             end
                         end
                     end
-                    return false
-                end
-
-                while bodiesExist() and volcanoToggle do
-                    task.wait(1)
+                    task.wait(0.1)
                 end
             end
         else
