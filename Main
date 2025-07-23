@@ -369,7 +369,7 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
                 end
             end
             print("All TouchInterests removed.")
-            task.wait(5)
+            task.wait(60)
         end
     end)
 end)
