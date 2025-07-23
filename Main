@@ -189,6 +189,20 @@ AutoSection:NewToggle("Auto Sell 4", "Loop auto sell4 every 0.5 seconds", functi
     end
 end)
 
+local autoSellAccEnabled = false
+AutoSection:NewToggle("Auto Sell Acc", "Auto sell accessories every 5 seconds", function(state)
+    autoSellAccEnabled = state
+    if state then
+        task.spawn(function()
+            while autoSellAccEnabled do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell%20acc", true))()
+                task.wait(5)
+            end
+        end)
+    end
+end)
+
+
 -- === Shop Buttons ===
 ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
     local args = {"BuyShopItem", "Mainland Shop", 1, 1000}
@@ -359,3 +373,5 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
         end
     end)
 end)
+
+
