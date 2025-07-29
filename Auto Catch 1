@@ -55,23 +55,42 @@ local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
+local function isExcluded(name)
+    return exclusions[name] == true
+end
+
 -- === Main Loop ===
 while task.wait(0.05) do
     local playerPos = HumanoidRootPart.Position
+
+    local function tryActivate(child, source)
+        if not child or not child:IsA("Model") then return end
+        local name = child.Name
+        if isExcluded(name) then
+            -- Debug print if needed
+            -- print("Skipping excluded:", name)
+            return
+        end
+
+        local body = child:FindFirstChild("Body")
+        if body and body:IsA("BasePart") then
+            local dist = (body.Position - playerPos).Magnitude
+            if dist <= 15 then
+                for _, tool in ipairs(TOOL_UUIDS) do
+                    remote:FireServer(tool, "Activate", child)
+                end
+                print("Fired at:", name, "from", source, "Distance:", math.floor(dist))
+            end
+        end
+    end
 
     -- Check island folders
     for _, islandName in ipairs(islandFolders) do
         local islandFolder = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
         if islandFolder then
             for _, child in ipairs(islandFolder:GetChildren()) do
-                if isUUID(child.Name) and not exclusions[child.Name] and child:FindFirstChild("Body") then
-                    local dist = (child.Body.Position - playerPos).Magnitude
-                    if dist <= 15 then
-                        for _, tool in ipairs(TOOL_UUIDS) do
-                            remote:FireServer(tool, "Activate", child)
-                        end
-                        print("Fired at", child.Name, "from", islandName, "Distance:", math.floor(dist))
-                    end
+                if isUUID(child.Name) or exclusions[child.Name] ~= true then
+                    tryActivate(child, islandName)
                 end
             end
         end
@@ -79,14 +98,8 @@ while task.wait(0.05) do
 
     -- Check top-level Workspace UUID models
     for _, child in ipairs(Workspace:GetChildren()) do
-        if isUUID(child.Name) and not exclusions[child.Name] and child:FindFirstChild("Body") then
-            local dist = (child.Body.Position - playerPos).Magnitude
-            if dist <= 15 then
-                for _, tool in ipairs(TOOL_UUIDS) do
-                    remote:FireServer(tool, "Activate", child)
-                end
-                print("Fired at top-level:", child.Name, "Distance:", math.floor(dist))
-            end
+        if isUUID(child.Name) or exclusions[child.Name] ~= true then
+            tryActivate(child, "TopLevel")
         end
     end
 end
