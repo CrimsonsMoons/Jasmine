@@ -17,6 +17,7 @@ local TOOL_UUIDS = {
     "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
     "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+    "{f18be4e2-acdc-4ac8-b5b3-d5e599f55326}",
 }
 
 -- === Excluded UUIDs and names ===
@@ -30,6 +31,7 @@ local exclusions = {
     ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
 }
