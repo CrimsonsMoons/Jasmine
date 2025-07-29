@@ -15,6 +15,8 @@ local TOOL_UUIDS = {
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
     "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+    "{c774eb07-6267-4c0a-a57a-f9d308ff0796}",
+
 }
 
 -- EXCLUSIONS
