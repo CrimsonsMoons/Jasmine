@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- === Tool UUIDs (add more if needed) ===
+-- === Tool UUIDs ===
 local TOOL_UUIDS = {
     "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
@@ -59,47 +59,40 @@ local function isExcluded(name)
     return exclusions[name] == true
 end
 
--- === Main Loop ===
-while task.wait(0.05) do
-    local playerPos = HumanoidRootPart.Position
+-- === Try Activating a Valid Target ===
+local function tryActivate(child, source)
+    if not child or not child:IsA("Model") then return end
+    local name = child.Name
 
-    local function tryActivate(child, source)
-        if not child or not child:IsA("Model") then return end
-        local name = child.Name
-        if isExcluded(name) then
-            -- Debug print if needed
-            -- print("Skipping excluded:", name)
-            return
-        end
+    if isExcluded(name) then return end
+    if not isUUID(name) then return end
 
-        local body = child:FindFirstChild("Body")
-        if body and body:IsA("BasePart") then
-            local dist = (body.Position - playerPos).Magnitude
-            if dist <= 15 then
-                for _, tool in ipairs(TOOL_UUIDS) do
-                    remote:FireServer(tool, "Activate", child)
-                end
-                print("Fired at:", name, "from", source, "Distance:", math.floor(dist))
+    local body = child:FindFirstChild("Body")
+    if body and body:IsA("BasePart") then
+        local dist = (body.Position - HumanoidRootPart.Position).Magnitude
+        if dist <= 15 then
+            for _, tool in ipairs(TOOL_UUIDS) do
+                remote:FireServer(tool, "Activate", child)
             end
+            print("✅ Fired at:", name, "from", source, "Distance:", math.floor(dist))
         end
     end
+end
 
+-- === Main Loop ===
+while task.wait(0.05) do
     -- Check island folders
     for _, islandName in ipairs(islandFolders) do
         local islandFolder = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
         if islandFolder then
             for _, child in ipairs(islandFolder:GetChildren()) do
-                if isUUID(child.Name) or exclusions[child.Name] ~= true then
-                    tryActivate(child, islandName)
-                end
+                tryActivate(child, islandName)
             end
         end
     end
 
     -- Check top-level Workspace UUID models
     for _, child in ipairs(Workspace:GetChildren()) do
-        if isUUID(child.Name) or exclusions[child.Name] ~= true then
-            tryActivate(child, "TopLevel")
-        end
+        tryActivate(child, "TopLevel")
     end
 end
