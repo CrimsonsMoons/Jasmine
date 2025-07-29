@@ -60,7 +60,6 @@ for _, config in pairs(islandConfigs) do
     config["Horse"] = true
     config["Travel Boat"] = true
     config["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true
-
 end
 
 -- === Teleport Toggles for Islands in Main Tab ===
