@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")
+ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- === Tool UUIDs ===
+-- === Tool UUIDs (add more if needed) ===
 local TOOL_UUIDS = {
     "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
@@ -32,9 +32,7 @@ local exclusions = {
     ["Horse"] = true,
     ["Travel Boat"] = true,
     ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
-    ["{739c957f-cdc9-4d3e-96e2-a52cb13f0b97}"] = true,  -- <=== Added exclusion here
-}
-
+    ["{739c957f-cdc9-4d3e-96e2-a52cb13f0b97}"] = true,
 }
 
 -- === Island folders to check ===
@@ -53,62 +51,43 @@ local islandFolders = {
 -- === Remote ===
 local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
 
--- === Utilities ===
+-- === Utility ===
 local function isUUID(name)
-    return typeof(name) == "string" and name:match("^[%{]?[%x%-]+[%}]?$") ~= nil
-end
-
-local function isExcluded(name)
-    -- Check both raw and wrapped forms for exclusion
-    if exclusions[name] then
-        return true
-    elseif exclusions["{" .. name .. "}"] then
-        return true
-    else
-        return false
-    end
-end
-
--- === Try Activating a Valid Target ===
-local function tryActivate(child, source)
-    if not child or not child:IsA("Model") then return end
-    local name = child.Name
-
-    if isExcluded(name) then
-        -- Skip excluded models completely
-        return
-    end
-
-    if not isUUID(name) then
-        return
-    end
-
-    local body = child:FindFirstChild("Body")
-    if body and body:IsA("BasePart") then
-        local dist = (body.Position - HumanoidRootPart.Position).Magnitude
-        if dist <= 15 then
-            for _, tool in ipairs(TOOL_UUIDS) do
-                remote:FireServer(tool, "Activate", child)
-            end
-            print("✅ Fired at:", name, "from", source, "Distance:", math.floor(dist))
-        end
-    end
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
 -- === Main Loop ===
 while task.wait(0.05) do
+    local playerPos = HumanoidRootPart.Position
+
     -- Check island folders
     for _, islandName in ipairs(islandFolders) do
         local islandFolder = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
         if islandFolder then
             for _, child in ipairs(islandFolder:GetChildren()) do
-                tryActivate(child, islandName)
+                if isUUID(child.Name) and not exclusions[child.Name] and child:FindFirstChild("Body") then
+                    local dist = (child.Body.Position - playerPos).Magnitude
+                    if dist <= 15 then
+                        for _, tool in ipairs(TOOL_UUIDS) do
+                            remote:FireServer(tool, "Activate", child)
+                        end
+                        print("Fired at", child.Name, "from", islandName, "Distance:", math.floor(dist))
+                    end
+                end
             end
         end
     end
 
     -- Check top-level Workspace UUID models
     for _, child in ipairs(Workspace:GetChildren()) do
-        tryActivate(child, "TopLevel")
+        if isUUID(child.Name) and not exclusions[child.Name] and child:FindFirstChild("Body") then
+            local dist = (child.Body.Position - playerPos).Magnitude
+            if dist <= 15 then
+                for _, tool in ipairs(TOOL_UUIDS) do
+                    remote:FireServer(tool, "Activate", child)
+                end
+                print("Fired at top-level:", child.Name, "Distance:", math.floor(dist))
+            end
+        end
     end
 end
