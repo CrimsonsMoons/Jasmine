@@ -42,11 +42,9 @@ local exclusions = {
     ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
     ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
     ["horse"] = true,
     ["travel boat"] = true,
-    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
-    ["{739c957f-cdc9-4d3e-96e2-a52cb13f0b97}"] = true,
-
 }
 
 local islandConfigs = {}
