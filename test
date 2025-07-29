@@ -57,9 +57,9 @@ for _, config in pairs(islandConfigs) do
     config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
     config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
     config["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true
+    config["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true
     config["Horse"] = true
     config["Travel Boat"] = true
-    config["fd489389-537f-40e1-bd1a-c048522d23bc"] = true
 end
 
 -- === Teleport Toggles for Islands in Main Tab ===
@@ -248,9 +248,9 @@ local exclusions = {
     ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
     ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
-    ["fd489389-537f-40e1-bd1a-c048522d23bc"] = true,
 }
 
 -- Lunar Island Teleport Toggle (like Main tab teleporting to Bodies)
