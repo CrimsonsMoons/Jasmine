@@ -58,6 +58,7 @@ for _, config in pairs(islandConfigs) do
     config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
     config["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true
     config["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true
+    config["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true
     config["Horse"] = true
     config["Travel Boat"] = true
 end
