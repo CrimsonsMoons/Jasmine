@@ -31,6 +31,7 @@ local exclusions = {
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
 }
 
 -- === Island folders to check ===
