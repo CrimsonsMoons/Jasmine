@@ -31,8 +31,7 @@ local EXCLUSIONS = {
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
-    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
-
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
 }
 
 -- Island names
