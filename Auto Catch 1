@@ -19,7 +19,7 @@ local TOOL_UUIDS = {
     "{c774eb07-6267-4c0a-a57a-f9d308ff0796}",
 }
 
--- === Excluded UUIDs and names ===
+-- === Exclusions (raw + wrapped names allowed) ===
 local exclusions = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
@@ -31,7 +31,7 @@ local exclusions = {
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
-    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
+    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true, -- RAW UUID excluded
 }
 
 -- === Island folders to check ===
@@ -50,13 +50,15 @@ local islandFolders = {
 -- === Remote ===
 local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
 
--- === Utility ===
+-- === Utilities ===
 local function isUUID(name)
-    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+    return typeof(name) == "string" and name:match("^[%{]?[%x%-]+[%}]?$") ~= nil
 end
 
 local function isExcluded(name)
-    return exclusions[name] == true
+    if exclusions[name] then return true end
+    if exclusions["{" .. name .. "}"] then return true end
+    return false
 end
 
 -- === Try Activating a Valid Target ===
