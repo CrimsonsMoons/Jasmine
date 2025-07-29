@@ -16,7 +16,6 @@ local TOOL_UUIDS = {
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
     "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
-    "{c774eb07-6267-4c0a-a57a-f9d308ff0796}",
 }
 
 -- === Excluded UUIDs and names ===
@@ -31,8 +30,6 @@ local exclusions = {
     ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
     ["Horse"] = true,
     ["Travel Boat"] = true,
-    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
-    ["{739c957f-cdc9-4d3e-96e2-a52cb13f0b97}"] = true,
 }
 
 -- === Island folders to check ===
