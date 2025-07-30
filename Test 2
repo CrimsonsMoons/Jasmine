@@ -57,32 +57,83 @@ for _, config in pairs(islandConfigs) do
     config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
     config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
     config["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true
+    config["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true
+    config["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true
     config["Horse"] = true
     config["Travel Boat"] = true
 end
 
--- Anti-fall respawn
-local function checkAndRespawn()
-    if hrp and hrp.Parent and hrp.Position.Y < -50 then
-        if player and player.Character then
-            player.Character:BreakJoints()
+-- Universal exclusions table for Lunar/Volcano tab
+local exclusions = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
+-- Helper: Get all valid Body parts for an island name, searching in Islands folder, Explorer, AND direct workspace UUID folders
+local function getAllBodiesForIsland(islandName, excludedIds)
+    local bodies = {}
+
+    -- 1) Islands folder
+    local folder = islandsFolder:FindFirstChild(islandName)
+    if folder then
+        for _, model in ipairs(folder:GetChildren()) do
+            if not excludedIds[model.Name] then
+                local body = model:FindFirstChild("Body")
+                if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                    table.insert(bodies, body)
+                end
+            end
         end
     end
+
+    -- 2) Explorer folder
+    if explorerFolder then
+        local explorerIslandFolder = explorerFolder:FindFirstChild(islandName)
+        if explorerIslandFolder then
+            for _, model in ipairs(explorerIslandFolder:GetChildren()) do
+                if not excludedIds[model.Name] then
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                        table.insert(bodies, body)
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3) Check all UUID folders in workspace that have Body, and belong to this island by name pattern
+    for _, child in ipairs(workspace:GetChildren()) do
+        if typeof(child.Name) == "string" and child.Name:match("^%b{}$") and child:FindFirstChild("Body") then
+            -- Heuristic: check if this UUID folder's name contains the islandName words (ignore case)
+            local lowerIslandName = islandName:lower()
+            local lowerChildName = child.Name:lower()
+            if lowerChildName:find(lowerIslandName:gsub(" ", "")) then
+                local body = child.Body
+                if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) and not excludedIds[child.Name] then
+                    table.insert(bodies, body)
+                end
+            else
+                -- Also add all bodies even if island name doesn't match, because user wants "all UUID bodies in workspace"
+                -- If you want to exclude this, remove this else block
+                local body = child.Body
+                if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) and not excludedIds[child.Name] then
+                    table.insert(bodies, body)
+                end
+            end
+        end
+    end
+
+    return bodies
 end
-
--- === Teleport Control Variables ===
-local teleportDelay = 0.1 -- default delay between teleport moves
-local globalPause = false
-
--- Teleport speed slider
-TeleportSection:NewSlider("Teleport Speed (Delay)", "Adjust delay between teleports in seconds (smaller = faster)", 1, 0.01, function(value)
-    teleportDelay = value
-end)
-
--- Global pause/resume toggle
-TeleportSection:NewToggle("Pause All Teleports", "Pause or resume all teleport toggles temporarily", function(state)
-    globalPause = state
-end)
 
 -- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
@@ -95,29 +146,20 @@ for islandName, excludedIds in pairs(islandConfigs) do
 
     task.spawn(function()
         while true do
-            if teleportToggles[islandName] and not globalPause then
-                local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-                if not folder then 
-                    warn("Island not found: " .. islandName)
-                    break
-                end
-                for _, model in ipairs(folder:GetChildren()) do
-                    if not teleportToggles[islandName] or globalPause then break end
-                    if not excludedIds[model.Name] then
-                        local body = model:FindFirstChild("Body")
-                        if body and body:IsA("BasePart") then
-                            local timer = 0
-                            while teleportToggles[islandName] and not globalPause and body:IsDescendantOf(workspace) and timer < 10 do
-                                if hrp and hrp.Parent then
-                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                    checkAndRespawn()
-                                end
-                                task.wait(teleportDelay)
-                                timer = timer + teleportDelay
-                            end
+            if teleportToggles[islandName] then
+                local bodies = getAllBodiesForIsland(islandName, excludedIds)
+                if #bodies == 0 then
+                    warn("No Bodies found for island: " .. islandName)
+                    task.wait(1)
+                else
+                    for _, body in ipairs(bodies) do
+                        if not teleportToggles[islandName] then break end
+                        while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0, 5, 0))
+                            task.wait(0.05)
                         end
+                        task.wait(0.1)
                     end
-                    task.wait(teleportDelay)
                 end
             else
                 task.wait(0.5)
@@ -218,6 +260,20 @@ AutoSection:NewToggle("Auto Sell 4", "Loop auto sell4 every 0.5 seconds", functi
     end
 end)
 
+local autoSellAccEnabled = false
+AutoSection:NewToggle("Auto Sell Acc", "Auto sell accessories every 5 seconds", function(state)
+    autoSellAccEnabled = state
+    if state then
+        task.spawn(function()
+            while autoSellAccEnabled do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell%20acc", true))()
+                task.wait(5)
+            end
+        end)
+    end
+end)
+
+
 -- === Shop Buttons ===
 ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
     local args = {"BuyShopItem", "Mainland Shop", 1, 1000}
@@ -237,7 +293,7 @@ ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
         :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
 
--- === Lunar and Volcano Island Positions ===
+-- === Lunar Island Positions ===
 local lunarPositions = {
     Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
     Vector3.new(-2759.49609375, 6.74829626083374, -2589.205810546875),
@@ -246,6 +302,7 @@ local lunarPositions = {
     Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
 }
 
+-- === Volcano Island Positions ===
 local volcanoPositions = {
     Vector3.new(2964.748291015625, 108.94522857666016, -7078.3603515625),
     Vector3.new(4134.52197265625, 27.04894256591797, -6894.68603515625),
@@ -253,115 +310,133 @@ local volcanoPositions = {
     Vector3.new(3487.487548828125, 20.9999942779541, -8586.859375),
 }
 
-local exclusions = {
-    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
-    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
-    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
-    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
-    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
-    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
-    ["Horse"] = true,
-    ["Travel Boat"] = true,
-}
+-- Lunar Island Teleport Toggle (like Main tab teleporting to Bodies)
+local lunarToggle = false
+LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
+    lunarToggle = state
+end)
 
--- === Reusable teleport function for Lunar and Volcano ===
-local function exploreIslandBodies(islandName, positions, toggleFlag)
-    task.spawn(function()
-        while _G[toggleFlag] do
-            if globalPause then
-                task.wait(0.5)
-            else
-                local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-                if not folder then
-                    warn(islandName .. " folder not found")
-                    break
-                end
+task.spawn(function()
+    while true do
+        if lunarToggle then
+            for i, pos in ipairs(lunarPositions) do
+                if not lunarToggle then break end
 
-                for _, pos in ipairs(positions) do
-                    if not _G[toggleFlag] or globalPause then break end
+                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+                if not folder then warn("Lunar Islands folder not found") break end
 
-                    local hasBodies = false
+                -- Get all bodies for Lunar Islands, from Islands, Explorer, and workspace UUID folders
+                local bodies = {}
+                if folder then
                     for _, model in ipairs(folder:GetChildren()) do
                         if not exclusions[model.Name] then
                             local body = model:FindFirstChild("Body")
                             if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                                hasBodies = true
-                                break
+                                table.insert(bodies, body)
                             end
                         end
                     end
+                end
+                -- Also add UUID folder bodies from workspace (always check all UUID folders in workspace)
+                for _, child in ipairs(workspace:GetChildren()) do
+                    if typeof(child.Name) == "string" and child.Name:match("^%b{}$") and child:FindFirstChild("Body") then
+                        local body = child.Body
+                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) and not exclusions[child.Name] then
+                            table.insert(bodies, body)
+                        end
+                    end
+                end
 
-                    if hasBodies then
-                        for _, model in ipairs(folder:GetChildren()) do
-                            if not _G[toggleFlag] or globalPause then break end
-                            if not exclusions[model.Name] then
-                                local body = model:FindFirstChild("Body")
-                                if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                                    local timer = 0
-                                    while _G[toggleFlag] and not globalPause and body:IsDescendantOf(workspace) and timer < 10 do
-                                        if hrp and hrp.Parent then
-                                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                                            checkAndRespawn()
-                                        end
-                                        task.wait(teleportDelay)
-                                        timer = timer + teleportDelay
-                                    end
-                                end
+                if #bodies > 0 then
+                    for _, body in ipairs(bodies) do
+                        if not lunarToggle then break end
+                        while lunarToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
+                    end
+                else
+                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                    task.wait(11.5)
+                end
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Volcano Island Teleport Toggle (same logic)
+local volcanoToggle = false
+LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
+    volcanoToggle = state
+end)
+
+task.spawn(function()
+    while true do
+        if volcanoToggle then
+            for i, pos in ipairs(volcanoPositions) do
+                if not volcanoToggle then break end
+
+                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+                if not folder then warn("Volcano Island folder not found") break end
+
+                local bodies = {}
+                if folder then
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if not exclusions[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                table.insert(bodies, body)
                             end
                         end
-                    else
-                        if hrp and hrp.Parent then
-                            hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                    end
+                end
+
+                for _, child in ipairs(workspace:GetChildren()) do
+                    if typeof(child.Name) == "string" and child.Name:match("^%b{}$") and child:FindFirstChild("Body") then
+                        local body = child.Body
+                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) and not exclusions[child.Name] then
+                            table.insert(bodies, body)
                         end
-                        task.wait(15)
+                    end
+                end
+
+                if #bodies > 0 then
+                    for _, body in ipairs(bodies) do
+                        if not volcanoToggle then break end
+                        while volcanoToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
+                    end
+                else
+                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                    task.wait(11.5)
+                end
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Remove Lava Button and Loop
+LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
+    task.spawn(function()
+        while true do
+            local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
+            for _, part in ipairs(folder:GetChildren()) do
+                if part:IsA("BasePart") then
+                    for _, child in ipairs(part:GetChildren()) do
+                        if child:IsA("TouchTransmitter") then
+                            child:Destroy()
+                        end
                     end
                 end
             end
+            print("All TouchInterests removed.")
+            task.wait(60)
         end
     end)
-end
-
--- Lunar Island Toggle
-_G.lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    _G.lunarToggle = state
-    if state then
-        exploreIslandBodies("Lunar Islands", lunarPositions, "lunarToggle")
-    end
-end)
-
--- Volcano Island Toggle
-_G.volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    _G.volcanoToggle = state
-    if state then
-        exploreIslandBodies("Volcano Island", volcanoPositions, "volcanoToggle")
-    end
-end)
-
--- === Lava Removal Toggle ===
-_G.removeLavaToggle = false
-LunarVolcanoSection:NewToggle("Remove Lava", "Removes TouchTransmitters from Lava every 5 seconds", function(state)
-    _G.removeLavaToggle = state
-    if state then
-        task.spawn(function()
-            while _G.removeLavaToggle do
-                local lavaFolder = islandsFolder:FindFirstChild("Volcano Island") and islandsFolder["Volcano Island"]:FindFirstChild("LavaParts") and islandsFolder["Volcano Island"]["LavaParts"]:FindFirstChild("Folder")
-                if lavaFolder then
-                    for _, part in ipairs(lavaFolder:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            for _, child in ipairs(part:GetChildren()) do
-                                if child:IsA("TouchTransmitter") then
-                                    child:Destroy()
-                                end
-                            end
-                        end
-                    end
-                    print("All TouchTransmitters removed from Lava.")
-                end
-                task.wait(5)
-            end
-        end)
-    end
 end)
