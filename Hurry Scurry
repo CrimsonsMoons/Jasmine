@@ -1,4 +1,4 @@
----// Services
+--// Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -29,7 +29,7 @@ local function tweenTo(part)
 	return tween
 end
 
---// Tween loop through all checkpoints repeatedly
+--// Loop through all checkpoints forever (until turned off)
 local function tweenSequenceLoop()
 	while isTweening do
 		for i = 1, 6 do
@@ -68,13 +68,13 @@ button.TextSize = 18
 button.Font = Enum.Font.GothamBold
 button.Parent = frame
 
---// Toggle Button Behavior
+--// Toggle Button Logic
 button.MouseButton1Click:Connect(function()
 	isTweening = not isTweening
 
 	if isTweening then
 		button.Text = "Stop Loop"
-		coroutine.wrap(tweenSequenceLoop)()
+		task.spawn(tweenSequenceLoop) -- ← this is key: true parallel thread
 	else
 		button.Text = "Start Loop"
 		if currentTween then currentTween:Cancel() end
