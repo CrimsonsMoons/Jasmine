@@ -29,21 +29,19 @@ local function tweenTo(part)
 	return tween
 end
 
---// Tween through all checkpoints
-local function tweenSequence()
-	isTweening = true
-
-	for i = 1, 6 do
-		if not isTweening then break end
-		local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
-		if checkpoint and checkpoint:IsA("BasePart") then
-			local tween = tweenTo(checkpoint)
-			tween.Completed:Wait()
-			task.wait(0.1)
+--// Tween loop through all checkpoints repeatedly
+local function tweenSequenceLoop()
+	while isTweening do
+		for i = 1, 6 do
+			if not isTweening then break end
+			local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+			if checkpoint and checkpoint:IsA("BasePart") then
+				local tween = tweenTo(checkpoint)
+				tween.Completed:Wait()
+				task.wait(0.1)
+			end
 		end
 	end
-
-	isTweening = false
 end
 
 --// GUI Setup
@@ -64,20 +62,21 @@ button.Name = "TweenButton"
 button.Size = UDim2.new(1, -20, 1, -20)
 button.Position = UDim2.new(0, 10, 0, 10)
 button.BackgroundColor3 = Color3.fromRGB(50, 150, 250)
-button.Text = "Start Tween"
+button.Text = "Start Loop"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.TextSize = 18
 button.Font = Enum.Font.GothamBold
 button.Parent = frame
 
---// Button Logic
+--// Toggle Button Behavior
 button.MouseButton1Click:Connect(function()
+	isTweening = not isTweening
+
 	if isTweening then
-		isTweening = false
-		button.Text = "Start Tween"
-		if currentTween then currentTween:Cancel() end
+		button.Text = "Stop Loop"
+		coroutine.wrap(tweenSequenceLoop)()
 	else
-		button.Text = "Stop Tween"
-		coroutine.wrap(tweenSequence)()
+		button.Text = "Start Loop"
+		if currentTween then currentTween:Cancel() end
 	end
 end)
