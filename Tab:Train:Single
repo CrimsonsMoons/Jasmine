@@ -1,4 +1,7 @@
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
@@ -10,39 +13,128 @@ local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].Dynami
     :WaitForChild("Checkpoints")
 
 local checkpointOrder = {"1", "2", "3", "4"}
-local teleportDelay = 0.1
 local teleporting = false
+local moveTime = 0.1
+local waitTime = 0.6
 
--- Simple GUI Setup
+-- GUI Setup
 local gui = Instance.new("ScreenGui")
+gui.ResetOnSpawn = false
+gui.Name = "CheckpointGUI"
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- Draggable Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 160, 0, 120)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Start/Stop Button
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 100, 0, 30)
+button.Size = UDim2.new(1, -20, 0, 30)
 button.Position = UDim2.new(0, 10, 0, 10)
 button.Text = "Start"
-button.Parent = gui
+button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BorderSizePixel = 0
+button.Parent = frame
 
--- Teleport loop
+-- Speed Label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -20, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 45)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.Text = "Speed: 0.1s"
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 14
+speedLabel.Parent = frame
+
+-- Slider Bar
+local sliderBar = Instance.new("Frame")
+sliderBar.Size = UDim2.new(1, -20, 0, 6)
+sliderBar.Position = UDim2.new(0, 10, 0, 75)
+sliderBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+sliderBar.BorderSizePixel = 0
+sliderBar.Parent = frame
+
+-- Slider Handle
+local sliderHandle = Instance.new("Frame")
+sliderHandle.Size = UDim2.new(0, 10, 1, 0)
+sliderHandle.Position = UDim2.new(0, 0, 0, 0)
+sliderHandle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+sliderHandle.BorderSizePixel = 0
+sliderHandle.Parent = sliderBar
+
+-- Slider logic (0.05s - 2s)
+local dragging = false
+local MIN_SPEED = 0.05
+local MAX_SPEED = 2
+
+local function updateSlider(inputX)
+    local barAbsPos = sliderBar.AbsolutePosition.X
+    local barAbsSize = sliderBar.AbsoluteSize.X
+    local clampedX = math.clamp(inputX - barAbsPos, 0, barAbsSize)
+    local percent = clampedX / barAbsSize
+
+    -- Move handle
+    sliderHandle.Position = UDim2.new(0, clampedX - sliderHandle.Size.X.Offset / 2, 0, 0)
+
+    -- Calculate tween time from slider (invert so right = faster)
+    moveTime = math.floor((MIN_SPEED + (MAX_SPEED - MIN_SPEED) * (1 - percent)) * 1000) / 1000
+    speedLabel.Text = "Speed: " .. tostring(moveTime) .. "s"
+end
+
+sliderHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateSlider(input.Position.X)
+    end
+end)
+
+-- Tween teleporting function
 local function startTeleporting()
     teleporting = true
     button.Text = "Stop"
+
     while teleporting do
         for _, checkpointName in ipairs(checkpointOrder) do
             if not teleporting then break end
+
             local checkpoint = checkpoints:FindFirstChild(checkpointName)
             if checkpoint and checkpoint:IsA("BasePart") then
-                humanoidRootPart.Anchored = true
-                humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
-                humanoidRootPart.Anchored = false
+                local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+
+                local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
+                local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = goalCFrame})
+                tween:Play()
+                tween.Completed:Wait()
+
+                task.wait(waitTime)
             end
-            task.wait(teleportDelay)
         end
     end
+
     button.Text = "Start"
 end
 
--- Button click toggle
+-- Button toggle
 button.MouseButton1Click:Connect(function()
     teleporting = not teleporting
     if teleporting then
