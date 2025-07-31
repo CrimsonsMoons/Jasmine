@@ -1,143 +1,60 @@
-remove the gui but the code: local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+-- Kavo UI Loader
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Checkpoint Teleporter", "Midnight")
 
+-- Roblox Services
+local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
+-- Checkpoint path
 local checkpoints = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     :WaitForChild("_LAYOUT")
     :WaitForChild("CheckpointActivity")
     :WaitForChild("Routes")
     :WaitForChild("Checkpoints")
 
+-- Settings
 local checkpointOrder = {"1", "2", "3", "4"}
+local teleportDelay = 0.1
 local teleporting = false
-local moveTime = 0.1
-local waitTime = 0.6
 
--- GUI Setup
-local gui = Instance.new("ScreenGui")
-gui.ResetOnSpawn = false
-gui.Name = "CheckpointGUI"
-gui.Parent = player:WaitForChild("PlayerGui")
+-- Kavo UI Tab & Section
+local MainTab = Window:NewTab("Main")
+local MainSection = MainTab:NewSection("Teleports")
 
--- Draggable Frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 160, 0, 120)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
-
--- Start/Stop Button
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(1, -20, 0, 30)
-button.Position = UDim2.new(0, 10, 0, 10)
-button.Text = "Start"
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.BorderSizePixel = 0
-button.Parent = frame
-
--- Speed Label
-local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(1, -20, 0, 20)
-speedLabel.Position = UDim2.new(0, 10, 0, 45)
-speedLabel.BackgroundTransparency = 1
-speedLabel.TextColor3 = Color3.new(1, 1, 1)
-speedLabel.Text = "Speed: 0.1s"
-speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedLabel.Font = Enum.Font.SourceSans
-speedLabel.TextSize = 14
-speedLabel.Parent = frame
-
--- Slider Bar
-local sliderBar = Instance.new("Frame")
-sliderBar.Size = UDim2.new(1, -20, 0, 6)
-sliderBar.Position = UDim2.new(0, 10, 0, 75)
-sliderBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-sliderBar.BorderSizePixel = 0
-sliderBar.Parent = frame
-
--- Slider Handle
-local sliderHandle = Instance.new("Frame")
-sliderHandle.Size = UDim2.new(0, 10, 1, 0)
-sliderHandle.Position = UDim2.new(0, 0, 0, 0)
-sliderHandle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-sliderHandle.BorderSizePixel = 0
-sliderHandle.Parent = sliderBar
-
--- Slider logic (0.05s - 2s)
-local dragging = false
-local MIN_SPEED = 0.05
-local MAX_SPEED = 2
-
-local function updateSlider(inputX)
-    local barAbsPos = sliderBar.AbsolutePosition.X
-    local barAbsSize = sliderBar.AbsoluteSize.X
-    local clampedX = math.clamp(inputX - barAbsPos, 0, barAbsSize)
-    local percent = clampedX / barAbsSize
-
-    -- Move handle
-    sliderHandle.Position = UDim2.new(0, clampedX - sliderHandle.Size.X.Offset / 2, 0, 0)
-
-    -- Calculate tween time from slider (invert so right = faster)
-    moveTime = math.floor((MIN_SPEED + (MAX_SPEED - MIN_SPEED) * (1 - percent)) * 1000) / 1000
-    speedLabel.Text = "Speed: " .. tostring(moveTime) .. "s"
-end
-
-sliderHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        updateSlider(input.Position.X)
-    end
-end)
-
--- Tween teleporting function
-local function startTeleporting()
-    teleporting = true
-    button.Text = "Stop"
-
-    while teleporting do
-        for _, checkpointName in ipairs(checkpointOrder) do
-            if not teleporting then break end
-
-            local checkpoint = checkpoints:FindFirstChild(checkpointName)
-            if checkpoint and checkpoint:IsA("BasePart") then
-                local goalCFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
-
-                local tweenInfo = TweenInfo.new(moveTime, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = goalCFrame})
-                tween:Play()
-                tween.Completed:Wait()
-
-                task.wait(waitTime)
-            end
-        end
-    end
-
-    button.Text = "Start"
-end
-
--- Button toggle
-button.MouseButton1Click:Connect(function()
-    teleporting = not teleporting
+-- 🌀 Loop Teleport Toggle
+MainSection:NewToggle("Loop Teleport", "Teleports through all checkpoints repeatedly", function(state)
+    teleporting = state
     if teleporting then
-        task.spawn(startTeleporting)
+        task.spawn(function()
+            while teleporting do
+                for _, checkpointName in ipairs(checkpointOrder) do
+                    if not teleporting then break end
+                    local checkpoint = checkpoints:FindFirstChild(checkpointName)
+                    if checkpoint and checkpoint:IsA("BasePart") then
+                        humanoidRootPart.Anchored = true
+                        humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+                        humanoidRootPart.Anchored = false
+                    end
+                    task.wait(teleportDelay)
+                end
+            end
+        end)
+    end
+end)
+
+-- 📋 Dropdown of custom checkpoint names (you can edit these)
+local customCheckpoints = {"1-1", "1-2", "1-3", "1-4"}
+
+MainSection:NewDropdown("Custom Teleport", "Teleport to a specific checkpoint", customCheckpoints, function(selected)
+    local checkpoint = checkpoints:FindFirstChild(selected)
+    if checkpoint and checkpoint:IsA("BasePart") then
+        humanoidRootPart.Anchored = true
+        humanoidRootPart.CFrame = checkpoint.CFrame * CFrame.new(0, 5, 0)
+        humanoidRootPart.Anchored = false
+    else
+        warn("Checkpoint not found:", selected)
     end
 end)
