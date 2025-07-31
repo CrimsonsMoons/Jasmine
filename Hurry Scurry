@@ -1,0 +1,107 @@
+local player = game.Players.LocalPlayer
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HurryScurryToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Create Toggle Button
+local toggle = Instance.new("TextButton")
+toggle.Name = "HurryToggle"
+toggle.Size = UDim2.new(0, 180, 0, 50)
+toggle.Position = UDim2.new(0, 20, 0, 100)
+toggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 20
+toggle.Text = "⏵ Start Hurry Scurry"
+toggle.Parent = screenGui
+
+-- Make the toggle draggable
+local dragging = false
+local dragInput, mousePos, framePos
+
+toggle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		mousePos = input.Position
+		framePos = toggle.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+toggle.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - mousePos
+		toggle.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Tween Logic
+local TweenService = game:GetService("TweenService")
+local checkpointsFolder = workspace:WaitForChild("Islands"):WaitForChild("Training Island"):WaitForChild("Outdoor Arena").DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+local tweenInfo = TweenInfo.new(1.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+
+local hurryScurryEnabled = false
+local currentTween = nil
+
+local function tweenTo(hrp, part)
+	if currentTween then currentTween:Cancel() end
+	local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(part.Position)})
+	currentTween = tween
+	tween:Play()
+	return tween
+end
+
+local function startHurryScurry()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	while hurryScurryEnabled do
+		for i = 1, 6 do
+			if not hurryScurryEnabled then break end
+			local checkpoint = checkpointsFolder:FindFirstChild(tostring(i))
+			if checkpoint and checkpoint:IsA("BasePart") then
+				local tween = tweenTo(hrp, checkpoint)
+				tween.Completed:Wait()
+				task.wait(0.1)
+			end
+		end
+	end
+end
+
+-- Toggle Logic
+local function updateToggleAppearance()
+	if hurryScurryEnabled then
+		toggle.Text = "⏹ Stop Hurry Scurry"
+		toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	else
+		toggle.Text = "⏵ Start Hurry Scurry"
+		toggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	end
+end
+
+toggle.MouseButton1Click:Connect(function()
+	hurryScurryEnabled = not hurryScurryEnabled
+	updateToggleAppearance()
+
+	if hurryScurryEnabled then
+		coroutine.wrap(startHurryScurry)()
+	else
+		if currentTween then currentTween:Cancel() end
+	end
+end)
+
+updateToggleAppearance()
