@@ -18,7 +18,7 @@ local TOOL_UUIDS = {
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
     "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
     "{efe4b787-0112-42f2-a83c-659149e1de5c}",
-    "{9853fbad-f69b-4eb6-9da8-eaf8a27a08d2}",
+    "{a58d9d73-ffd0-45ad-b0eb-e08cd1692dae}",
 }
 
 -- === Excluded UUIDs and names ===
