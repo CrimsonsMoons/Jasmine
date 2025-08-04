@@ -1,0 +1,115 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+-- Tool UUIDs
+local TOOL_UUIDS = {
+    "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
+    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+    "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
+    "{06905d54-7826-417e-bfc7-82d326a30885}",
+    "{7138d7c4-9482-4257-868c-4bd1fd99f529}",
+    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+    "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
+    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+    "{c774eb07-6267-4c0a-a57a-f9d308ff0796}",
+    "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+    "{efe4b787-0112-42f2-a83c-659149e1de5c}",
+    "{a58d9d73-ffd0-45ad-b0eb-e08cd1692dae}",
+}
+
+-- Exclusions
+local EXCLUSIONS = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+    ["{980efa15-9598-4070-b1c2-344bd80cce25}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
+-- Island names
+local ISLAND_NAMES = {
+    "Mainland", "Forest Island", "Mountain Island", "Lunar Islands",
+    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island"
+}
+
+-- RemoteEvent
+local remote = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9):GetChildren()[10]
+
+-- Utilities
+local function isUUID(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+end
+
+local function getHumanoidRootPosition()
+    local root = Character and Character:FindFirstChild("HumanoidRootPart")
+    return root and root.Position
+end
+
+local function tryFireOnTarget(target)
+    for _, tool in ipairs(TOOL_UUIDS) do
+        remote:FireServer(tool, "Activate", target)
+    end
+end
+
+-- MAIN LOOP
+local IslandsFolder = Workspace:WaitForChild("Islands")
+
+while true do
+    local playerPos = getHumanoidRootPosition()
+    if playerPos then
+        local found = false
+
+        -- Search island folders
+        for _, islandName in ipairs(ISLAND_NAMES) do
+            local island = IslandsFolder:FindFirstChild(islandName)
+            if island then
+                for _, model in ipairs(island:GetChildren()) do
+                    if isUUID(model.Name)
+                        and not EXCLUSIONS[model.Name]
+                        and model:FindFirstChild("Body") then
+
+                        local dist = (model.Body.Position - playerPos).Magnitude
+                        if dist <= 15 then
+                            task.spawn(tryFireOnTarget, model)
+                            found = true
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Search top-level UUID models in Workspace
+        for _, model in ipairs(Workspace:GetChildren()) do
+            if isUUID(model.Name)
+                and not EXCLUSIONS[model.Name]
+                and model:FindFirstChild("Body") then
+
+                local dist = (model.Body.Position - playerPos).Magnitude
+                if dist <= 15 then
+                    task.spawn(tryFireOnTarget, model)
+                    found = true
+                end
+            end
+        end
+
+        if not found then
+            -- Only warn every few seconds instead of spamming
+            print("⚠️ No valid targets nearby.")
+        end
+    end
+
+    task.wait(0.75) -- Slightly longer delay = less lag
+end
