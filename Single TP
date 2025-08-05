@@ -2,25 +2,27 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Wait for character and HRP safely
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
 local uuid = "{60f828f4-a916-4262-842e-7ddc49e07ad9}"
-local npcModel = workspace:Islands()["Training Island"]:FindFirstChild(uuid)
-
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
+local npcModel = workspace.Islands["Training Island"]:FindFirstChild(uuid)
+
+-- Ensure npcModel PrimaryPart
 if npcModel and not npcModel.PrimaryPart then
     local root = npcModel:FindFirstChild("HumanoidRootPart") or npcModel:FindFirstChildWhichIsA("BasePart")
     if root then npcModel.PrimaryPart = root end
 end
 
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
-screenGui.Enabled = true
 
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 140, 0, 50)
@@ -90,4 +92,3 @@ button.MouseButton1Click:Connect(function()
         startTeleportLoop()
     end
 end)
------
