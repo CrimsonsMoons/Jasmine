@@ -8,34 +8,32 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
--- Helper: check if string is UUID-like (basic pattern)
-local function isUUID(str)
-    -- Simple pattern: 8-4-4-4-12 hex chars
-    return str:match("^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") ~= nil
-end
+local uuids = {
+    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+    "{d2227f02-c482-4911-b201-7e842b31c47c}",
+    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+    "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
+}
 
--- Find all NPC models with UUID names in Training Island
-local function getAllUUIDModels()
+local function getNPCModels()
     local islandFolder = workspace.Islands["Training Island"]
     local npcs = {}
-    for _, child in ipairs(islandFolder:GetChildren()) do
-        if child:IsA("Model") and isUUID(child.Name) then
-            -- Ensure PrimaryPart set
-            if not child.PrimaryPart then
-                local root = child:FindFirstChild("HumanoidRootPart") or child:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    child.PrimaryPart = root
-                end
+    for _, uuid in ipairs(uuids) do
+        local npc = islandFolder:FindFirstChild(uuid)
+        if npc and npc:IsA("Model") then
+            if not npc.PrimaryPart then
+                local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChildWhichIsA("BasePart")
+                if root then npc.PrimaryPart = root end
             end
-            if child.PrimaryPart then
-                table.insert(npcs, child)
+            if npc.PrimaryPart then
+                table.insert(npcs, npc)
             end
         end
     end
     return npcs
 end
 
--- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -63,13 +61,10 @@ local function teleportAllToCheckpoint(checkpointName, npcs)
         return
     end
 
-    -- Teleport player with offset
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport all NPC models with offset
     for i, npcModel in ipairs(npcs) do
         if npcModel and npcModel.PrimaryPart then
-            -- Slight offset per NPC to avoid stacking (spread on X axis)
             local offsetX = -2 - (i * 3)
             npcModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(offsetX, 3, 0))
         end
@@ -80,7 +75,7 @@ end
 local function startTeleportLoop()
     teleportTask = task.spawn(function()
         while running do
-            local npcs = getAllUUIDModels()  -- refresh NPC list each loop in case of changes
+            local npcs = getNPCModels()
             for i, checkpointName in ipairs(order) do
                 if not running then break end
                 teleportAllToCheckpoint(checkpointName, npcs)
