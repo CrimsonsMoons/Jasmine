@@ -230,6 +230,61 @@ local lunarPositions = {
     Vector3.new(-3266.90771484375, 15.430882453918457, -1436.565673828125),
     Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
 }
+-- === Auto Basket Toggle ===
+local autoBasketEnabled = false
+ShopSection:NewToggle("Auto Basket", "Spams goldenAppleBasket trade every 0.1s", function(state)
+    autoBasketEnabled = state
+end)
+
+task.spawn(function()
+    while true do
+        if autoBasketEnabled then
+            local args = {
+                [1] = "\1",
+                [2] = "Trade",
+                [3] = "goldenAppleBasket"
+            }
+            pcall(function()
+                local comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+                local funcs = comms:WaitForChild("Functions", 9e9)
+                local remote = funcs:GetChildren()[16]
+                if remote then
+                    remote:FireServer(unpack(args))
+                end
+            end)
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- === Buy Apples Toggle ===
+local buyApplesEnabled = false
+ShopSection:NewToggle("Buy Apples", "Buys apples from Farm Shop every 0.9s", function(state)
+    buyApplesEnabled = state
+end)
+
+task.spawn(function()
+    while true do
+        if buyApplesEnabled then
+            local args = {
+                [1] = "BuyShopItem",
+                [2] = "Farm Shop",
+                [3] = 6,
+                [4] = 1000
+            }
+            pcall(function()
+                local comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+                local events = comms:WaitForChild("Events", 9e9)
+                local remote = events:GetChildren()[18]
+                if remote then
+                    remote:FireServer(unpack(args))
+                end
+            end)
+        end
+        task.wait(0.9)
+    end
+end)
+
 
 -- === Volcano Island Positions ===
 local volcanoPositions = {
