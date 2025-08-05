@@ -1,0 +1,64 @@
+local KavoUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KavoHub/KavoUI/main/source.lua"))()
+
+local Window = KavoUI.CreateLib("Auto Trader", "Ocean")
+local MainTab = Window:NewTab("Main")
+local Section = MainTab:NewSection("Shop")
+
+local autoBasket = false
+local buyApples = false
+
+-- Auto Basket loop (0.1s)
+task.spawn(function()
+    while true do
+        if autoBasket then
+            local args = {
+                [1] = "\1",
+                [2] = "Trade",
+                [3] = "goldenAppleBasket"
+            }
+
+            pcall(function()
+                local comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+                local funcs = comms:WaitForChild("Functions", 9e9)
+                local remote = funcs:GetChildren()[16]
+                if remote then
+                    remote:FireServer(unpack(args))
+                end
+            end)
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Buy Apples loop (0.9s)
+task.spawn(function()
+    while true do
+        if buyApples then
+            local args = {
+                [1] = "BuyShopItem",
+                [2] = "Farm Shop",
+                [3] = 6,
+                [4] = 1000
+            }
+
+            pcall(function()
+                local comms = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
+                local events = comms:WaitForChild("Events", 9e9)
+                local remote = events:GetChildren()[18]
+                if remote then
+                    remote:FireServer(unpack(args))
+                end
+            end)
+        end
+        task.wait(0.9)
+    end
+end)
+
+-- Toggles
+Section:NewToggle("Auto Basket", "Spams goldenAppleBasket trade", false, function(state)
+    autoBasket = state
+end)
+
+Section:NewToggle("Buy Apples", "Buys apples from Farm Shop", false, function(state)
+    buyApples = state
+end)
