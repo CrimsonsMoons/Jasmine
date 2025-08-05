@@ -286,6 +286,26 @@ game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForC
 end)
 
 
+local ticketsEnabled = false
+ShopSection:NewToggle("Tickets", "Buys Apples from Farm Shop every 0.4s", function(state)
+    ticketsEnabled = state
+    if state then
+        task.spawn(function()
+            while ticketsEnabled do
+local args = {
+    [1] = "";
+    [2] = "Trade";
+    [3] = "summerCarnival";
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9):GetChildren()[15]:FireServer(unpack(args))
+                task.wait(0.4)
+            end
+        end)
+    end
+end)
+
+
 -- === Lunar Island Positions ===
 local lunarPositions = {
     Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
