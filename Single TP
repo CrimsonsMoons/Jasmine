@@ -24,11 +24,20 @@ local function getNPCModels()
         if npc and npc:IsA("Model") then
             if not npc.PrimaryPart then
                 local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChildWhichIsA("BasePart")
-                if root then npc.PrimaryPart = root end
+                if root then
+                    npc.PrimaryPart = root
+                    print("Set PrimaryPart for NPC:", uuid)
+                else
+                    warn("No suitable PrimaryPart for NPC:", uuid)
+                end
             end
             if npc.PrimaryPart then
                 table.insert(npcs, npc)
+            else
+                warn("Skipping NPC without PrimaryPart:", uuid)
             end
+        else
+            warn("NPC model not found or invalid:", uuid)
         end
     end
     return npcs
@@ -61,15 +70,27 @@ local function teleportAllToCheckpoint(checkpointName, npcs)
         return
     end
 
+    -- Teleport player with offset
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
+    -- Teleport NPCs with offsets so they don’t stack
     for i, npcModel in ipairs(npcs) do
         if npcModel and npcModel.PrimaryPart then
             local offsetX = -2 - (i * 3)
-            npcModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(offsetX, 3, 0))
+            local targetCFrame = checkpoint.CFrame + Vector3.new(offsetX, 3, 0)
+            -- Use pcall in case of errors
+            local success, err = pcall(function()
+                npcModel:SetPrimaryPartCFrame(targetCFrame)
+            end)
+            if success then
+                print("Teleported NPC:", npcModel.Name, "to checkpoint", checkpointName)
+            else
+                warn("Failed to teleport NPC:", npcModel.Name, err)
+            end
+        else
+            warn("NPC missing PrimaryPart at teleport:", npcModel and npcModel.Name or "nil")
         end
     end
-    print("Teleported player +", #npcs, "NPCs to checkpoint:", checkpointName)
 end
 
 local function startTeleportLoop()
