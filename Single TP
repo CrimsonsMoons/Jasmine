@@ -1,0 +1,63 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+
+-- NPC UUID model under Training Island
+local uuid = "{60f828f4-a916-4262-842e-7ddc49e07ad9}"
+local npcModel = workspace.Islands["Training Island"]:FindFirstChild(uuid)
+
+-- Checkpoints folder
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
+    ._LAYOUT.CheckpointActivity.Routes.Checkpoints
+
+-- Ensure NPC model exists
+if not npcModel then
+    warn("NPC model not found.")
+    return
+end
+
+-- Set PrimaryPart if not already set
+if not npcModel.PrimaryPart then
+    local root = npcModel:FindFirstChild("HumanoidRootPart") or npcModel:FindFirstChildWhichIsA("BasePart")
+    if root then
+        npcModel.PrimaryPart = root
+    else
+        warn("NPC model has no valid PrimaryPart.")
+        return
+    end
+end
+
+-- Teleport both player and NPC to a checkpoint
+local function teleportBothToCheckpoint(checkpointName)
+    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+    if checkpoint and checkpoint:IsA("BasePart") then
+        -- Slight offset to prevent overlapping
+        HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+        npcModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+        print("Teleported to checkpoint:", checkpointName)
+    else
+        warn("Checkpoint '" .. checkpointName .. "' not found.")
+    end
+end
+
+-- Checkpoint order
+local order = {"1", "2", "3", "4"}
+
+-- Looping sequence
+while true do
+    for i, checkpointName in ipairs(order) do
+        teleportBothToCheckpoint(checkpointName)
+
+        -- Custom wait times
+        if i == 1 then
+            task.wait(0.9)  -- wait at checkpoint 1
+        elseif i == 3 then
+            task.wait(1)    -- wait at checkpoint 3
+        elseif i == 4 then
+            task.wait(1)    -- wait at checkpoint 4
+        else
+            task.wait(0.6)  -- wait at checkpoint 2
+        end
+    end
+end
