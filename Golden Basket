@@ -1,0 +1,10 @@
+while true do 
+local args = {
+    [1] = "";
+    [2] = "Trade";
+    [3] = "goldenAppleBasket";
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9):GetChildren()[16]:FireServer(unpack(args))
+wait(0.1)
+end
