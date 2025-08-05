@@ -8,25 +8,35 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
--- Get NPCs owned by the player
-local function getOwnedNPC()
+-- Get the player's owned UUID NPC
+local function getOwnedUUIDModel()
     local folder = workspace.Islands["Training Island"]
+
     for _, model in ipairs(folder:GetChildren()) do
         if model:IsA("Model") and model:FindFirstChild("Humanoid") then
             local humanoid = model:FindFirstChild("Humanoid")
-            if humanoid:GetAttribute("owner") == LocalPlayer.Name then
-                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    model.PrimaryPart = root
-                    return model
+            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            local owner = humanoid:GetAttribute("owner")
+
+            if root and owner == LocalPlayer.Name then
+                model.PrimaryPart = root
+
+                -- Unanchor all parts to allow movement
+                for _, part in ipairs(model:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Anchored = false
+                    end
                 end
+
+                return model
             end
         end
     end
+
     return nil
 end
 
--- GUI
+-- GUI setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -46,16 +56,16 @@ button.Parent = screenGui
 local running = false
 local teleportTask
 
-local function teleportToCheckpoint(checkpointName, npc)
+local function teleportToCheckpoint(checkpointName, uuidModel)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
     if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
     -- Teleport player
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport NPC if valid
-    if npc and npc.PrimaryPart then
-        npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+    -- Teleport UUID model if valid
+    if uuidModel and uuidModel.PrimaryPart then
+        uuidModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
     end
 end
 
@@ -63,16 +73,18 @@ local order = {"1", "2", "3", "4"}
 
 local function startLoop()
     teleportTask = task.spawn(function()
-        local npc = getOwnedNPC()
+        local uuidModel = getOwnedUUIDModel()
+
+        if not uuidModel then
+            warn("No UUID NPC with 'owner' = " .. LocalPlayer.Name)
+        end
+
         while running do
             for i, checkpoint in ipairs(order) do
                 if not running then break end
-                teleportToCheckpoint(checkpoint, npc)
+                teleportToCheckpoint(checkpoint, uuidModel)
 
-                local waitTime = 0.8
-                if i == 1 or i == 3 or i == 4 then
-                    waitTime = 1
-                end
+                local waitTime = (i == 1 or i == 3 or i == 4) and 1 or 0.8
                 task.wait(waitTime)
             end
         end
