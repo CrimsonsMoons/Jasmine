@@ -1,0 +1,98 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Target Humanoid
+local humanoid = workspace:Islands()["Training Island"]:FindFirstChild("{60f828f4-a916-4262-842e-7ddc49e07ad9}")
+local targetHumanoid = humanoid and humanoid:FindFirstChildWhichIsA("Humanoid")
+
+if not targetHumanoid then
+    warn("Target Humanoid not found!")
+    return
+end
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WalkSpeedGui"
+screenGui.Parent = PlayerGui
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 80)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Parent = screenGui
+
+local sliderLabel = Instance.new("TextLabel")
+sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+sliderLabel.BackgroundTransparency = 1
+sliderLabel.TextColor3 = Color3.new(1, 1, 1)
+sliderLabel.Text = "WalkSpeed: " .. tostring(targetHumanoid.WalkSpeed)
+sliderLabel.Parent = frame
+
+local slider = Instance.new("TextBox")
+slider.Size = UDim2.new(1, -20, 0, 30)
+slider.Position = UDim2.new(0, 10, 0, 30)
+slider.Text = tostring(targetHumanoid.WalkSpeed)
+slider.ClearTextOnFocus = false
+slider.TextColor3 = Color3.new(1, 1, 1)
+slider.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+slider.Parent = frame
+
+local locked = true
+local lockLabel = Instance.new("TextLabel")
+lockLabel.Size = UDim2.new(1, 0, 0, 20)
+lockLabel.Position = UDim2.new(0, 0, 1, -20)
+lockLabel.BackgroundTransparency = 1
+lockLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+lockLabel.Text = "Locked"
+lockLabel.Parent = frame
+
+-- Function to lock WalkSpeed so it doesn't change
+local function lockWalkSpeed(speed)
+    locked = true
+    slider.Text = tostring(speed)
+    sliderLabel.Text = "WalkSpeed: " .. tostring(speed)
+    -- Keep forcing the WalkSpeed
+    spawn(function()
+        while locked do
+            if targetHumanoid.WalkSpeed ~= speed then
+                targetHumanoid.WalkSpeed = speed
+            end
+            wait(0.1)
+        end
+    end)
+end
+
+-- Unlock toggle (click label to toggle)
+lockLabel.MouseButton1Click = function()
+    locked = not locked
+    lockLabel.Text = locked and "Locked" or "Unlocked"
+end
+
+-- When user inputs a new speed
+slider.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local val = tonumber(slider.Text)
+        if val and val > 0 then
+            lockWalkSpeed(val)
+        else
+            slider.Text = tostring(targetHumanoid.WalkSpeed)
+        end
+    end
+end)
+
+-- Make lockLabel clickable (it's a Label, so add a button behavior)
+local clickDetector = Instance.new("TextButton")
+clickDetector.Size = UDim2.new(1, 0, 1, 0)
+clickDetector.BackgroundTransparency = 1
+clickDetector.Text = ""
+clickDetector.Parent = lockLabel
+
+clickDetector.MouseButton1Click:Connect(function()
+    locked = not locked
+    lockLabel.Text = locked and "Locked" or "Unlocked"
+end)
+
+-- Initialize locking with current WalkSpeed
+lockWalkSpeed(targetHumanoid.WalkSpeed)
