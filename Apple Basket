@@ -245,15 +245,14 @@ ShopSection:NewToggle("Buy Apples", "Buys Apples from Farm Shop every 0.9s", fun
     if state then
         task.spawn(function()
             while buyApplesEnabled do
-                local args = {
-                    [1] = "BuyShopItem";
-                    [2] = "Farm Shop";
-                    [3] = 6;
-                    [4] = 1000;
-                }
+local args = {
+    [1] = "BuyShopItem";
+    [2] = "Farm Shop";
+    [3] = 6;
+    [4] = 1000;
+}
 
-                game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-                    :WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
 
                 task.wait(0.9)
             end
