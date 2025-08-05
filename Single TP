@@ -70,15 +70,14 @@ local function teleportAllToCheckpoint(checkpointName, npcs)
         return
     end
 
-    -- Teleport player with offset
-    HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+    -- Teleport player exactly inside checkpoint
+    HRP.CFrame = checkpoint.CFrame
 
-    -- Teleport NPCs with offsets so they don’t stack
+    -- Teleport NPCs inside checkpoint with spacing on X axis
     for i, npcModel in ipairs(npcs) do
         if npcModel and npcModel.PrimaryPart then
-            local offsetX = -2 - (i * 3)
-            local targetCFrame = checkpoint.CFrame + Vector3.new(offsetX, 3, 0)
-            -- Use pcall in case of errors
+            local offsetX = (i - 1) * 3 -- spread NPCs by 3 studs along X
+            local targetCFrame = checkpoint.CFrame * CFrame.new(offsetX, 0, 0)
             local success, err = pcall(function()
                 npcModel:SetPrimaryPartCFrame(targetCFrame)
             end)
