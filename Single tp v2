@@ -8,7 +8,7 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
--- Static list of known UUIDs
+-- List of UUIDs
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -17,17 +17,10 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
--- UUID pattern checker
-local function isUUID(str)
-	return string.match(str, "^%b{}$") ~= nil
-end
-
--- Get all valid NPCs (static list + scanned humanoid UUIDs)
+-- Get all valid NPCs
 local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
-
-    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
@@ -38,20 +31,6 @@ local function getNPCs()
             end
         end
     end
-
-    -- Dynamic scan for UUID-named models with Humanoids
-    for _, model in ipairs(folder:GetDescendants()) do
-        if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
-            if model:FindFirstChildWhichIsA("Humanoid") then
-                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    model.PrimaryPart = root
-                    table.insert(npcList, model)
-                end
-            end
-        end
-    end
-
     return npcList
 end
 
@@ -82,7 +61,7 @@ local function teleportToCheckpoint(checkpointName, npcs)
     -- Teleport player with offset
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport all valid UUID NPCs
+    -- Teleport NPCs with same offset
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
