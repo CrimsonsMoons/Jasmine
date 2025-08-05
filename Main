@@ -109,7 +109,7 @@ end
 
 -- === Training Buttons ===
 TrainSection:NewButton("Single", "Runs Single Route Script", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/Tab%3ATrain%3ASingle"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Single%20TP", true))()
 end)
 
 TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
