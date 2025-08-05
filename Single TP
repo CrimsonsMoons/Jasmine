@@ -2,20 +2,37 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Wait for character and HRP safely
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
-local uuid = "{60f828f4-a916-4262-842e-7ddc49e07ad9}"
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
-local npcModel = workspace.Islands["Training Island"]:FindFirstChild(uuid)
+-- Helper: check if string is UUID-like (basic pattern)
+local function isUUID(str)
+    -- Simple pattern: 8-4-4-4-12 hex chars
+    return str:match("^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") ~= nil
+end
 
--- Ensure npcModel PrimaryPart
-if npcModel and not npcModel.PrimaryPart then
-    local root = npcModel:FindFirstChild("HumanoidRootPart") or npcModel:FindFirstChildWhichIsA("BasePart")
-    if root then npcModel.PrimaryPart = root end
+-- Find all NPC models with UUID names in Training Island
+local function getAllUUIDModels()
+    local islandFolder = workspace.Islands["Training Island"]
+    local npcs = {}
+    for _, child in ipairs(islandFolder:GetChildren()) do
+        if child:IsA("Model") and isUUID(child.Name) then
+            -- Ensure PrimaryPart set
+            if not child.PrimaryPart then
+                local root = child:FindFirstChild("HumanoidRootPart") or child:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    child.PrimaryPart = root
+                end
+            end
+            if child.PrimaryPart then
+                table.insert(npcs, child)
+            end
+        end
+    end
+    return npcs
 end
 
 -- Create GUI
@@ -37,26 +54,36 @@ button.Parent = screenGui
 local running = false
 local teleportTask
 
-local function teleportBothToCheckpoint(checkpointName)
-    if not npcModel or not npcModel.PrimaryPart then return end
-    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if checkpoint and checkpoint:IsA("BasePart") then
-        HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
-        npcModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-        print("Teleported to checkpoint:", checkpointName)
-    else
-        warn("Checkpoint '" .. checkpointName .. "' not found.")
-    end
-end
-
 local order = {"1", "2", "3", "4"}
+
+local function teleportAllToCheckpoint(checkpointName, npcs)
+    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+    if not checkpoint or not checkpoint:IsA("BasePart") then
+        warn("Checkpoint '" .. checkpointName .. "' not found.")
+        return
+    end
+
+    -- Teleport player with offset
+    HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+
+    -- Teleport all NPC models with offset
+    for i, npcModel in ipairs(npcs) do
+        if npcModel and npcModel.PrimaryPart then
+            -- Slight offset per NPC to avoid stacking (spread on X axis)
+            local offsetX = -2 - (i * 3)
+            npcModel:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(offsetX, 3, 0))
+        end
+    end
+    print("Teleported player +", #npcs, "NPCs to checkpoint:", checkpointName)
+end
 
 local function startTeleportLoop()
     teleportTask = task.spawn(function()
         while running do
+            local npcs = getAllUUIDModels()  -- refresh NPC list each loop in case of changes
             for i, checkpointName in ipairs(order) do
                 if not running then break end
-                teleportBothToCheckpoint(checkpointName)
+                teleportAllToCheckpoint(checkpointName, npcs)
                 if not running then break end
 
                 if i == 1 then
@@ -79,13 +106,6 @@ button.MouseButton1Click:Connect(function()
         button.Text = "Start Teleport"
         print("Teleport loop stopped.")
     else
-        -- Refresh npcModel in case it changed
-        npcModel = workspace.Islands["Training Island"]:FindFirstChild(uuid)
-        if npcModel and not npcModel.PrimaryPart then
-            local root = npcModel:FindFirstChild("HumanoidRootPart") or npcModel:FindFirstChildWhichIsA("BasePart")
-            if root then npcModel.PrimaryPart = root end
-        end
-
         running = true
         button.Text = "Stop Teleport"
         print("Teleport loop started.")
