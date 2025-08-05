@@ -230,10 +230,15 @@ ShopSection:NewToggle("Auto Basket", "Fires Remote[16] every 0.1s with Trade arg
     if state then
         task.spawn(function()
             while autoBasketEnabled do
-                local args = {"Trade", "Mainland Shop", 8, 1}
-                game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
-                    :WaitForChild("Events", 9e9):GetChildren()[16]:FireServer(unpack(args))
-                task.wait(0.1)
+local args = {
+    [1] = "";
+    [2] = "Trade";
+    [3] = "goldenAppleBasket";
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9):GetChildren()[16]:FireServer(unpack(args))
+
+                task.wait(0.06)
             end
         end)
     end
