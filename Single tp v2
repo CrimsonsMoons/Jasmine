@@ -80,11 +80,11 @@ local function startLoop()
                 teleportToCheckpoint(checkpoint, npcs)
 
                 if i == 1 then
-                    task.wait(0.9)
+                    task.wait(1)
                 elseif i == 3 or i == 4 then
                     task.wait(1)
                 else
-                    task.wait(0.6)
+                    task.wait(0.8)
                 end
             end
         end
