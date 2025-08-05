@@ -8,6 +8,7 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
+-- List of UUIDs
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -16,33 +17,24 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
-local function getNPCModels()
-    local islandFolder = workspace.Islands["Training Island"]
-    local npcs = {}
+-- Get all valid NPCs
+local function getNPCs()
+    local folder = workspace.Islands["Training Island"]
+    local npcList = {}
     for _, uuid in ipairs(uuids) do
-        local npc = islandFolder:FindFirstChild(uuid)
-        if npc and npc:IsA("Model") then
-            if not npc.PrimaryPart then
-                local root = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    npc.PrimaryPart = root
-                    print("Set PrimaryPart for NPC:", uuid)
-                else
-                    warn("No suitable PrimaryPart for NPC:", uuid)
-                end
+        local model = folder:FindFirstChild(uuid)
+        if model and model:IsA("Model") then
+            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            if root then
+                model.PrimaryPart = root
+                table.insert(npcList, model)
             end
-            if npc.PrimaryPart then
-                table.insert(npcs, npc)
-            else
-                warn("Skipping NPC without PrimaryPart:", uuid)
-            end
-        else
-            warn("NPC model not found or invalid:", uuid)
         end
     end
-    return npcs
+    return npcList
 end
 
+-- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -58,54 +50,38 @@ button.TextSize = 24
 button.Text = "Start Teleport"
 button.Parent = screenGui
 
+-- Teleport logic
 local running = false
 local teleportTask
 
-local order = {"1", "2", "3", "4"}
-
-local function teleportAllToCheckpoint(checkpointName, npcs)
+local function teleportToCheckpoint(checkpointName, npcs)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then
-        warn("Checkpoint '" .. checkpointName .. "' not found.")
-        return
-    end
+    if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
-    -- Teleport player exactly inside checkpoint
-    HRP.CFrame = checkpoint.CFrame
+    -- Teleport player with offset
+    HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport NPCs inside checkpoint with spacing on X axis
-    for i, npcModel in ipairs(npcs) do
-        if npcModel and npcModel.PrimaryPart then
-            local offsetX = (i - 1) * 3 -- spread NPCs by 3 studs along X
-            local targetCFrame = checkpoint.CFrame * CFrame.new(offsetX, 0, 0)
-            local success, err = pcall(function()
-                npcModel:SetPrimaryPartCFrame(targetCFrame)
-            end)
-            if success then
-                print("Teleported NPC:", npcModel.Name, "to checkpoint", checkpointName)
-            else
-                warn("Failed to teleport NPC:", npcModel.Name, err)
-            end
-        else
-            warn("NPC missing PrimaryPart at teleport:", npcModel and npcModel.Name or "nil")
+    -- Teleport NPCs with same offset
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart then
+            npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
         end
     end
 end
 
-local function startTeleportLoop()
+local order = {"1", "2", "3", "4"}
+
+local function startLoop()
     teleportTask = task.spawn(function()
+        local npcs = getNPCs()
         while running do
-            local npcs = getNPCModels()
-            for i, checkpointName in ipairs(order) do
+            for i, checkpoint in ipairs(order) do
                 if not running then break end
-                teleportAllToCheckpoint(checkpointName, npcs)
-                if not running then break end
+                teleportToCheckpoint(checkpoint, npcs)
 
                 if i == 1 then
                     task.wait(0.9)
-                elseif i == 3 then
-                    task.wait(1)
-                elseif i == 4 then
+                elseif i == 3 or i == 4 then
                     task.wait(1)
                 else
                     task.wait(0.6)
@@ -116,14 +92,10 @@ local function startTeleportLoop()
 end
 
 button.MouseButton1Click:Connect(function()
+    running = not running
+    button.Text = running and "Stop Teleport" or "Start Teleport"
+
     if running then
-        running = false
-        button.Text = "Start Teleport"
-        print("Teleport loop stopped.")
-    else
-        running = true
-        button.Text = "Stop Teleport"
-        print("Teleport loop started.")
-        startTeleportLoop()
+        startLoop()
     end
 end)
