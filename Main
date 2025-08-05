@@ -222,21 +222,6 @@ ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
     game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
         :WaitForChild("Events", 9e9):GetChildren()[9]:FireServer(unpack(args))
 end)
-
-local autoSell4Enabled = false
-AutoSection:NewToggle("Golden Apple", "Loop auto sell4 every 0.5 seconds", function(state)
-    autoSell4Enabled = state
-    if state then
-        task.spawn(function()
-            while autoSell4Enabled do
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Golden%20Basket", true))()
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
-
 -- === Lunar Island Positions ===
 local lunarPositions = {
     Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
