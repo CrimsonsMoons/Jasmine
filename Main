@@ -224,7 +224,7 @@ ShopSection:NewButton("Craft Tin Lassos", "Crafts 1000 Tin Lassos", function()
 end)
 
 local autoSell4Enabled = false
-AutoSection:NewToggle("Auto Sell 4", "Loop auto sell4 every 0.5 seconds", function(state)
+AutoSection:NewToggle("Golden Apple", "Loop auto sell4 every 0.5 seconds", function(state)
     autoSell4Enabled = state
     if state then
         task.spawn(function()
