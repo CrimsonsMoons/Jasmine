@@ -6,29 +6,27 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
 local uuid = "{60f828f4-a916-4262-842e-7ddc49e07ad9}"
-local npcModel = workspace.Islands["Training Island"]:FindFirstChild(uuid)
+local npcModel = workspace:Islands()["Training Island"]:FindFirstChild(uuid)
 
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
--- Ensure npcModel PrimaryPart
 if npcModel and not npcModel.PrimaryPart then
     local root = npcModel:FindFirstChild("HumanoidRootPart") or npcModel:FindFirstChildWhichIsA("BasePart")
     if root then npcModel.PrimaryPart = root end
 end
 
--- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
+screenGui.Enabled = true
 
--- Create Button
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 140, 0, 50)
 button.Position = UDim2.new(0, 20, 0, 20)
 button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-button.TextColor3 = Color3.new(1,1,1)
+button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.SourceSansBold
 button.TextSize = 24
 button.Text = "Start Teleport"
@@ -58,7 +56,7 @@ local function startTeleportLoop()
                 if not running then break end
                 teleportBothToCheckpoint(checkpointName)
                 if not running then break end
-                
+
                 if i == 1 then
                     task.wait(0.9)
                 elseif i == 3 then
