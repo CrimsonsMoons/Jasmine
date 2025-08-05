@@ -1,1 +1,43 @@
 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Target the 4th list section
+local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+    :WaitForChild("Menus")
+    :WaitForChild("Backpack")
+    :WaitForChild("Main")
+    :WaitForChild("Inventory")
+    :WaitForChild("Content")
+    :WaitForChild("List"):GetChildren()[4]
+    :WaitForChild("List")
+
+-- SellItems RemoteEvent (18th child)
+local remote = ReplicatedStorage:WaitForChild("Communication")
+    :WaitForChild("Events"):GetChildren()[18]
+
+-- UUID checker
+local function isUUID(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+end
+
+-- Build sell table, skip only Locked
+local sellTable = {}
+for _, item in ipairs(listFolder:GetChildren()) do
+    if isUUID(item.Name) and not item:FindFirstChild("Locked") then
+        sellTable[item.Name] = 1
+    end
+end
+
+-- Fire remote
+if next(sellTable) then
+    local args = {
+        [1] = "SellItems",
+        [2] = sellTable
+    }
+    remote:FireServer(unpack(args))
+    print("✅ Sold items (including Specials):", sellTable)
+else
+    warn("⚠️ No sellable UUIDs found (all Locked).")
+end
