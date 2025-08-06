@@ -305,6 +305,24 @@ game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForC
     end
 end)
 
+local autofeedgEnabled = false
+ShopSection:NewToggle("autofeedg", "Buys Apples from Farm Shop every 0.4s", function(state)
+    autofeedgEnabled = state
+    if state then
+        task.spawn(function()
+            while autofeedgEnabled do
+    local args = {
+    [1] = "{bb9d1f45-bf97-450d-84cb-03745d633e8b}";
+    [2] = "Activate";
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[10]:FireServer(unpack(args))
+                task.wait(0.4)
+            end
+        end)
+    end
+end)
+
 
 -- === Lunar Island Positions ===
 local lunarPositions = {
