@@ -343,6 +343,36 @@ game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForC
 end)
 
 
+local autocollectEnabled = false
+ShopSection:NewToggle("Auto Collect", "Buys Apples from Farm Shop every 0.4s", function(state)
+    autocollectEnabled = state
+    if state then
+        task.spawn(function()
+            while autocollectEnabled do
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Events = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
+local CollectEvent = Events:GetChildren()[12]
+
+local Mainland = workspace:WaitForChild("Islands", 9e9):WaitForChild("Mainland", 9e9)
+
+for _, uuidModel in pairs(Mainland:GetChildren()) do
+    if uuidModel:IsA("Model") and uuidModel.Name:match("^%b{}$") then
+        local args = {
+            [1] = "Collect",
+            [2] = uuidModel,
+        }
+        CollectEvent:FireServer(unpack(args))
+    end
+end
+
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+
 -- === Lunar Island Positions ===
 local lunarPositions = {
     Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
