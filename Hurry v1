@@ -65,7 +65,7 @@ end
 activateRemotes()
 
 -- Checkpoints folder and order
-local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"].DynamicArena
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes
 
 local order = {"1", "2", "3", "4", "5", "6"}
@@ -83,8 +83,9 @@ local function isUUID(str)
     return string.match(str, "^%b{}$") ~= nil
 end
 
+-- Get all valid NPCs (static list + dynamic scan)
 local function getNPCs()
-    local folder = workspace:Islands()["Training Island"]
+    local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
     for _, uuid in ipairs(uuids) do
@@ -129,6 +130,7 @@ button.TextSize = 24
 button.Text = "Start Teleport"
 button.Parent = screenGui
 
+-- Teleport logic
 local running = false
 local teleportTask
 
@@ -139,6 +141,14 @@ local function teleportToCheckpoint(checkpointName, npcs)
         return
     end
 
+    -- Refresh Character and HRP references (handle respawn)
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    HRP = Character:FindFirstChild("HumanoidRootPart")
+    if not HRP then
+        warn("Player HumanoidRootPart missing!")
+        return
+    end
+
     print("Teleporting player to checkpoint:", checkpointName)
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
     print("Player teleported.")
@@ -146,6 +156,11 @@ local function teleportToCheckpoint(checkpointName, npcs)
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                humanoid.Jump = true
+            end
+            print("Teleported NPC:", npc.Name)
         end
     end
 end
@@ -157,14 +172,6 @@ local function startLoop()
             for _, checkpoint in ipairs(order) do
                 if not running then break end
                 teleportToCheckpoint(checkpoint, npcs)
-
-                for _, npc in ipairs(npcs) do
-                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
-                        humanoid.Jump = true
-                    end
-                end
-
                 task.wait(1)
             end
         end
@@ -187,4 +194,3 @@ button.MouseButton1Click:Connect(function()
         end
     end
 end)
----
