@@ -1,46 +1,77 @@
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
 
--- GUI setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
-screenGui.Parent = PlayerGui
-screenGui.ResetOnSpawn = false
+-- Fire required remotes to start (your original lines)
+local args1 = {
+    [1] = "SelectLayout";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+    [3] = 3;
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 50)
-button.Position = UDim2.new(0, 20, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 24
-button.Text = "Start Teleport"
-button.Parent = screenGui
+local args2 = {
+    [1] = "TriggerInteractable";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
 
-local running = false
-local teleportTask
+-- Continue normal flow
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
+local checkpointsRoot = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
     ._LAYOUT.CheckpointActivity.Routes
 
--- Map checkpoint name to custom wait times (seconds)
-local checkpointWaits = {
-    ["1"] = 1.5,
-    ["2"] = 3,
-    ["3"] = 2,
-    ["4"] = 5,
-    ["5"] = 1,
-    ["6"] = 2.5,
+-- Static list of known UUID NPCs
+local uuids = {
+    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+    "{d2227f02-c482-4911-b201-7e842b31c47c}",
+    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+    "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
-local DEFAULT_WAIT = 2 -- default wait time if checkpoint name not in table
+local function isUUID(str)
+    return string.match(str, "^%b{}$") ~= nil
+end
 
+local function getNPCs()
+    local folder = workspace.Islands["Training Island"]
+    local npcList = {}
+
+    for _, uuid in ipairs(uuids) do
+        local model = folder:FindFirstChild(uuid)
+        if model and model:IsA("Model") then
+            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            if root then
+                model.PrimaryPart = root
+                table.insert(npcList, model)
+            end
+        end
+    end
+
+    for _, model in ipairs(folder:GetDescendants()) do
+        if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
+            if model:FindFirstChildWhichIsA("Humanoid") then
+                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    model.PrimaryPart = root
+                    table.insert(npcList, model)
+                end
+            end
+        end
+    end
+
+    return npcList
+end
+
+-- Get all checkpoints from all routes sorted by route then checkpoint number
 local function getAllCheckpoints()
     local checkpoints = {}
 
-    for _, routeFolder in ipairs(checkpointsFolder:GetChildren()) do
+    for _, routeFolder in ipairs(checkpointsRoot:GetChildren()) do
         if routeFolder:IsA("Folder") then
             local sortedCheckpoints = {}
 
@@ -63,48 +94,89 @@ local function getAllCheckpoints()
     return checkpoints
 end
 
-local function teleportToCheckpoints()
-    local checkpoints = getAllCheckpoints()
-    local index = 1
+-- Custom wait times per checkpoint name (fallback to 2 seconds)
+local checkpointWaits = {
+    ["1"] = 1.5,
+    ["2"] = 3,
+    ["3"] = 2,
+    ["4"] = 5,
+    ["5"] = 1,
+    ["6"] = 2.5,
+}
+local DEFAULT_WAIT = 2
 
-    while running and #checkpoints > 0 do
-        local checkpoint = checkpoints[index]
-        if checkpoint then
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local HRP = character:WaitForChild("HumanoidRootPart")
+-- GUI setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportToggleGui"
+screenGui.Parent = PlayerGui
+screenGui.ResetOnSpawn = false
 
-            local targetPos = checkpoint.Position + Vector3.new(2, 3, 0)
-            local targetCFrame = CFrame.new(targetPos)
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 140, 0, 50)
+button.Position = UDim2.new(0, 20, 0, 20)
+button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 24
+button.Text = "Start Teleport"
+button.Parent = screenGui
 
-            local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
-            local tween = TweenService:Create(HRP, tweenInfo, {CFrame = targetCFrame})
-            tween:Play()
-            tween.Completed:Wait()
+local running = false
+local teleportTask
 
-            local waitTime = checkpointWaits[checkpoint.Name] or DEFAULT_WAIT
-            wait(waitTime)
-        end
+local function teleportToCheckpoint(checkpoint, npcs)
+    if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
-        index = index + 1
-        if index > #checkpoints then
-            checkpoints = getAllCheckpoints()
-            index = 1
+    local targetPosPlayer = checkpoint.Position + Vector3.new(2, 3, 0)
+    local targetPosNPC = checkpoint.Position + Vector3.new(-2, 3, 0)
+
+    -- Tween player
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
+    local playerTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(targetPosPlayer)})
+    playerTween:Play()
+
+    -- Tween NPCs
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart then
+            local npcTween = TweenService:Create(npc.PrimaryPart, tweenInfo, {CFrame = CFrame.new(targetPosNPC)})
+            npcTween:Play()
         end
     end
+
+    -- Wait for player tween to complete
+    playerTween.Completed:Wait()
+
+    -- Wait for custom checkpoint delay
+    local waitTime = checkpointWaits[checkpoint.Name] or DEFAULT_WAIT
+    task.wait(waitTime)
+end
+
+local function startTeleportLoop()
+    teleportTask = task.spawn(function()
+        local npcs = getNPCs()
+        local checkpoints = getAllCheckpoints()
+        local index = 1
+
+        while running and #checkpoints > 0 do
+            local checkpoint = checkpoints[index]
+            if not checkpoint then break end
+
+            teleportToCheckpoint(checkpoint, npcs)
+
+            index = index + 1
+            if index > #checkpoints then
+                checkpoints = getAllCheckpoints()
+                index = 1
+            end
+        end
+    end)
 end
 
 button.MouseButton1Click:Connect(function()
+    running = not running
+    button.Text = running and "Stop Teleport" or "Start Teleport"
+
     if running then
-        running = false
-        button.Text = "Start Teleport"
-        if teleportTask then
-            teleportTask:Disconnect()
-            teleportTask = nil
-        end
-    else
-        running = true
-        button.Text = "Stop Teleport"
-        teleportTask = coroutine.wrap(teleportToCheckpoints)
-        teleportTask()
+        startTeleportLoop()
     end
 end)
