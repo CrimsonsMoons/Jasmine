@@ -1,13 +1,12 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local TweenService = game:GetService("TweenService")
 
--- Fire required remotes to start (your original lines)
+-- Fire initial remotes to start layout and interactable
 local args1 = {
     [1] = "SelectLayout";
     [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
-    [3] = 3;
+    [3] = 1;
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
 
@@ -130,23 +129,21 @@ local function teleportToCheckpoint(checkpoint, npcs)
     local targetPosPlayer = checkpoint.Position + Vector3.new(2, 3, 0)
     local targetPosNPC = checkpoint.Position + Vector3.new(-2, 3, 0)
 
-    -- Tween player
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear)
-    local playerTween = TweenService:Create(HRP, tweenInfo, {CFrame = CFrame.new(targetPosPlayer)})
-    playerTween:Play()
+    -- Instant teleport player
+    HRP.CFrame = CFrame.new(targetPosPlayer)
 
-    -- Tween NPCs
+    -- Instant teleport NPCs and make them jump
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
-            local npcTween = TweenService:Create(npc.PrimaryPart, tweenInfo, {CFrame = CFrame.new(targetPosNPC)})
-            npcTween:Play()
+            npc:SetPrimaryPartCFrame(CFrame.new(targetPosNPC))
+
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            if humanoid then
+                humanoid.Jump = true
+            end
         end
     end
 
-    -- Wait for player tween to complete
-    playerTween.Completed:Wait()
-
-    -- Wait for custom checkpoint delay
     local waitTime = checkpointWaits[checkpoint.Name] or DEFAULT_WAIT
     task.wait(waitTime)
 end
@@ -180,4 +177,3 @@ button.MouseButton1Click:Connect(function()
         startTeleportLoop()
     end
 end)
----
