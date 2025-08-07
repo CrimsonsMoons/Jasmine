@@ -1,30 +1,56 @@
+-- Full teleport + looped-jump script
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- 1. SelectLayout
+-- 1. SelectLayout (fires first)
 local args1 = {
     [1] = "SelectLayout";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+    [2] = workspace:WaitForChild("Islands", 9e9)
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9);
     [3] = 1;
 }
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
+game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[45]
+    :FireServer(unpack(args1))
 
--- 2. TriggerInteractable
+-- 2. TriggerInteractable (fires second)
 local args2 = {
     [1] = "TriggerInteractable";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+    [2] = workspace:WaitForChild("Islands", 9e9)
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9)
+        :WaitForChild("_LAYOUT", 9e9)
+        :WaitForChild("CheckpointActivity", 9e9);
 }
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
+game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[36]
+    :FireServer(unpack(args2))
 
--- Continue normal flow
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart")
+-- References
+local checkpointsFolder = workspace:Islands["Training Island"]["Outdoor Arena"].DynamicArena
+    ._LAYOUT.CheckpointActivity.Routes["1"] -- correct route folder ("1")
+local order = {"1", "2", "3", "4", "5", "6"}
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Island"].DynamicArena
-    ._LAYOUT.CheckpointActivity.Routes.Checkpoints
+-- per-checkpoint waits
+local checkpointWaits = {
+    ["1"] = 1.5,
+    ["2"] = 3,
+    ["3"] = 2,
+    ["4"] = 5,
+    ["5"] = 1,
+    ["6"] = 2.5,
+}
+local DEFAULT_WAIT = 1
 
--- Static list of known UUIDs
+-- Static UUID list (keep/update as needed)
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -34,46 +60,56 @@ local uuids = {
 }
 
 local function isUUID(str)
-    return string.match(str, "^%b{}$") ~= nil
+    return tostring(str):match("^%b{}$") ~= nil
 end
 
+-- gather NPC models: static uuids + dynamic scan for UUID named models with Humanoid
 local function getNPCs()
-    local folder = workspace.Islands["Training Island"]
+    local folder = workspace:FindFirstChild("Islands") and workspace.Islands:FindFirstChild("Training Island")
+    if not folder then
+        warn("getNPCs: Training Island folder not found")
+        return {}
+    end
+
     local npcList = {}
 
-    -- Static UUIDs
+    -- static
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
-            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-            if root then
-                model.PrimaryPart = root
+            if not model.PrimaryPart then
+                model.PrimaryPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            end
+            if model.PrimaryPart then
                 table.insert(npcList, model)
             end
         end
     end
 
-    -- Dynamic scan for UUID-named models with Humanoids
+    -- dynamic scan
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
-                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    model.PrimaryPart = root
+                if not model.PrimaryPart then
+                    model.PrimaryPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                end
+                if model.PrimaryPart then
                     table.insert(npcList, model)
                 end
             end
         end
     end
 
+    -- debug
+    -- print("getNPCs found:", #npcList)
     return npcList
 end
 
--- GUI
+-- GUI toggle
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
-screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
 
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 140, 0, 50)
@@ -81,56 +117,142 @@ button.Position = UDim2.new(0, 20, 0, 20)
 button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.SourceSansBold
-button.TextSize = 24
+button.TextSize = 20
 button.Text = "Start Teleport"
 button.Parent = screenGui
 
+-- control flags / tasks
 local running = false
-local teleportTask
+local teleportTask = nil
+local jumpRunning = false
+local jumpTask = nil
 
--- Teleport function using your preferred offset style
-local function teleportToCheckpoint(checkpointName, npcs)
-    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then return end
-
-    -- Teleport player with offset
-    HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
-
-    -- Teleport all valid UUID NPCs and make them jump
-    for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart then
-            npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-            if humanoid then
-                humanoid.Jump = true
-            end
-        end
-    end
+-- helper to get current player's HRP (wait if needed)
+local function getPlayerHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart", 5)
+    return char, hrp
 end
 
--- Updated order to include all six checkpoints
-local order = {"1", "2", "3", "4", "5", "6"}
-
-local function startLoop()
-    teleportTask = task.spawn(function()
-        local npcs = getNPCs()
-        while running do
-            for i, checkpoint in ipairs(order) do
-                if not running then break end
-                teleportToCheckpoint(checkpoint, npcs)
-                task.wait(1)
+-- Start continuous jump loop (player + npc list). It will keep setting Jump = true while jumpRunning.
+local function startJumpLoop(npcs)
+    if jumpRunning then return end
+    jumpRunning = true
+    jumpTask = task.spawn(function()
+        while jumpRunning do
+            -- player jump
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    humanoid.Jump = true
+                end
             end
+
+            -- NPCs jump (iterates the table provided)
+            for _, npc in ipairs(npcs) do
+                if npc and npc.Parent then
+                    local hum = npc:FindFirstChildWhichIsA("Humanoid")
+                    if hum and hum.Health > 0 then
+                        hum.Jump = true
+                    end
+                end
+            end
+
+            task.wait(0.15) -- frequency of jump impulses
         end
     end)
 end
 
+local function stopJumpLoop()
+    jumpRunning = false
+    jumpTask = nil
+end
+
+-- The teleport function (exact teleport style requested + make NPCs jump once after teleport)
+local function teleportToCheckpointByName(checkpointName, npcs)
+    if not checkpointsFolder then
+        warn("checkpointsFolder missing")
+        return
+    end
+
+    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+    if not checkpoint or not checkpoint:IsA("BasePart") then
+        warn("Checkpoint not found or invalid:", checkpointName)
+        return
+    end
+
+    -- refresh player HRP each time (handles respawn)
+    local char = LocalPlayer.Character
+    if not char then
+        char = LocalPlayer.CharacterAdded:Wait()
+    end
+    local HRP = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart", 5)
+    if HRP and HRP.Parent then
+        -- instant teleport player using your requested style
+        HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+        -- make sure player's humanoid jumps (looped jump handles repeated, but set once here too)
+        local pHum = char:FindFirstChildWhichIsA("Humanoid")
+        if pHum then pHum.Jump = true end
+    else
+        warn("Player HRP missing when teleporting")
+    end
+
+    -- teleport NPCs (instant) and ensure PrimaryPart is set
+    for _, npc in ipairs(npcs) do
+        if npc and npc.Parent then
+            if not npc.PrimaryPart then
+                npc.PrimaryPart = npc:FindFirstChild("HumanoidRootPart") or npc:FindFirstChildWhichIsA("BasePart")
+            end
+            if npc.PrimaryPart and npc.PrimaryPart.Parent then
+                npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+                local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                if humanoid then
+                    humanoid.Jump = true -- immediate jump
+                end
+            else
+                -- still continue; warn for debugging
+                warn("NPC missing PrimaryPart or parent:", npc:GetFullName())
+            end
+        end
+    end
+end
+
+-- Teleport loop that refreshes NPCs at start, runs jump loop and teleports through order
+local function startTeleportLoop()
+    if teleportTask then return end
+    teleportTask = task.spawn(function()
+        local npcs = getNPCs()
+        if #npcs == 0 then
+            -- try once more after a short delay in case models spawn a hair later
+            task.wait(0.5)
+            npcs = getNPCs()
+        end
+
+        startJumpLoop(npcs)
+
+        while running do
+            for _, cpName in ipairs(order) do
+                if not running then break end
+                teleportToCheckpointByName(cpName, npcs)
+                local waitTime = checkpointWaits[cpName] or DEFAULT_WAIT
+                task.wait(waitTime)
+            end
+        end
+
+        stopJumpLoop()
+        teleportTask = nil
+    end)
+end
+
+-- Button toggle
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
-
     if running then
-        startLoop()
+        startTeleportLoop()
+    else
+        -- stop; loop checks running and will stop; also stop jump loop immediately
+        stopJumpLoop()
     end
 end)
-
----
