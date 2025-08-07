@@ -1,74 +1,48 @@
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Wait for character and HumanoidRootPart
-local function waitForCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart", 10)
-    if not hrp then
-        error("HumanoidRootPart not found")
-    end
-    return char, hrp
-end
-
-local Character, HRP = waitForCharacter()
-
--- RemoteEvents folder
-local eventsFolder = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
-local selectLayoutEvent = eventsFolder:GetChildren()[45]
-local triggerInteractableEvent = eventsFolder:GetChildren()[36]
-
-if not selectLayoutEvent then
-    warn("SelectLayout RemoteEvent not found at index 45")
-end
-if not triggerInteractableEvent then
-    warn("TriggerInteractable RemoteEvent not found at index 36")
-end
-
--- Args for remotes
+-- 1. SelectLayout remote
 local args1 = {
     [1] = "SelectLayout";
     [2] = workspace:WaitForChild("Islands", 9e9)
-                :WaitForChild("Training Island", 9e9)
-                :WaitForChild("Outdoor Arena", 9e9)
-                :WaitForChild("DynamicArena", 9e9);
-    [3] = 3;
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9);
+    [3] = 3; -- or 1 if you want other layout
 }
 
+local selectLayoutEvent = game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[45]
+
+selectLayoutEvent:FireServer(unpack(args1))
+
+-- 2. TriggerInteractable remote
 local args2 = {
     [1] = "TriggerInteractable";
     [2] = workspace:WaitForChild("Islands", 9e9)
-                :WaitForChild("Training Island", 9e9)
-                :WaitForChild("Outdoor Arena", 9e9)
-                :WaitForChild("DynamicArena", 9e9)
-                :WaitForChild("_LAYOUT", 9e9)
-                :WaitForChild("CheckpointActivity", 9e9);
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9)
+        :WaitForChild("_LAYOUT", 9e9)
+        :WaitForChild("CheckpointActivity", 9e9);
 }
 
--- Fire remotes safely
-local function activateRemotes()
-    if selectLayoutEvent then
-        print("Firing SelectLayout remote...")
-        selectLayoutEvent:FireServer(unpack(args1))
-        print("Fired SelectLayout remote.")
-    end
-    if triggerInteractableEvent then
-        print("Firing TriggerInteractable remote...")
-        triggerInteractableEvent:FireServer(unpack(args2))
-        print("Fired TriggerInteractable remote.")
-    end
-end
+local triggerInteractableEvent = game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[36]
 
-activateRemotes()
+triggerInteractableEvent:FireServer(unpack(args2))
 
--- Checkpoints folder and order
+-- After remotes, continue normal flow:
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HRP = Character:WaitForChild("HumanoidRootPart")
+
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
-    ._LAYOUT.CheckpointActivity.Routes
-
-local order = {"1", "2", "3", "4", "5", "6"}
+    ._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
 -- Static list of known UUIDs
 local uuids = {
@@ -80,14 +54,14 @@ local uuids = {
 }
 
 local function isUUID(str)
-    return string.match(str, "^%b{}$") ~= nil
+	return string.match(str, "^%b{}$") ~= nil
 end
 
--- Get all valid NPCs (static list + dynamic scan)
 local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
+    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
@@ -99,6 +73,7 @@ local function getNPCs()
         end
     end
 
+    -- Dynamic scan for UUID-named models with Humanoids
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -114,7 +89,7 @@ local function getNPCs()
     return npcList
 end
 
--- GUI setup
+-- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -136,40 +111,26 @@ local teleportTask
 
 local function teleportToCheckpoint(checkpointName, npcs)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then
-        warn("Checkpoint not found or invalid: "..tostring(checkpointName))
-        return
-    end
+    if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
-    -- Refresh Character and HRP references (handle respawn)
-    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    HRP = Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then
-        warn("Player HumanoidRootPart missing!")
-        return
-    end
-
-    print("Teleporting player to checkpoint:", checkpointName)
+    -- Teleport player with offset
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
-    print("Player teleported.")
 
+    -- Teleport all valid UUID NPCs
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                humanoid.Jump = true
-            end
-            print("Teleported NPC:", npc.Name)
         end
     end
 end
+
+local order = {"1", "2", "3", "4", "5", "6"}
 
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
         while running do
-            for _, checkpoint in ipairs(order) do
+            for i, checkpoint in ipairs(order) do
                 if not running then break end
                 teleportToCheckpoint(checkpoint, npcs)
                 task.wait(1)
@@ -181,17 +142,8 @@ end
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
+
     if running then
-        if not (LocalPlayer.Character and LocalPlayer.Character.Parent) then
-            LocalPlayer.CharacterAdded:Wait()
-        end
-        Character, HRP = waitForCharacter()
         startLoop()
-    else
-        if teleportTask then
-            task.cancel(teleportTask)
-            teleportTask = nil
-        end
     end
 end)
----
