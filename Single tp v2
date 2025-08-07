@@ -103,7 +103,7 @@ local function startLoop()
                 if i == 1 then
                     task.wait(1.78)
                 elseif i == 3 or i == 4 then
-                    task.wait(1.7)
+                    task.wait(1.9)
                 else
                     task.wait(1.8)
                 end
