@@ -108,7 +108,7 @@ for islandName in pairs(islandConfigs) do
 end
 
 -- === Training Buttons ===
-TrainSection:NewButton("Single", "Runs Single Route Script", function()
+TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Single%20tp%20v2", true))()
 end)
 
