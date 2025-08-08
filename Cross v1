@@ -190,3 +190,4 @@ button.MouseButton1Click:Connect(function()
         unfreezeJumpLoop(getNPCs())
     end
 end)
+--
