@@ -333,6 +333,14 @@ TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
     end
 end)
 
+local alltraingingsEnabled = false
+TrainSection:NewToggle("All Trainings", "Auto Catch Script 3", function(state)
+    alltraingingsEnabled  = state
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    end
+end)
+
 
 -- === Auto Catch Toggles ===
 local autoCatchEnabled = false
@@ -743,10 +751,4 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
             task.wait(60)
         end
     end)
-end)
-
-
-
-TrainSection:NewButton("All Training", "hi", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
 end)
