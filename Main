@@ -139,11 +139,6 @@ TrainSection:NewButton("Cross Country", "Creates a red box around your character
     end
 end)
 
-TrainSection:NewButton("All Training", "Creates a red box around your character", function()
-       loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
-    end
-end)
-
 
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
