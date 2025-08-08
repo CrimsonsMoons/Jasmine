@@ -2,6 +2,25 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+print("Script started, PlayerGui found.")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportToggleGui"
+screenGui.Parent = PlayerGui
+screenGui.Enabled = true
+print("ScreenGui created.")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 140, 0, 50)
+button.Position = UDim2.new(0, 20, 0, 20)
+button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 24
+button.Text = "Start Teleport"
+button.Parent = screenGui
+print("Button created.")
+
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
@@ -24,7 +43,6 @@ local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
-    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
@@ -36,7 +54,6 @@ local function getNPCs()
         end
     end
 
-    -- Dynamic scan for UUID-named models with Humanoids, excluding static UUIDs
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -49,36 +66,23 @@ local function getNPCs()
         end
     end
 
+    print("Found NPCs:", #npcList)
     return npcList
 end
-
--- Create GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
-screenGui.Parent = PlayerGui
-screenGui.ResetOnSpawn = false
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 50)
-button.Position = UDim2.new(0, 20, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 24
-button.Text = "Start Teleport"
-button.Parent = screenGui
 
 local running = false
 local teleportTask
 
 local function teleportToCheckpoint(checkpointName, npcs)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then return end
+    if not checkpoint or not checkpoint:IsA("BasePart") then 
+        print("Checkpoint not found:", checkpointName)
+        return 
+    end
 
-    -- Teleport player with offset
+    print("Teleporting to checkpoint:", checkpointName)
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport all valid UUID NPCs
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
@@ -98,12 +102,14 @@ local function startLoop()
                 task.wait(1)
             end
         end
+        print("Teleport loop stopped.")
     end)
 end
 
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
+    print("Running:", running)
 
     if running then
         startLoop()
@@ -111,4 +117,3 @@ button.MouseButton1Click:Connect(function()
         running = false
     end
 end)
-----
