@@ -5,13 +5,11 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hrp = Character:WaitForChild("HumanoidRootPart")
 
------- Reconnect HRP on respawn
+----- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
     hrp = Character:WaitForChild("HumanoidRootPart")
 end)
-
-local targetPart = workspace.Part
 
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
@@ -128,11 +126,31 @@ local teleportTask
 local function teleportToPart(npcs)
     local targetPart = workspace.Part
     if not targetPart or not targetPart:IsA("BasePart") then
-        warn("Target part not found or invalid!")
+        -- If no part present, fire the RemoteEvent with args
+        local args = {
+            [1] = "TriggerInteractable",
+            [2] = workspace:WaitForChild("Islands", 9e9)
+                :WaitForChild("Training Island", 9e9)
+                :WaitForChild("Cross Country", 9e9)
+                :WaitForChild("CheckpointActivity", 9e9)
+        }
+
+        local event = game:GetService("ReplicatedStorage")
+            :WaitForChild("Communication", 9e9)
+            :WaitForChild("Events", 9e9)
+            :GetChildren()[36]
+
+        if event then
+            event:FireServer(unpack(args))
+            print("No target part found — fired TriggerInteractable event")
+        else
+            warn("Remote event #36 not found!")
+        end
+
         return
     end
 
-    -- Fetch current hrp every teleport to avoid stale reference
+    -- Normal teleport if part found
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp and hrp.Parent then
