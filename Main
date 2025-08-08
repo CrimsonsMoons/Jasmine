@@ -169,7 +169,7 @@ end
 
 while true do
     runSequence()
-    wait(240) -- wait 6 minutes
+    wait(60) -- wait 6 minutes
 end
 end)
 
