@@ -726,3 +726,21 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
     end
 end)
 ---
+TrainSection:NewButton("Hurry Scurry", "Runs Single Route Script", function()
+
+local args = {
+    [1] = "SelectLayout";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+    [3] = 3;
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[50]:FireServer(unpack(args))
+
+
+
+local args = {
+    [1] = "TriggerInteractable";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[41]:FireServer(unpack(args))end)
