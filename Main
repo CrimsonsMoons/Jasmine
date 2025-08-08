@@ -325,7 +325,6 @@ local function startLoop()
     end)
 end
 
--- Toggle function to start/stop the teleport loop
 local teleportLoopEnabled = false
 
 local function toggleTeleportLoop(state)
@@ -342,25 +341,11 @@ local function toggleTeleportLoop(state)
     end
 end
 
--- Example: Hook this function to your toggle, e.g. TrainSection:NewToggle("Start Teleport Loop", "Description", toggleTeleportLoop)
-
-local function toggleTeleportLoop(state)
-    teleportLoopEnabled = state
-    running = state
-    if state then
-        startLoop()
-    else
-        if teleportTask then
-            task.cancel(teleportTask)
-            teleportTask = nil
-        end
-        unfreezeJumpLoop(getNPCs())
-    end
-end
-
-TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
+-- Replace 'Section' with your actual UI section variable
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
     toggleTeleportLoop(state)
 end)
+
 
 
 -- === Auto Catch Toggles ===
