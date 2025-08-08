@@ -1,4 +1,4 @@
-------------- === GUI Library Setup ===
+--- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -116,7 +116,15 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
+TrainSection:NewButton("Run All Training Script", "Runs the all training script", function()
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    end)
+    if not success then
+        warn("Failed to load script:", err)
+    end
+end)
+
 
 local args = {
     [1] = "SelectLayout";
@@ -132,17 +140,6 @@ local args = {
 }
 
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
-end)
-
-TrainSection:NewButton("Cross Country", "Creates a red box around your character", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
-    end
-end)
-
-TrainSection:NewButton("All Training", "Creates a red box around your character", function()
-       loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
-    end
-end)
 
 
 
@@ -338,11 +335,14 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
 end)
 
 
-TrainSection:NewButton("Cross Country", "Auto Catch Script", function(state)
+local crosscountryhEnabled = false
+TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
+    crosscountryhEnabled = state
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
     end
 end)
+
 
 
 -- === Auto Catch Toggles ===
