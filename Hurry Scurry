@@ -1,154 +1,145 @@
+-- Load Kavo UI Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+
+-- Create window and tabs
+local Window = Library.CreateLib("All Islands Teleport", "Midnight")
+
+local TeleportTab = Window:NewTab("Main")
+local TeleportSection = TeleportTab:NewSection("Teleport Controls")
+
+local TrainTab = Window:NewTab("Train")
+local TrainSection = TrainTab:NewSection("Training Features")
+
+-- Player setup
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-local playerGui = player:WaitForChild("PlayerGui")
-print("PlayerGui found:", playerGui) -- debug print
+-- Update HRP on respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    character = char
+    hrp = character:WaitForChild("HumanoidRootPart")
+end)
 
--- Remove any existing GUI with the same name (cleanup)
-local existingGui = playerGui:FindFirstChild("TeleportToggleGui")
-if existingGui then
-    existingGui:Destroy()
+-- Checkpoints path
+local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+
+-- Known UUIDs to exclude from teleporting (optional)
+local excludedUUIDs = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+}
+
+-- Static known UUIDs to prioritize teleporting
+local knownUUIDs = {
+    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+    "{d2227f02-c482-4911-b201-7e842b31c47c}",
+    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+    "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
+}
+
+-- Check if string is a UUID pattern
+local function isUUID(str)
+    return string.match(str, "^%b{}$") ~= nil
 end
 
--- Create ScreenGui and toggle button
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
+-- Get all valid NPC models under Training Island folder for teleport
+local function getNPCs()
+    local folder = workspace:Islands()["Training Island"]
+    local npcList = {}
 
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 200, 0, 50)
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 24
-toggleButton.Text = "Start Teleport Loop"
-toggleButton.Parent = screenGui
-
--- The rest of your teleport script below --
-
-local trainingIsland = workspace:WaitForChild("Islands"):WaitForChild("Training Island")
-
-local function isUUID(name)
-    local count = 0
-    for c in name:gmatch(".") do
-        if c == "-" then count = count + 1 end
-    end
-    return count == 4
-end
-
-local npcModels = {}
-for _, child in ipairs(trainingIsland:GetChildren()) do
-    if child:IsA("Model") and isUUID(child.Name) then
-        local function assignPrimaryPart(model)
-            if model.PrimaryPart then return end
-            local commonParts = {"HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso"}
-            for _, partName in ipairs(commonParts) do
-                local part = model:FindFirstChild(partName)
-                if part and part:IsA("BasePart") then
-                    model.PrimaryPart = part
-                    return
-                end
-            end
-            for _, part in pairs(model:GetChildren()) do
-                if part:IsA("BasePart") then
-                    model.PrimaryPart = part
-                    return
-                end
-            end
-        end
-
-        assignPrimaryPart(child)
-        if child.PrimaryPart then
-            table.insert(npcModels, child)
-        else
-            warn("Model "..child.Name.." has no PrimaryPart assigned")
-        end
-    end
-end
-
-local routesFolder = trainingIsland
-    :WaitForChild("Outdoor Arena")
-    :WaitForChild("DynamicArena")
-    :WaitForChild("_LAYOUT")
-    :WaitForChild("CheckpointActivity")
-    :WaitForChild("Routes")
-    :WaitForChild("1")
-
-local function teleportModel(model, targetCFrame)
-    if model.PrimaryPart then
-        model:SetPrimaryPartCFrame(targetCFrame)
-    else
-        local originalCFrame = model:GetModelCFrame()
-        for _, part in ipairs(model:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CFrame = targetCFrame * (part.CFrame - originalCFrame)
+    -- Add known static UUIDs first
+    for _, uuid in ipairs(knownUUIDs) do
+        local model = folder:FindFirstChild(uuid)
+        if model and model:IsA("Model") and not excludedUUIDs[model.Name] then
+            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            if root then
+                model.PrimaryPart = root
+                table.insert(npcList, model)
             end
         end
     end
+
+    -- Scan dynamically for other UUID-named models with Humanoids, exclude known and excluded
+    for _, model in ipairs(folder:GetChildren()) do
+        if model:IsA("Model") and isUUID(model.Name) and not excludedUUIDs[model.Name] and not table.find(knownUUIDs, model.Name) then
+            if model:FindFirstChildWhichIsA("Humanoid") then
+                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    model.PrimaryPart = root
+                    table.insert(npcList, model)
+                end
+            end
+        end
+    end
+
+    return npcList
 end
 
-local playerCharacter = player.Character or player.CharacterAdded:Wait()
+-- Teleport player and NPCs to a checkpoint
+local function teleportToCheckpoint(checkpointName, npcs)
+    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+    if not checkpoint or not checkpoint:IsA("BasePart") then
+        warn("Checkpoint '"..checkpointName.."' not found or invalid.")
+        return
+    end
 
-local function teleportToCheckpoint(part)
-    if part and part:IsA("BasePart") then
-        local insideCFrame = part.CFrame
-            * CFrame.new(0, -part.Size.Y/2 + 1, 0)
-            * CFrame.new(0, 0, 1.5)
+    -- Teleport player with a slight offset up and sideways
+    if hrp and hrp.Parent then
+        hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+    end
 
-        for _, model in ipairs(npcModels) do
-            teleportModel(model, insideCFrame)
+    -- Teleport NPCs to slightly opposite offset
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart and npc.PrimaryPart.Parent then
+            npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
         end
-        if playerCharacter and playerCharacter:FindFirstChild("HumanoidRootPart") then
-            local hrp = playerCharacter.HumanoidRootPart
-            hrp.CFrame = insideCFrame * CFrame.new(0, 2, 0)  -- 2 studs above inside spot
-        end
-        print("Teleported inside checkpoint:", part.Name)
-    else
-        warn("Checkpoint part not found or invalid:", part and part.Name or "nil")
     end
 end
 
-local looping = false
-local teleportCoroutine
+-- Teleport loop toggle state
+local running = false
+local teleportTask
 
-local function startLoop()
-    looping = true
-    toggleButton.Text = "Stop Teleport Loop"
+-- Teleport order 1-6 checkpoints
+local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
 
-    teleportCoroutine = coroutine.create(function()
-        while looping do
-            for i = 1, 6 do
-                if not looping then break end
-
-                local checkpoint = routesFolder:FindFirstChild(tostring(i))
-                if checkpoint then
-                    teleportToCheckpoint(checkpoint)
-                    wait(2)
-                else
-                    warn("Checkpoint "..i.." missing")
-                end
+local function startTeleportLoop()
+    teleportTask = task.spawn(function()
+        while running do
+            local npcs = getNPCs()
+            for _, cp in ipairs(checkpointOrder) do
+                if not running then break end
+                teleportToCheckpoint(cp, npcs)
+                task.wait(1) -- wait 1 second at each checkpoint
             end
         end
     end)
-
-    coroutine.resume(teleportCoroutine)
 end
 
-local function stopLoop()
-    looping = false
-    toggleButton.Text = "Start Teleport Loop"
-    if teleportCoroutine and coroutine.status(teleportCoroutine) == "suspended" then
-        coroutine.close(teleportCoroutine)
-    end
-end
-
-toggleButton.MouseButton1Click:Connect(function()
-    if looping then
-        stopLoop()
+-- Add toggle to Train section
+TrainSection:NewToggle("Toggle Teleport Checkpoints", "Loops teleporting player + NPCs through checkpoints 1 to 6", function(state)
+    running = state
+    if running then
+        -- Safety check player HRP
+        if not hrp or not hrp.Parent then
+            warn("HumanoidRootPart not ready, waiting for character...")
+            character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            hrp = character:WaitForChild("HumanoidRootPart")
+        end
+        startTeleportLoop()
     else
-        startLoop()
+        if teleportTask then
+            task.cancel(teleportTask)
+            teleportTask = nil
+        end
     end
 end)
----
+
+-- Optional: Add UI toggle keybind
+TrainSection:NewKeybind("Toggle UI", "Toggle UI visibility", Enum.KeyCode.M, function()
+    Library:ToggleUI()
+end)
