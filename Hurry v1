@@ -1,37 +1,6 @@
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- Fire the required remote events on start:
-local function fireInitialRemotes()
-    local islands = workspace:WaitForChild("Islands", 9e9)
-    local trainingIsland = islands:WaitForChild("Training Island", 9e9)
-    local outdoorArena = trainingIsland:WaitForChild("Outdoor Arena", 9e9)
-    local dynamicArena = outdoorArena:WaitForChild("DynamicArena", 9e9)
-    local eventsFolder = ReplicatedStorage:WaitForChild("Communication", 9e9)
-        :WaitForChild("Events", 9e9)
-
-    -- 1. SelectLayout
-    local args1 = {
-        "SelectLayout",
-        dynamicArena,
-        3,
-    }
-    eventsFolder:GetChildren()[45]:FireServer(unpack(args1))
-
-    -- 2. TriggerInteractable
-    local checkpointActivity = dynamicArena:WaitForChild("_LAYOUT", 9e9)
-        :WaitForChild("CheckpointActivity", 9e9)
-    local args2 = {
-        "TriggerInteractable",
-        checkpointActivity,
-    }
-    eventsFolder:GetChildren()[36]:FireServer(unpack(args2))
-end
-
--- Setup references after firing remotes
-fireInitialRemotes()
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
@@ -83,7 +52,7 @@ local function getNPCs()
     return npcList
 end
 
--- Create GUI immediately
+-- Create GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -123,7 +92,7 @@ local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
         while running do
-            for i, checkpoint in ipairs(order) do
+            for _, checkpoint in ipairs(order) do
                 if not running then break end
                 teleportToCheckpoint(checkpoint, npcs)
                 task.wait(1)
@@ -142,4 +111,3 @@ button.MouseButton1Click:Connect(function()
         running = false
     end
 end)
----
