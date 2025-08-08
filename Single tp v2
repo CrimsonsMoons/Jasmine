@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -11,6 +12,7 @@ local args1 = {
 }
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
 
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args))
 -- 2. TriggerInteractable
 local args2 = {
     [1] = "TriggerInteractable";
