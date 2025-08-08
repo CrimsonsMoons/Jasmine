@@ -116,7 +116,7 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("Single", "Creates a red box around your character", function()
+TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
 
 local args = {
     [1] = "SelectLayout";
