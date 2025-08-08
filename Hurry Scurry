@@ -66,7 +66,7 @@ local function getNPCs()
     return npcList
 end
 
--- Teleport function: teleport player and NPCs, make NPCs jump
+-- Teleport function: teleport player and NPCs, make NPCs jump once immediately
 local function teleportToCheckpoint(checkpointName, npcs)
     local route = checkpointsFolder["1"] -- Assuming route "1"
     if not route then
@@ -85,27 +85,33 @@ local function teleportToCheckpoint(checkpointName, npcs)
         hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
     end
 
-    -- Teleport NPCs and make them jump
+    -- Teleport NPCs
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart and npc.PrimaryPart.Parent then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-            if humanoid then
-                humanoid.Jump = true
-            end
         end
     end
 end
 
--- NPC jump loop control
+-- Jump loop control (player + NPCs)
 local jumpRunning = false
 local jumpTask
 
-local function startNpcJumpLoop(npcs)
+local function startJumpLoop(npcs)
     if jumpRunning then return end
     jumpRunning = true
     jumpTask = task.spawn(function()
         while jumpRunning do
+            -- Player jump
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    humanoid.Jump = true
+                end
+            end
+
+            -- NPCs jump
             for _, npc in ipairs(npcs) do
                 if npc and npc.Parent then
                     local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
@@ -114,12 +120,13 @@ local function startNpcJumpLoop(npcs)
                     end
                 end
             end
-            task.wait(0.15)
+
+            task.wait(0.15) -- Jump frequency
         end
     end)
 end
 
-local function stopNpcJumpLoop()
+local function stopJumpLoop()
     jumpRunning = false
     jumpTask = nil
 end
@@ -136,7 +143,7 @@ local checkpointOrder = {"1","2","3","4","5","6"}
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        startNpcJumpLoop(npcs) -- Start NPC jump loop
+        startJumpLoop(npcs) -- Start jump loop for player + NPCs
 
         while running do
             for _, checkpointName in ipairs(checkpointOrder) do
@@ -146,11 +153,11 @@ local function startLoop()
             end
         end
 
-        stopNpcJumpLoop() -- Stop NPC jump loop
+        stopJumpLoop() -- Stop jumps when loop ends
     end)
 end
 
-Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints with continuous jumps", function(state)
     running = state
     if running then
         startLoop()
@@ -159,7 +166,6 @@ Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through chec
             task.cancel(teleportTask)
             teleportTask = nil
         end
-        stopNpcJumpLoop()
+        stopJumpLoop()
     end
 end)
----
