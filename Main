@@ -1,4 +1,5 @@
 ----- === GUI Library Setup ===
+-- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -114,6 +115,10 @@ end)
 
 TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
+end)
+
+TrainSection:NewButton("Run All Training Script", "Runs the all training script from GitHub", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
 end)
 
 local args = {
