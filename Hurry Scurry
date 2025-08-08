@@ -1,11 +1,53 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Wait for PlayerGui to be ready
 local playerGui = player:WaitForChild("PlayerGui")
+player.CharacterAdded:Wait()
+player.Character:WaitForChild("HumanoidRootPart")
 
 local trainingIsland = workspace:WaitForChild("Islands"):WaitForChild("Training Island")
-local trainingBody = trainingIsland:WaitForChild("{60f828f4-a916-4262-842e-7ddc49e07ad9}")
+
+-- Function to detect if a string looks like a UUID (4 hyphens)
+local function isUUID(name)
+    local count = 0
+    for c in name:gmatch(".") do
+        if c == "-" then count = count + 1 end
+    end
+    return count == 4
+end
+
+-- Collect all UUID models under Training Island
+local npcModels = {}
+for _, child in ipairs(trainingIsland:GetChildren()) do
+    if child:IsA("Model") and isUUID(child.Name) then
+        -- Assign PrimaryPart reliably
+        local function assignPrimaryPart(model)
+            if model.PrimaryPart then return end
+            local commonParts = {"HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso"}
+            for _, partName in ipairs(commonParts) do
+                local part = model:FindFirstChild(partName)
+                if part and part:IsA("BasePart") then
+                    model.PrimaryPart = part
+                    return
+                end
+            end
+            for _, part in pairs(model:GetChildren()) do
+                if part:IsA("BasePart") then
+                    model.PrimaryPart = part
+                    return
+                end
+            end
+        end
+
+        assignPrimaryPart(child)
+        if child.PrimaryPart then
+            table.insert(npcModels, child)
+        else
+            warn("Model "..child.Name.." has no PrimaryPart assigned")
+        end
+    end
+end
+
 local routesFolder = trainingIsland
     :WaitForChild("Outdoor Arena")
     :WaitForChild("DynamicArena")
@@ -14,28 +56,43 @@ local routesFolder = trainingIsland
     :WaitForChild("Routes")
     :WaitForChild("1")
 
--- Ensure PrimaryPart is set for the model
-if not trainingBody.PrimaryPart then
-    for _, part in pairs(trainingBody:GetChildren()) do
-        if part:IsA("BasePart") then
-            trainingBody.PrimaryPart = part
-            break
+local function teleportModel(model, targetCFrame)
+    if model.PrimaryPart then
+        model:SetPrimaryPartCFrame(targetCFrame)
+    else
+        local originalCFrame = model:GetModelCFrame()
+        for _, part in ipairs(model:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CFrame = targetCFrame * (part.CFrame - originalCFrame)
+            end
         end
     end
 end
 
-if not trainingBody.PrimaryPart then
-    warn("UUID model has no PrimaryPart")
-    return
+local function teleportToCheckpoint(part)
+    if part and part:IsA("BasePart") then
+        local insideCFrame = part.CFrame
+            * CFrame.new(0, -part.Size.Y/2 + 1, 0)
+            * CFrame.new(0, 0, 1.5)
+
+        for _, model in ipairs(npcModels) do
+            teleportModel(model, insideCFrame)
+        end
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            hrp.CFrame = insideCFrame * CFrame.new(0, 2, 0)  -- 2 studs above inside spot
+        end
+        print("Teleported inside checkpoint:", part.Name)
+    else
+        warn("Checkpoint part not found or invalid:", part and part.Name or "nil")
+    end
 end
 
--- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Create Toggle Button
 local toggleButton = Instance.new("TextButton")
 toggleButton.Size = UDim2.new(0, 200, 0, 50)
 toggleButton.Position = UDim2.new(0, 20, 0, 20)
@@ -49,18 +106,6 @@ toggleButton.Parent = screenGui
 local looping = false
 local teleportCoroutine
 
-local function teleportToCheckpoint(part)
-    if part and part:IsA("BasePart") then
-        trainingBody:SetPrimaryPartCFrame(part.CFrame)
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-        end
-        print("Teleported to checkpoint:", part.Name)
-    else
-        warn("Checkpoint part not found or invalid:", part and part.Name or "nil")
-    end
-end
-
 local function startLoop()
     looping = true
     toggleButton.Text = "Stop Teleport Loop"
@@ -73,7 +118,7 @@ local function startLoop()
                 local checkpoint = routesFolder:FindFirstChild(tostring(i))
                 if checkpoint then
                     teleportToCheckpoint(checkpoint)
-                    wait(2) -- wait 2 seconds between teleports
+                    wait(2)
                 else
                     warn("Checkpoint "..i.." missing")
                 end
