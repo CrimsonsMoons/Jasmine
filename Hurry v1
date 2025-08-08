@@ -2,13 +2,10 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-print("[DEBUG] Starting script")
-
--- GUI creation early to ensure visibility
+-- Create GUI immediately
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
-print("[DEBUG] ScreenGui created and parented")
 
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 140, 0, 50)
@@ -19,140 +16,114 @@ button.Font = Enum.Font.SourceSansBold
 button.TextSize = 24
 button.Text = "Start Teleport"
 button.Parent = screenGui
-print("[DEBUG] Button created and parented")
-
--- Setup paths with pcall to catch errors
-local trainingIsland
-local checkpointsFolder
-
-local success, err = pcall(function()
-    trainingIsland = workspace:Islands():WaitForChild("Training Island", 10)
-    checkpointsFolder = trainingIsland:WaitForChild("Outdoor Arena", 10)
-        :WaitForChild("DynamicArena", 10)
-        :WaitForChild("_LAYOUT", 10)
-        :WaitForChild("CheckpointActivity", 10)
-        :WaitForChild("Routes", 10)
-        :WaitForChild("1", 10)
-end)
-
-if not success then
-    warn("[ERROR] Failed to get folders: ", err)
-    return
-end
-
-print("[DEBUG] Successfully obtained checkpoints folder")
-
--- Static known UUIDs
-local staticUUIDs = {
-    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
-    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
-    "{d2227f02-c482-4911-b201-7e842b31c47c}",
-    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
-    "{12916ad6-7fd9-46d5-8bc1-e69671249721}"
-}
-
-local function isUUID(str)
-	return string.match(str, "^%b{}$") ~= nil
-end
-
-local function getNPCs()
-    local npcList = {}
-
-    local folder = trainingIsland
-    -- Add static UUIDs
-    for _, uuid in ipairs(staticUUIDs) do
-        local model = folder:FindFirstChild(uuid)
-        if model and model:IsA("Model") then
-            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-            if root then
-                model.PrimaryPart = root
-                table.insert(npcList, model)
-            else
-                warn("[WARN] Static UUID model missing root part: "..uuid)
-            end
-        end
-    end
-
-    -- Dynamic scan for UUID-named models with Humanoid excluding statics
-    for _, model in ipairs(folder:GetDescendants()) do
-        if model:IsA("Model") and isUUID(model.Name) and not table.find(staticUUIDs, model.Name) then
-            if model:FindFirstChildWhichIsA("Humanoid") then
-                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    model.PrimaryPart = root
-                    table.insert(npcList, model)
-                else
-                    warn("[WARN] Dynamic UUID model missing root part: "..model.Name)
-                end
-            end
-        end
-    end
-
-    return npcList
-end
-
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HRP = Character:WaitForChild("HumanoidRootPart")
-
-local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
 
 local running = false
 local teleportTask
-
-local function teleportToCheckpoint(checkpointName, npcs)
-    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then
-        warn("[WARN] Checkpoint missing or invalid: "..tostring(checkpointName))
-        return
-    end
-
-    local insideCFrame = checkpoint.CFrame
-        * CFrame.new(0, -checkpoint.Size.Y/2 + 1, 0)
-        * CFrame.new(0, 0, 1.5)
-
-    -- Teleport player 2 studs above inside spot
-    HRP.CFrame = insideCFrame * CFrame.new(0, 2, 0)
-
-    -- Teleport NPCs 2 studs left, 3 up inside spot
-    for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart then
-            npc:SetPrimaryPartCFrame(insideCFrame * CFrame.new(-2, 3, 0))
-        else
-            warn("[WARN] NPC missing PrimaryPart: "..npc.Name)
-        end
-    end
-
-    print("[DEBUG] Teleported to checkpoint "..checkpointName)
-end
-
-local function startLoop()
-    teleportTask = task.spawn(function()
-        local npcs = getNPCs()
-        print("[DEBUG] NPCs found: "..#npcs)
-        while running do
-            for _, checkpointName in ipairs(checkpointOrder) do
-                if not running then break end
-                teleportToCheckpoint(checkpointName, npcs)
-                task.wait(2)
-            end
-        end
-    end)
-end
-
-local function stopLoop()
-    running = false
-    print("[DEBUG] Teleport loop stopped")
-end
 
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
 
     if running then
-        print("[DEBUG] Teleport loop started")
-        startLoop()
+        -- Run teleport logic asynchronously
+        teleportTask = task.spawn(function()
+            local success, err = pcall(function()
+                print("[DEBUG] Starting teleport logic")
+
+                -- Get Training Island and checkpoints safely
+                local trainingIsland = workspace:Islands():WaitForChild("Training Island", 10)
+                local checkpointsFolder = trainingIsland:WaitForChild("Outdoor Arena", 10)
+                    :WaitForChild("DynamicArena", 10)
+                    :WaitForChild("_LAYOUT", 10)
+                    :WaitForChild("CheckpointActivity", 10)
+                    :WaitForChild("Routes", 10)
+                    :WaitForChild("1", 10)
+
+                print("[DEBUG] Obtained checkpoints folder")
+
+                -- Known UUIDs
+                local staticUUIDs = {
+                    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+                    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+                    "{d2227f02-c482-4911-b201-7e842b31c47c}",
+                    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+                    "{12916ad6-7fd9-46d5-8bc1-e69671249721}"
+                }
+
+                local function isUUID(str)
+                    return string.match(str, "^%b{}$") ~= nil
+                end
+
+                local function getNPCs()
+                    local npcList = {}
+                    -- Add static UUIDs
+                    for _, uuid in ipairs(staticUUIDs) do
+                        local model = trainingIsland:FindFirstChild(uuid)
+                        if model and model:IsA("Model") then
+                            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                            if root then
+                                model.PrimaryPart = root
+                                table.insert(npcList, model)
+                            end
+                        end
+                    end
+
+                    -- Dynamic scan for UUID-named models with Humanoid excluding statics
+                    for _, model in ipairs(trainingIsland:GetDescendants()) do
+                        if model:IsA("Model") and isUUID(model.Name) and not table.find(staticUUIDs, model.Name) then
+                            if model:FindFirstChildWhichIsA("Humanoid") then
+                                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                                if root then
+                                    model.PrimaryPart = root
+                                    table.insert(npcList, model)
+                                end
+                            end
+                        end
+                    end
+
+                    return npcList
+                end
+
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HRP = Character:WaitForChild("HumanoidRootPart")
+
+                local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
+
+                while running do
+                    local npcs = getNPCs()
+                    print("[DEBUG] NPCs found: "..#npcs)
+
+                    for _, checkpointName in ipairs(checkpointOrder) do
+                        if not running then break end
+                        local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+                        if checkpoint and checkpoint:IsA("BasePart") then
+                            local insideCFrame = checkpoint.CFrame
+                                * CFrame.new(0, -checkpoint.Size.Y/2 + 1, 0)
+                                * CFrame.new(0, 0, 1.5)
+
+                            HRP.CFrame = insideCFrame * CFrame.new(0, 2, 0)
+
+                            for _, npc in ipairs(npcs) do
+                                if npc.PrimaryPart then
+                                    npc:SetPrimaryPartCFrame(insideCFrame * CFrame.new(-2, 3, 0))
+                                end
+                            end
+
+                            print("[DEBUG] Teleported to checkpoint "..checkpointName)
+                        else
+                            warn("[WARN] Missing checkpoint part: "..tostring(checkpointName))
+                        end
+
+                        task.wait(2)
+                    end
+                end
+            end)
+
+            if not success then
+                warn("[ERROR] Teleport logic failed:", err)
+            end
+        end)
     else
-        stopLoop()
+        print("[DEBUG] Stopping teleport loop")
     end
 end)
---
