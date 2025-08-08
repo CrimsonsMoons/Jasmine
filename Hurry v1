@@ -1,31 +1,25 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
 -- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-
--- Create UI Window with Midnight theme
 local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
--- Create Tab and Section
-local MainTab = Window:NewTab("Main")
-local MainSection = MainTab:NewSection("Teleport Controls")
+-- Player references
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Variables
-local running = false
-local teleportTask
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hrp = Character:WaitForChild("HumanoidRootPart")
 
-local function waitForCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-    return char, hrp
-end
+-- Reconnect HRP on respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    hrp = Character:WaitForChild("HumanoidRootPart")
+end)
 
-local Character, HRP = waitForCharacter()
+-- Checkpoints Folder path
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
-    .DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
-
+-- Static list of known UUIDs
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -34,14 +28,17 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
+-- UUID pattern checker
 local function isUUID(str)
     return string.match(str, "^%b{}$") ~= nil
 end
 
+-- Get all valid NPCs (static + dynamically scanned)
 local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
+    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
@@ -53,6 +50,7 @@ local function getNPCs()
         end
     end
 
+    -- Dynamic scan for UUID-named models with Humanoids (excluding static ones)
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -68,46 +66,136 @@ local function getNPCs()
     return npcList
 end
 
-local order = {"1", "2", "3", "4", "5", "6"}
+-- Jump freeze loop (player + NPCs)
+local jumpRunning = false
+local jumpTask
 
-local function teleportToCheckpoint(checkpointName, npcs)
-    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then return end
+local function freezeJumpLoop(npcs)
+    if jumpRunning then return end
+    jumpRunning = true
+    jumpTask = task.spawn(function()
+        while jumpRunning do
+            -- Freeze player in jump state
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if humanoid and hrp and humanoid.Health > 0 then
+                    humanoid.Jump = true
+                    humanoid.PlatformStand = true
+                    hrp.Anchored = true -- anchor to freeze position
+                end
+            end
 
-    -- Teleport player slightly offset so they don't clip into the part
-    HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+            -- Freeze NPCs in jump state
+            for _, npc in ipairs(npcs) do
+                if npc and npc.Parent then
+                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                    local root = npc.PrimaryPart
+                    if humanoid and root and humanoid.Health > 0 then
+                        humanoid.Jump = true
+                        humanoid.PlatformStand = true
+                        root.Anchored = true -- anchor to freeze position
+                    end
+                end
+            end
 
-    -- Teleport all valid NPCs slightly offset opposite side
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function unfreezeJumpLoop(npcs)
+    jumpRunning = false
+    if jumpTask then
+        task.cancel(jumpTask)
+        jumpTask = nil
+    end
+
+    -- Unanchor and disable PlatformStand for player
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if humanoid and hrp then
+            humanoid.PlatformStand = false
+            hrp.Anchored = false
+        end
+    end
+
+    -- Unanchor and disable PlatformStand for NPCs
     for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart then
+        if npc and npc.Parent then
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            local root = npc.PrimaryPart
+            if humanoid and root then
+                humanoid.PlatformStand = false
+                root.Anchored = false
+            end
+        end
+    end
+end
+
+-- Teleport function: teleport player and NPCs
+local function teleportToCheckpoint(checkpointName, npcs)
+    local route = checkpointsFolder["1"] -- Assuming route "1"
+    if not route then
+        warn("Route '1' not found in checkpoints.")
+        return
+    end
+
+    local checkpoint = route:FindFirstChild(checkpointName)
+    if not checkpoint or not checkpoint:IsA("BasePart") then
+        warn("Checkpoint '"..checkpointName.."' not found or invalid.")
+        return
+    end
+
+    -- Teleport player with offset
+    if hrp and hrp.Parent then
+        hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+    end
+
+    -- Teleport NPCs
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart and npc.PrimaryPart.Parent then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
         end
     end
 end
 
+-- GUI Setup
+local Tab = Window:NewTab("Training Teleport")
+local Section = Tab:NewSection("Toggle Teleport Loop")
+
+local running = false
+local teleportTask
+
+local checkpointOrder = {"1","2","3","4","5","6"}
+
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
+        freezeJumpLoop(npcs) -- start freeze jump
         while running do
-            for _, checkpoint in ipairs(order) do
+            for _, checkpointName in ipairs(checkpointOrder) do
                 if not running then break end
-                teleportToCheckpoint(checkpoint, npcs)
-                task.wait(1)
+                teleportToCheckpoint(checkpointName, npcs)
+                task.wait(1) -- wait 1 second between teleports
             end
         end
+        unfreezeJumpLoop(npcs)
     end)
 end
 
--- Toggle button to start/stop teleport loop
-MainSection:NewToggle("Toggle Teleport Loop", "Start or stop teleporting through checkpoints", function(state)
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints, freeze jump state", function(state)
     running = state
     if running then
         startLoop()
+    else
+        if teleportTask then
+            task.cancel(teleportTask)
+            teleportTask = nil
+        end
+        unfreezeJumpLoop(getNPCs())
     end
 end)
-
--- Optional: Keybind to toggle UI visibility
-MainSection:NewKeybind("Toggle UI", "Toggle Kavo UI visibility", Enum.KeyCode.M, function()
-    Library:ToggleUI()
-end)
----------------
