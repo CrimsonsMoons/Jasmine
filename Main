@@ -1,4 +1,4 @@
--------- === GUI Library Setup ===
+------ === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -132,6 +132,16 @@ local args = {
 }
 
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
+end)
+
+TrainSection:NewButton("Cross Country", "Creates a red box around your character", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
+    end
+end)
+
+TrainSection:NewButton("All Training", "Creates a red box around your character", function()
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    end
 end)
 
 
@@ -745,7 +755,3 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
         end
     end)
 end)
-
-
-
-
