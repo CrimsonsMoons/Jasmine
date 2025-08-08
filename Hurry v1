@@ -6,7 +6,7 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
-    .DynamicArena._LAYOUT.CheckpointActivity.Routes.Checkpoints
+    .DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
 
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
@@ -111,4 +111,3 @@ button.MouseButton1Click:Connect(function()
         running = false
     end
 end)
----
