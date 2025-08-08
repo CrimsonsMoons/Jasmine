@@ -327,6 +327,15 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
 end)
 
 
+local crosscountryhEnabled = false
+TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
+    crosscountryhEnabled = state
+    if state then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
+    end
+end)
+
+
 -- === Auto Catch Toggles ===
 local autoCatchEnabled = false
 AutoSection:NewToggle("Islands 1,2,3", "Auto Catch Script", function(state)
