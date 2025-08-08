@@ -162,3 +162,4 @@ Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through chec
         stopNpcJumpLoop()
     end
 end)
+---
