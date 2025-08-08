@@ -134,6 +134,17 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
 end)
 
+TrainSection:NewButton("Cross Country", "Creates a red box around your character", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
+    end
+end)
+
+TrainSection:NewButton("All Training", "Creates a red box around your character", function()
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    end
+end)
+
+
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -327,9 +338,7 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
 end)
 
 
-local crosscountryhEnabled = false
-TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
-    crosscountryhEnabled = state
+TrainSection:NewButton("Cross Country", "Auto Catch Script", function(state)
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
     end
