@@ -1,6 +1,5 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
@@ -24,7 +23,7 @@ end
 
 local Character, HRP = waitForCharacter()
 
-local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"]
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
     .DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
 
 local uuids = {
@@ -40,7 +39,7 @@ local function isUUID(str)
 end
 
 local function getNPCs()
-    local folder = workspace:Islands()["Training Island"]
+    local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
     for _, uuid in ipairs(uuids) do
@@ -99,10 +98,15 @@ local function startLoop()
     end)
 end
 
+-- Toggle button to start/stop teleport loop
 MainSection:NewToggle("Toggle Teleport Loop", "Start or stop teleporting through checkpoints", function(state)
     running = state
     if running then
         startLoop()
     end
 end)
-----------------
+
+-- Optional: Keybind to toggle UI visibility
+MainSection:NewKeybind("Toggle UI", "Toggle Kavo UI visibility", Enum.KeyCode.M, function()
+    Library:ToggleUI()
+end)
