@@ -1,4 +1,4 @@
---- Load Kavo UI Library
+-- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
@@ -97,41 +97,29 @@ local function teleportToCheckpoint(checkpointName, npcs)
     end
 end
 
--- Jump loop variables
+-- NPC jump loop control
 local jumpRunning = false
-local jumpTask = nil
+local jumpTask
 
--- Start jump loop for player and NPCs
-local function startJumpLoop(npcs)
+local function startNpcJumpLoop(npcs)
     if jumpRunning then return end
     jumpRunning = true
     jumpTask = task.spawn(function()
         while jumpRunning do
-            -- Player jump
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    humanoid.Jump = true
-                end
-            end
-
-            -- NPCs jump
             for _, npc in ipairs(npcs) do
                 if npc and npc.Parent then
-                    local hum = npc:FindFirstChildWhichIsA("Humanoid")
-                    if hum and hum.Health > 0 then
-                        hum.Jump = true
+                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        humanoid.Jump = true
                     end
                 end
             end
-
             task.wait(0.15)
         end
     end)
 end
 
-local function stopJumpLoop()
+local function stopNpcJumpLoop()
     jumpRunning = false
     jumpTask = nil
 end
@@ -148,7 +136,7 @@ local checkpointOrder = {"1","2","3","4","5","6"}
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        startJumpLoop(npcs) -- start jumping loop when teleport starts
+        startNpcJumpLoop(npcs) -- Start NPC jump loop
 
         while running do
             for _, checkpointName in ipairs(checkpointOrder) do
@@ -158,7 +146,7 @@ local function startLoop()
             end
         end
 
-        stopJumpLoop() -- stop jumping loop when teleport stops
+        stopNpcJumpLoop() -- Stop NPC jump loop
     end)
 end
 
@@ -171,6 +159,6 @@ Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through chec
             task.cancel(teleportTask)
             teleportTask = nil
         end
-        stopJumpLoop()
+        stopNpcJumpLoop()
     end
 end)
