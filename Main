@@ -501,7 +501,7 @@ local args = {
 
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[18]:FireServer(unpack(args))
 
-                task.wait(0.9)
+                task.wait(0.1)
             end
         end)
     end
