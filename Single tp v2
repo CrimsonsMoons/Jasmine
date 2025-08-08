@@ -1,7 +1,20 @@
-local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- 1. SelectLayout
+local args1 = {
+    [1] = "SelectLayout";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+    [3] = 1;
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
+
+-- 2. TriggerInteractable
+local args2 = {
+    [1] = "TriggerInteractable";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
 
 -- Continue normal flow
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
