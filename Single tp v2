@@ -1,7 +1,8 @@
----hi
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Activate layout first
+local args = {
 -- 1. SelectLayout
 local args1 = {
     [1] = "SelectLayout";
