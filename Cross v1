@@ -11,7 +11,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     hrp = Character:WaitForChild("HumanoidRootPart")
 end)
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes
+local targetPart = workspace.Part
 
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
