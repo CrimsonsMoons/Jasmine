@@ -124,9 +124,10 @@ local running = false
 local teleportTask
 
 local function teleportToPart(npcs)
-    local targetPart = workspace.Part
+    local targetPart = workspace:FindFirstChild("Part")
     if not targetPart or not targetPart:IsA("BasePart") then
-        -- If no part present, fire the RemoteEvent with args
+        print("[Teleport] workspace.Part missing or invalid, firing event...")
+
         local args = {
             [1] = "TriggerInteractable",
             [2] = workspace:WaitForChild("Islands", 9e9)
@@ -135,22 +136,21 @@ local function teleportToPart(npcs)
                 :WaitForChild("CheckpointActivity", 9e9)
         }
 
-        local event = game:GetService("ReplicatedStorage")
-            :WaitForChild("Communication", 9e9)
-            :WaitForChild("Events", 9e9)
-            :GetChildren()[36]
+        local eventFolder = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
+        local event = eventFolder:GetChildren()[36]
 
         if event then
+            print("[Teleport] RemoteEvent #36 found, firing...")
             event:FireServer(unpack(args))
-            print("No target part found — fired TriggerInteractable event")
         else
-            warn("Remote event #36 not found!")
+            warn("[Teleport] RemoteEvent #36 NOT found!")
         end
 
         return
     end
 
     -- Normal teleport if part found
+    print("[Teleport] workspace.Part found, teleporting player and NPCs.")
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp and hrp.Parent then
