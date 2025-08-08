@@ -1,4 +1,4 @@
--- Teleport function: teleport player and NPCs to workspace.Part
+--- Teleport function: teleport player and NPCs to workspace.Part
 local function teleportToPart(npcs)
     local targetPart = workspace:FindFirstChild("Part")
     if not targetPart or not targetPart:IsA("BasePart") then
