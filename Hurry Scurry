@@ -1,39 +1,26 @@
 -- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
--- Create window and tabs
-local Window = Library.CreateLib("All Islands Teleport", "Midnight")
-
-local TeleportTab = Window:NewTab("Main")
-local TeleportSection = TeleportTab:NewSection("Teleport Controls")
-
-local TrainTab = Window:NewTab("Train")
-local TrainSection = TrainTab:NewSection("Training Features")
-
--- Player setup
+-- Player references
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Update HRP on respawn
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hrp = Character:WaitForChild("HumanoidRootPart")
+
+-- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
-    character = char
-    hrp = character:WaitForChild("HumanoidRootPart")
+    Character = char
+    hrp = Character:WaitForChild("HumanoidRootPart")
 end)
 
--- Checkpoints path
-local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
+-- Checkpoints Folder path
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes
 
--- Known UUIDs to exclude from teleporting (optional)
-local excludedUUIDs = {
-    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-    ["Horse"] = true,
-    ["Travel Boat"] = true,
-}
-
--- Static known UUIDs to prioritize teleporting
-local knownUUIDs = {
+-- Static list of known UUIDs
+local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
     "{d2227f02-c482-4911-b201-7e842b31c47c}",
@@ -41,20 +28,20 @@ local knownUUIDs = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
--- Check if string is a UUID pattern
+-- UUID pattern checker
 local function isUUID(str)
     return string.match(str, "^%b{}$") ~= nil
 end
 
--- Get all valid NPC models under Training Island folder for teleport
+-- Get all valid NPCs (static + dynamically scanned)
 local function getNPCs()
-    local folder = workspace:Islands()["Training Island"]
+    local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
-    -- Add known static UUIDs first
-    for _, uuid in ipairs(knownUUIDs) do
+    -- Static UUIDs
+    for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
-        if model and model:IsA("Model") and not excludedUUIDs[model.Name] then
+        if model and model:IsA("Model") then
             local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
             if root then
                 model.PrimaryPart = root
@@ -63,9 +50,9 @@ local function getNPCs()
         end
     end
 
-    -- Scan dynamically for other UUID-named models with Humanoids, exclude known and excluded
-    for _, model in ipairs(folder:GetChildren()) do
-        if model:IsA("Model") and isUUID(model.Name) and not excludedUUIDs[model.Name] and not table.find(knownUUIDs, model.Name) then
+    -- Dynamic scan for UUID-named models with Humanoids (excluding static ones)
+    for _, model in ipairs(folder:GetDescendants()) do
+        if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
                 local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
                 if root then
@@ -79,68 +66,66 @@ local function getNPCs()
     return npcList
 end
 
--- Teleport player and NPCs to a checkpoint
+-- Teleport function: teleport player and NPCs, make NPCs jump
 local function teleportToCheckpoint(checkpointName, npcs)
-    local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
+    local route = checkpointsFolder["1"] -- Assuming route "1"
+    if not route then
+        warn("Route '1' not found in checkpoints.")
+        return
+    end
+
+    local checkpoint = route:FindFirstChild(checkpointName)
     if not checkpoint or not checkpoint:IsA("BasePart") then
         warn("Checkpoint '"..checkpointName.."' not found or invalid.")
         return
     end
 
-    -- Teleport player with a slight offset up and sideways
+    -- Teleport player with offset
     if hrp and hrp.Parent then
         hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
     end
 
-    -- Teleport NPCs to slightly opposite offset
+    -- Teleport NPCs and make them jump
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart and npc.PrimaryPart.Parent then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            if humanoid then
+                humanoid.Jump = true
+            end
         end
     end
 end
 
--- Teleport loop toggle state
+-- GUI Setup
+local Tab = Window:NewTab("Training Teleport")
+local Section = Tab:NewSection("Toggle Teleport Loop")
+
 local running = false
 local teleportTask
 
--- Teleport order 1-6 checkpoints
-local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
+local checkpointOrder = {"1","2","3","4","5","6"}
 
-local function startTeleportLoop()
+local function startLoop()
     teleportTask = task.spawn(function()
+        local npcs = getNPCs()
         while running do
-            local npcs = getNPCs()
-            for _, cp in ipairs(checkpointOrder) do
+            for _, checkpointName in ipairs(checkpointOrder) do
                 if not running then break end
-                teleportToCheckpoint(cp, npcs)
-                task.wait(1) -- wait 1 second at each checkpoint
+                teleportToCheckpoint(checkpointName, npcs)
+                task.wait(1) -- wait 1 second between teleports
             end
         end
     end)
 end
 
--- Add toggle to Train section
-TrainSection:NewToggle("Toggle Teleport Checkpoints", "Loops teleporting player + NPCs through checkpoints 1 to 6", function(state)
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
     running = state
     if running then
-        -- Safety check player HRP
-        if not hrp or not hrp.Parent then
-            warn("HumanoidRootPart not ready, waiting for character...")
-            character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            hrp = character:WaitForChild("HumanoidRootPart")
-        end
-        startTeleportLoop()
+        startLoop()
     else
         if teleportTask then
             task.cancel(teleportTask)
-            teleportTask = nil
         end
     end
 end)
-
--- Optional: Add UI toggle keybind
-TrainSection:NewKeybind("Toggle UI", "Toggle UI visibility", Enum.KeyCode.M, function()
-    Library:ToggleUI()
-end)
-------
