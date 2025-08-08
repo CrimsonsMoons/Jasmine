@@ -707,7 +707,7 @@ local function startLoop()
             for _, checkpointName in ipairs(checkpointOrder) do
                 if not running then break end
                 teleportToCheckpoint(checkpointName, npcs)
-                task.wait(1) -- wait 1 second between teleports
+                task.wait(1.4) -- wait 1 second between teleports
             end
         end
         unfreezeJumpLoop(npcs)
