@@ -5,7 +5,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hrp = Character:WaitForChild("HumanoidRootPart")
 
----- Reconnect HRP on respawn
+----- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
     hrp = Character:WaitForChild("HumanoidRootPart")
@@ -124,9 +124,16 @@ local running = false
 local teleportTask
 
 local function teleportToPart(npcs)
-    local targetPart = workspace:FindFirstChild("Part")
-    if not targetPart or not targetPart:IsA("BasePart") then
-        print("[Teleport] workspace.Part missing or invalid, firing event...")
+    -- Gather all "Part" instances in workspace
+    local parts = {}
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj.Name == "Part" then
+            table.insert(parts, obj)
+        end
+    end
+
+    if #parts == 0 then
+        print("[Teleport] No parts named 'Part' found, firing event...")
 
         local args = {
             [1] = "TriggerInteractable",
@@ -149,8 +156,10 @@ local function teleportToPart(npcs)
         return
     end
 
-    -- Normal teleport if part found
-    print("[Teleport] workspace.Part found, teleporting player and NPCs.")
+    -- Teleport to first "Part" found
+    local targetPart = parts[1]
+
+    print("[Teleport] Found part named 'Part', teleporting player and NPCs.")
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp and hrp.Parent then
