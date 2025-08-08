@@ -1,6 +1,6 @@
------- === GUI Library Setup ===
+-------- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
+local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
 -- === Tabs ===
 local TeleportTab = Window:NewTab("Main")
@@ -116,9 +116,7 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("Run All Training Script", "Runs the all training script from GitHub", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
-end)
+TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
 
 local args = {
     [1] = "SelectLayout";
@@ -137,6 +135,7 @@ game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForC
 end)
 
 
+
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
@@ -150,7 +149,7 @@ local function runSequence()
     }
     targetEvent:FireServer(unpack(quitArgs))
 
-    -- Wait a short moment to ensure server processed the first call
+    -- Wait a short moment to ensure server processed the first call    -- Wait a short moment to ensure server processed the first call
     wait(1)
 
     -- Fire "TriggerInteractable"
@@ -329,14 +328,11 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
 end)
 
 
-local crosscountryhEnabled = false
-TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
-    crosscountryhEnabled = state
+TrainSection:NewButton("Cross Country", "Auto Catch Script", function(state)
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
     end
 end)
-
 
 
 -- === Auto Catch Toggles ===
@@ -363,7 +359,7 @@ end)
 
 -- === Sell Toggles ===
 local sellSpecials = false
-AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
+AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
     sellSpecials = toggle
     if toggle then
         task.spawn(function()
@@ -375,12 +371,12 @@ AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 
     end
 end)
 
-local autoSellAll = false
-AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
-    autoSellAll = toggle
+local autoSellAll = falselocal autoSellAll = false
+AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
+    autoSellAll = toggle    autoSellAll = toggle
     if toggle then
         task.spawn(function()
-            while autoSellAll do
+            while autoSellAll do            while autoSellAll do
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2", true))()
                 task.wait(5)
             end
@@ -731,7 +727,7 @@ task.spawn(function()
 end)
 
 -- Remove Lava Button and Loop
-LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
+LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
     task.spawn(function()
         while true do
             local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
@@ -744,7 +740,7 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
                     end
                 end
             end
-            print("All TouchInterests removed.")
+            print("All TouchInterests removed.")            print("All TouchInterests removed.")
             task.wait(60)
         end
     end)
