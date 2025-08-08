@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Create GUI immediately
+-- GUI setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -25,12 +25,10 @@ button.MouseButton1Click:Connect(function()
     button.Text = running and "Stop Teleport" or "Start Teleport"
 
     if running then
-        -- Run teleport logic asynchronously
         teleportTask = task.spawn(function()
             local success, err = pcall(function()
-                print("[DEBUG] Starting teleport logic")
+                print("[DEBUG] Starting teleport loop")
 
-                -- Get Training Island and checkpoints safely
                 local trainingIsland = workspace:Islands():WaitForChild("Training Island", 10)
                 local checkpointsFolder = trainingIsland:WaitForChild("Outdoor Arena", 10)
                     :WaitForChild("DynamicArena", 10)
@@ -39,9 +37,8 @@ button.MouseButton1Click:Connect(function()
                     :WaitForChild("Routes", 10)
                     :WaitForChild("1", 10)
 
-                print("[DEBUG] Obtained checkpoints folder")
+                print("[DEBUG] Checkpoints folder found:", checkpointsFolder:GetFullName())
 
-                -- Known UUIDs
                 local staticUUIDs = {
                     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
                     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -56,7 +53,6 @@ button.MouseButton1Click:Connect(function()
 
                 local function getNPCs()
                     local npcList = {}
-                    -- Add static UUIDs
                     for _, uuid in ipairs(staticUUIDs) do
                         local model = trainingIsland:FindFirstChild(uuid)
                         if model and model:IsA("Model") then
@@ -64,11 +60,14 @@ button.MouseButton1Click:Connect(function()
                             if root then
                                 model.PrimaryPart = root
                                 table.insert(npcList, model)
+                            else
+                                warn("[WARN] Static UUID "..uuid.." missing root part")
                             end
+                        else
+                            warn("[WARN] Static UUID "..uuid.." model missing")
                         end
                     end
 
-                    -- Dynamic scan for UUID-named models with Humanoid excluding statics
                     for _, model in ipairs(trainingIsland:GetDescendants()) do
                         if model:IsA("Model") and isUUID(model.Name) and not table.find(staticUUIDs, model.Name) then
                             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -76,16 +75,20 @@ button.MouseButton1Click:Connect(function()
                                 if root then
                                     model.PrimaryPart = root
                                     table.insert(npcList, model)
+                                else
+                                    warn("[WARN] Dynamic UUID "..model.Name.." missing root part")
                                 end
                             end
                         end
                     end
-
                     return npcList
                 end
 
                 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                local HRP = Character:WaitForChild("HumanoidRootPart")
+                local HRP = Character:FindFirstChild("HumanoidRootPart")
+                if not HRP then
+                    error("HumanoidRootPart not found on player character")
+                end
 
                 local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
 
@@ -97,34 +100,33 @@ button.MouseButton1Click:Connect(function()
                         if not running then break end
                         local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
                         if checkpoint and checkpoint:IsA("BasePart") then
-                            local insideCFrame = checkpoint.CFrame
-                                * CFrame.new(0, -checkpoint.Size.Y/2 + 1, 0)
-                                * CFrame.new(0, 0, 1.5)
+                            print("[DEBUG] Teleporting to checkpoint: "..checkpointName)
 
-                            HRP.CFrame = insideCFrame * CFrame.new(0, 2, 0)
+                            -- Teleport player directly to checkpoint CFrame plus offset 0,5,0 to avoid stuck inside floor
+                            local targetCFrame = checkpoint.CFrame + Vector3.new(0, 5, 0)
+                            HRP.CFrame = targetCFrame
 
                             for _, npc in ipairs(npcs) do
                                 if npc.PrimaryPart then
-                                    npc:SetPrimaryPartCFrame(insideCFrame * CFrame.new(-2, 3, 0))
+                                    npc:SetPrimaryPartCFrame(targetCFrame * CFrame.new(-3, 0, 0))
+                                else
+                                    warn("[WARN] NPC "..npc.Name.." missing PrimaryPart")
                                 end
                             end
 
-                            print("[DEBUG] Teleported to checkpoint "..checkpointName)
                         else
-                            warn("[WARN] Missing checkpoint part: "..tostring(checkpointName))
+                            warn("[WARN] Checkpoint '"..tostring(checkpointName).."' missing or not a BasePart")
                         end
-
                         task.wait(2)
                     end
                 end
             end)
 
             if not success then
-                warn("[ERROR] Teleport logic failed:", err)
+                warn("[ERROR] Teleport loop error: "..tostring(err))
             end
         end)
     else
         print("[DEBUG] Stopping teleport loop")
     end
 end)
----
