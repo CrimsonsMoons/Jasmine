@@ -1,29 +1,47 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+
+-- Ensure character and PlayerGui exist
+LocalPlayer.CharacterAdded:Wait()
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. SelectLayout
 local args = {
-    [1] = "SelectLayout";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
-    [3] = 3;
+    "SelectLayout",
+    workspace:WaitForChild("Islands", 9e9)
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9),
+    3
 }
 
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[50]:FireServer(unpack(args))
+game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[50]:FireServer(unpack(args))
 
 -- 2. TriggerInteractable
 local args2 = {
-    [1] = "TriggerInteractable";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+    "TriggerInteractable",
+    workspace:WaitForChild("Islands", 9e9)
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9)
+        :WaitForChild("_LAYOUT", 9e9)
+        :WaitForChild("CheckpointActivity", 9e9)
 }
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
+game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[36]:FireServer(unpack(args2))
 
--- Continue normal flow
+-- Character references
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena
-    ._LAYOUT.CheckpointActivity.Routes.Checkpoints
+-- FIX: Keep chain on one line
+local checkpointsFolder =
+    workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes.Checkpoints
 
 -- Static list of known UUIDs
 local uuids = {
@@ -36,7 +54,7 @@ local uuids = {
 
 -- UUID pattern checker
 local function isUUID(str)
-	return string.match(str, "^%b{}$") ~= nil
+    return string.match(str, "^%b{}$") ~= nil
 end
 
 -- Get all valid NPCs (static list + scanned humanoid UUIDs)
@@ -56,7 +74,7 @@ local function getNPCs()
         end
     end
 
-    -- Dynamic scan for UUID-named models with Humanoids
+    -- Dynamic scan
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -107,23 +125,17 @@ local function teleportToCheckpoint(checkpointName, npcs)
     end
 end
 
+-- 6 checkpoints
 local order = {"1", "2", "3", "4", "5", "6"}
 
 local function startLoop()
     teleportTask = task.spawn(function()
-        local npcs = getNPCs()
         while running do
+            local npcs = getNPCs()
             for i, checkpoint in ipairs(order) do
                 if not running then break end
                 teleportToCheckpoint(checkpoint, npcs)
-
-                if i == 1 then
-                    task.wait(1)
-                elseif i == 3 or i == 4 then
-                    task.wait(1)
-                else
-                    task.wait(1)
-                end
+                task.wait(1) -- keep your original wait pattern if needed
             end
         end
     end)
@@ -132,9 +144,7 @@ end
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
-
     if running then
         startLoop()
     end
 end)
----
