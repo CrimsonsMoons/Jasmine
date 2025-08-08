@@ -1,4 +1,4 @@
---- Load Kavo UI Library
+-- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
@@ -66,7 +66,47 @@ local function getNPCs()
     return npcList
 end
 
--- Teleport function: teleport player and NPCs, make NPCs jump once immediately
+-- Jump loop control (player + NPCs) - continuous jump state
+local jumpRunning = false
+local jumpTask
+
+local function startJumpLoop(npcs)
+    if jumpRunning then return end
+    jumpRunning = true
+    jumpTask = task.spawn(function()
+        while jumpRunning do
+            -- Player jump (hold jump true)
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    humanoid.Jump = true
+                    humanoid.PlatformStand = false
+                end
+            end
+
+            -- NPCs jump (hold jump true)
+            for _, npc in ipairs(npcs) do
+                if npc and npc.Parent then
+                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                    if humanoid and humanoid.Health > 0 then
+                        humanoid.Jump = true
+                        humanoid.PlatformStand = false
+                    end
+                end
+            end
+
+            task.wait(0.05)
+        end
+    end)
+end
+
+local function stopJumpLoop()
+    jumpRunning = false
+    jumpTask = nil
+end
+
+-- Teleport function: teleport player and NPCs, make NPCs jump once after teleport
 local function teleportToCheckpoint(checkpointName, npcs)
     local route = checkpointsFolder["1"] -- Assuming route "1"
     if not route then
@@ -85,50 +125,16 @@ local function teleportToCheckpoint(checkpointName, npcs)
         hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
     end
 
-    -- Teleport NPCs
+    -- Teleport NPCs and make them jump once (initial jump on teleport)
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart and npc.PrimaryPart.Parent then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            if humanoid then
+                humanoid.Jump = true
+            end
         end
     end
-end
-
--- Jump loop control (player + NPCs)
-local jumpRunning = false
-local jumpTask
-
-local function startJumpLoop(npcs)
-    if jumpRunning then return end
-    jumpRunning = true
-    jumpTask = task.spawn(function()
-        while jumpRunning do
-            -- Player jump
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    humanoid.Jump = true
-                end
-            end
-
-            -- NPCs jump
-            for _, npc in ipairs(npcs) do
-                if npc and npc.Parent then
-                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
-                        humanoid.Jump = true
-                    end
-                end
-            end
-
-            task.wait(0.15) -- Jump frequency
-        end
-    end)
-end
-
-local function stopJumpLoop()
-    jumpRunning = false
-    jumpTask = nil
 end
 
 -- GUI Setup
@@ -143,8 +149,7 @@ local checkpointOrder = {"1","2","3","4","5","6"}
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        startJumpLoop(npcs) -- Start jump loop for player + NPCs
-
+        startJumpLoop(npcs) -- start continuous jump loop
         while running do
             for _, checkpointName in ipairs(checkpointOrder) do
                 if not running then break end
@@ -152,12 +157,11 @@ local function startLoop()
                 task.wait(1) -- wait 1 second between teleports
             end
         end
-
-        stopJumpLoop() -- Stop jumps when loop ends
+        stopJumpLoop()
     end)
 end
 
-Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints with continuous jumps", function(state)
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints, keeps jumping", function(state)
     running = state
     if running then
         startLoop()
