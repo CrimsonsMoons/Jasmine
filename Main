@@ -116,10 +116,6 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("All Training", "Creates a red box around your character", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
-end)
-
 local args = {
     [1] = "SelectLayout";
     [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
@@ -335,6 +331,11 @@ TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
     end
+end)
+
+
+TrainSection:NewButton("All Training", "hi", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
 end)
 
 
