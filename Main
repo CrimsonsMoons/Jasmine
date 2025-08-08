@@ -342,7 +342,7 @@ local function toggleTeleportLoop(state)
 end
 
 -- Replace 'Section' with your actual UI section variable
-Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
+TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
     toggleTeleportLoop(state)
 end)
 
