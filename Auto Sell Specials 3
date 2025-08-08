@@ -1,0 +1,55 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- Known working sell remote index (adjust if game updates)
+local sellRemote = ReplicatedStorage:WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9):GetChildren()[17]
+
+-- Reference to the inventory list folder
+local listFolder = LocalPlayer:WaitForChild("PlayerGui")
+    :WaitForChild("Menus")
+    :WaitForChild("Backpack")
+    :WaitForChild("Main")
+    :WaitForChild("Inventory")
+    :WaitForChild("Content")
+    :WaitForChild("List"):GetChildren()[9]
+    :WaitForChild("List")
+
+-- UUID name checker
+local function isUUID(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+end
+
+-- Sell ONLY specials
+local function sellAllSpecials()
+    local sellTable = {}
+
+    for _, item in ipairs(listFolder:GetChildren()) do
+        if isUUID(item.Name)
+            and not item:FindFirstChild("Locked")
+            and item:FindFirstChild("SpecialIndicator") then
+            sellTable[item.Name] = 1
+        end
+    end
+
+    if next(sellTable) then
+        local args = {
+            [1] = "SellItems",
+            [2] = sellTable
+        }
+        sellRemote:FireServer(unpack(args))
+        print("✅ Sold specials:", sellTable)
+    else
+        warn("⚠️ No specials found to sell.")
+    end
+end
+
+-- Run auto-sell loop for 10 seconds max
+local startTime = tick()
+while tick() - startTime < 10 do
+    pcall(sellAllSpecials)
+    task.wait(5)
+end
+
+print("🛑 Auto-sell specials loop ended after 10 seconds.")
