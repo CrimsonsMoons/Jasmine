@@ -1,4 +1,4 @@
---- === GUI Library Setup ===
+---------- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -116,11 +116,8 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("Run All Training Script", "Runs the all training script", function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
-end)
-
 TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
+
 local args = {
     [1] = "SelectLayout";
     [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
@@ -337,7 +334,6 @@ TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
     end
 end)
-
 
 
 -- === Auto Catch Toggles ===
