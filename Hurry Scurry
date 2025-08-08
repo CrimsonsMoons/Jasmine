@@ -2,12 +2,34 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
 local playerGui = player:WaitForChild("PlayerGui")
-player.CharacterAdded:Wait()
-player.Character:WaitForChild("HumanoidRootPart")
+print("PlayerGui found:", playerGui) -- debug print
+
+-- Remove any existing GUI with the same name (cleanup)
+local existingGui = playerGui:FindFirstChild("TeleportToggleGui")
+if existingGui then
+    existingGui:Destroy()
+end
+
+-- Create ScreenGui and toggle button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TeleportToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 24
+toggleButton.Text = "Start Teleport Loop"
+toggleButton.Parent = screenGui
+
+-- The rest of your teleport script below --
 
 local trainingIsland = workspace:WaitForChild("Islands"):WaitForChild("Training Island")
 
--- Function to detect if a string looks like a UUID (4 hyphens)
 local function isUUID(name)
     local count = 0
     for c in name:gmatch(".") do
@@ -16,11 +38,9 @@ local function isUUID(name)
     return count == 4
 end
 
--- Collect all UUID models under Training Island
 local npcModels = {}
 for _, child in ipairs(trainingIsland:GetChildren()) do
     if child:IsA("Model") and isUUID(child.Name) then
-        -- Assign PrimaryPart reliably
         local function assignPrimaryPart(model)
             if model.PrimaryPart then return end
             local commonParts = {"HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso"}
@@ -69,6 +89,8 @@ local function teleportModel(model, targetCFrame)
     end
 end
 
+local playerCharacter = player.Character or player.CharacterAdded:Wait()
+
 local function teleportToCheckpoint(part)
     if part and part:IsA("BasePart") then
         local insideCFrame = part.CFrame
@@ -78,8 +100,8 @@ local function teleportToCheckpoint(part)
         for _, model in ipairs(npcModels) do
             teleportModel(model, insideCFrame)
         end
-        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = player.Character.HumanoidRootPart
+        if playerCharacter and playerCharacter:FindFirstChild("HumanoidRootPart") then
+            local hrp = playerCharacter.HumanoidRootPart
             hrp.CFrame = insideCFrame * CFrame.new(0, 2, 0)  -- 2 studs above inside spot
         end
         print("Teleported inside checkpoint:", part.Name)
@@ -87,21 +109,6 @@ local function teleportToCheckpoint(part)
         warn("Checkpoint part not found or invalid:", part and part.Name or "nil")
     end
 end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui
-
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 200, 0, 50)
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 24
-toggleButton.Text = "Start Teleport Loop"
-toggleButton.Parent = screenGui
 
 local looping = false
 local teleportCoroutine
@@ -144,4 +151,3 @@ toggleButton.MouseButton1Click:Connect(function()
         startLoop()
     end
 end)
----
