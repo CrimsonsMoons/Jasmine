@@ -933,4 +933,8 @@ TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through
 end)
 
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/anti%20afk", true))()
+
+
+
 
