@@ -16,7 +16,7 @@ local function fireInitialRemotes()
     local args1 = {
         "SelectLayout",
         dynamicArena,
-        1,
+        3,
     }
     eventsFolder:GetChildren()[45]:FireServer(unpack(args1))
 
@@ -142,4 +142,3 @@ button.MouseButton1Click:Connect(function()
         running = false
     end
 end)
-------
