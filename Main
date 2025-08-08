@@ -1,6 +1,7 @@
---------- === GUI Library Setup ===
+------------ === GUI Library Setup ===
+------ === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
+local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
 -- === Tabs ===
 local TeleportTab = Window:NewTab("Main")
@@ -134,6 +135,16 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
 end)
 
+TrainSection:NewButton("Cross Country", "Creates a red box around your character", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
+    end
+end)
+
+TrainSection:NewButton("All Training", "Creates a red box around your character", function()
+       loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    end
+end)
+
 
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
@@ -149,7 +160,7 @@ local function runSequence()
     }
     targetEvent:FireServer(unpack(quitArgs))
 
-    -- Wait a short moment to ensure server processed the first call    -- Wait a short moment to ensure server processed the first call
+    -- Wait a short moment to ensure server processed the first call
     wait(1)
 
     -- Fire "TriggerInteractable"
@@ -359,7 +370,7 @@ end)
 
 -- === Sell Toggles ===
 local sellSpecials = false
-AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
+AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 5s", function(toggle)
     sellSpecials = toggle
     if toggle then
         task.spawn(function()
@@ -371,12 +382,12 @@ AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 
     end
 end)
 
-local autoSellAll = falselocal autoSellAll = false
-AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
-    autoSellAll = toggle    autoSellAll = toggle
+local autoSellAll = false
+AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
+    autoSellAll = toggle
     if toggle then
         task.spawn(function()
-            while autoSellAll do            while autoSellAll do
+            while autoSellAll do
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2", true))()
                 task.wait(5)
             end
@@ -727,7 +738,7 @@ task.spawn(function()
 end)
 
 -- Remove Lava Button and Loop
-LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
+LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
     task.spawn(function()
         while true do
             local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
@@ -740,7 +751,7 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
                     end
                 end
             end
-            print("All TouchInterests removed.")            print("All TouchInterests removed.")
+            print("All TouchInterests removed.")
             task.wait(60)
         end
     end)
