@@ -2,19 +2,14 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
---- Character / HRP setup
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
+-- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
-    HRP = char:WaitForChild("HumanoidRootPart")
+    HRP = Character:WaitForChild("HumanoidRootPart")
 end)
-
--- UUID pattern checker
-local function isUUID(str)
-	return string.match(str, "^%b{}$") ~= nil
-end
 
 -- Static list of known UUIDs
 local uuids = {
@@ -25,7 +20,12 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
--- Get all valid NPCs (static + dynamically scanned)
+-- UUID pattern checker
+local function isUUID(str)
+    return string.match(str, "^%b{}$") ~= nil
+end
+
+-- Get all valid NPCs
 local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
@@ -42,7 +42,7 @@ local function getNPCs()
         end
     end
 
-    -- Dynamic scan for UUID-named models with Humanoids
+    -- Dynamic scan
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -56,6 +56,92 @@ local function getNPCs()
     end
 
     return npcList
+end
+
+-- Freeze & jump loop
+local jumpRunning = false
+local jumpTask
+
+local function freezeJumpLoop(npcs)
+    if jumpRunning then return end
+    jumpRunning = true
+    jumpTask = task.spawn(function()
+        while jumpRunning do
+            -- Player
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if humanoid and hrp and humanoid.Health > 0 then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- force jump state
+                    humanoid.PlatformStand = false -- allow state change
+                    hrp.Anchored = true -- freeze in mid-air
+                end
+            end
+
+            -- NPCs
+            for _, npc in ipairs(npcs) do
+                if npc and npc.Parent then
+                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                    local root = npc.PrimaryPart
+                    if humanoid and root and humanoid.Health > 0 then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        humanoid.PlatformStand = false
+                        root.Anchored = true
+                    end
+                end
+            end
+
+            task.wait(0.1)
+        end
+    end)
+end
+
+local function unfreezeJumpLoop(npcs)
+    jumpRunning = false
+    if jumpTask then
+        task.cancel(jumpTask)
+        jumpTask = nil
+    end
+
+    -- Player
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if humanoid and hrp then
+            humanoid.PlatformStand = false
+            hrp.Anchored = false
+        end
+    end
+
+    -- NPCs
+    for _, npc in ipairs(npcs) do
+        if npc and npc.Parent then
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            local root = npc.PrimaryPart
+            if humanoid and root then
+                humanoid.PlatformStand = false
+                root.Anchored = false
+            end
+        end
+    end
+end
+
+-- Teleport to Part
+local function teleportToPart(npcs)
+    local targetPart = workspace:FindFirstChild("Part")
+    if not targetPart or not targetPart:IsA("BasePart") then return end
+
+    if HRP and HRP.Parent then
+        HRP.CFrame = targetPart.CFrame + Vector3.new(2, 3, 0)
+    end
+
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart and npc.PrimaryPart.Parent then
+            npc:SetPrimaryPartCFrame(targetPart.CFrame + Vector3.new(-2, 3, 0))
+        end
+    end
 end
 
 -- GUI
@@ -74,41 +160,22 @@ button.TextSize = 24
 button.Text = "Start Teleport"
 button.Parent = screenGui
 
--- Teleport logic (to workspace.Part)
+-- Main loop
 local running = false
 local teleportTask
-
-local function teleportToPart(npcs)
-    local targetPart = workspace:FindFirstChild("Part")
-    if not targetPart or not targetPart:IsA("BasePart") then
-        warn("workspace.Part not found or is not a BasePart.")
-        return
-    end
-
-    -- Teleport player
-    if HRP and HRP.Parent then
-        HRP.CFrame = targetPart.CFrame + Vector3.new(2, 3, 0)
-    end
-
-    -- Teleport NPCs
-    for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart and npc.PrimaryPart.Parent then
-            npc:SetPrimaryPartCFrame(targetPart.CFrame + Vector3.new(-2, 3, 0))
-        end
-    end
-end
 
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
+        freezeJumpLoop(npcs)
         while running do
             teleportToPart(npcs)
             task.wait(1.4)
         end
+        unfreezeJumpLoop(npcs)
     end)
 end
 
--- Button click toggle
 button.MouseButton1Click:Connect(function()
     running = not running
     button.Text = running and "Stop Teleport" or "Start Teleport"
@@ -120,5 +187,6 @@ button.MouseButton1Click:Connect(function()
             task.cancel(teleportTask)
             teleportTask = nil
         end
+        unfreezeJumpLoop(getNPCs())
     end
 end)
