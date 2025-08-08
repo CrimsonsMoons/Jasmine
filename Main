@@ -138,6 +138,14 @@ end)
 
 TrainSection:NewButton("Hurry Scurry", "Runs Single Route Script", function()
 while true do
+
+
+local args = {
+    [1] = "Quit";
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
+
 local args = {
     [1] = "SelectLayout";
     [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
@@ -152,7 +160,7 @@ local args = {
 }
 
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
-wait(360)
+wait(5)
 end
 end)
 
