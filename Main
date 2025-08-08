@@ -689,10 +689,6 @@ local function teleportToCheckpoint(checkpointName, npcs)
     end
 end
 
--- GUI Setup
-local Tab = Window:NewTab("Training Teleport")
-local Section = Tab:NewSection("Toggle Teleport Loop")
-
 local running = false
 local teleportTask
 
