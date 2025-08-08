@@ -110,3 +110,4 @@ end)
 MainSection:NewKeybind("Toggle UI", "Toggle Kavo UI visibility", Enum.KeyCode.M, function()
     Library:ToggleUI()
 end)
+---------------
