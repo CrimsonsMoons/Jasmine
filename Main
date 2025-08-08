@@ -171,8 +171,161 @@ while true do
     runSequence()
     wait(360) -- wait 6 minutes
 end
-
 end)
+
+local teleportTask
+local running = false
+
+TrainSection:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints", function(state)
+    running = state
+
+    -- Helper functions inside toggle (or outside if you prefer)
+    local function freezeJumpLoop(npcs)
+        task.spawn(function()
+            while running do
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    if humanoid and hrp and humanoid.Health > 0 then
+                        humanoid.Jump = true
+                        humanoid.PlatformStand = true
+                        hrp.Anchored = true
+                    end
+                end
+
+                for _, npc in ipairs(npcs) do
+                    if npc and npc.Parent then
+                        local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                        local root = npc.PrimaryPart
+                        if humanoid and root and humanoid.Health > 0 then
+                            humanoid.Jump = true
+                            humanoid.PlatformStand = true
+                            root.Anchored = true
+                        end
+                    end
+                end
+
+                task.wait(0.1)
+            end
+        end)
+    end
+
+    local function unfreezeJumpLoop(npcs)
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if humanoid and hrp then
+                humanoid.PlatformStand = false
+                hrp.Anchored = false
+            end
+        end
+
+        for _, npc in ipairs(npcs) do
+            if npc and npc.Parent then
+                local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                local root = npc.PrimaryPart
+                if humanoid and root then
+                    humanoid.PlatformStand = false
+                    root.Anchored = false
+                end
+            end
+        end
+    end
+
+    local function teleportToCheckpoint(checkpointName, npcs)
+        local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes
+        local route = checkpointsFolder["1"]
+        if not route then
+            warn("Route '1' not found in checkpoints.")
+            return
+        end
+
+        local checkpoint = route:FindFirstChild(checkpointName)
+        if not checkpoint or not checkpoint:IsA("BasePart") then
+            warn("Checkpoint '"..checkpointName.."' not found or invalid.")
+            return
+        end
+
+        local char = game.Players.LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp.Parent then
+            hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
+        end
+
+        for _, npc in ipairs(npcs) do
+            if npc.PrimaryPart and npc.PrimaryPart.Parent then
+                npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
+            end
+        end
+    end
+
+    local function getNPCs()
+        local folder = workspace.Islands["Training Island"]
+        local npcList = {}
+        local uuids = {
+            "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+            "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+            "{d2227f02-c482-4911-b201-7e842b31c47c}",
+            "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+            "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
+        }
+        local function isUUID(str)
+            return string.match(str, "^%b{}$") ~= nil
+        end
+
+        for _, uuid in ipairs(uuids) do
+            local model = folder:FindFirstChild(uuid)
+            if model and model:IsA("Model") then
+                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    model.PrimaryPart = root
+                    table.insert(npcList, model)
+                end
+            end
+        end
+
+        for _, model in ipairs(folder:GetDescendants()) do
+            if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
+                if model:FindFirstChildWhichIsA("Humanoid") then
+                    local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                    if root then
+                        model.PrimaryPart = root
+                        table.insert(npcList, model)
+                    end
+                end
+            end
+        end
+
+        return npcList
+    end
+
+    local checkpointOrder = {"1", "2", "3", "4", "5", "6"}
+
+    if state then
+        teleportTask = task.spawn(function()
+            local npcs = getNPCs()
+            freezeJumpLoop(npcs)
+            while running do
+                for _, checkpointName in ipairs(checkpointOrder) do
+                    if not running then break end
+                    teleportToCheckpoint(checkpointName, npcs)
+                    task.wait(1.4)
+                end
+            end
+            unfreezeJumpLoop(npcs)
+        end)
+    else
+        running = false
+        if teleportTask then
+            task.cancel(teleportTask)
+            teleportTask = nil
+        end
+        unfreezeJumpLoop(getNPCs())
+    end
+end)
+
 
 -- === Auto Catch Toggles ===
 local autoCatchEnabled = false
