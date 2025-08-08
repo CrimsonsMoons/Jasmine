@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")
+local Players = game:GetService("Players") 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -11,10 +11,8 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     hrp = Character:WaitForChild("HumanoidRootPart")
 end)
 
--- Checkpoints Folder path
 local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"].DynamicArena._LAYOUT.CheckpointActivity.Routes
 
--- Static list of known UUIDs
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -23,17 +21,14 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
--- UUID pattern checker
 local function isUUID(str)
     return string.match(str, "^%b{}$") ~= nil
 end
 
--- Get all valid NPCs (static + dynamically scanned)
 local function getNPCs()
     local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
-    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
@@ -45,7 +40,6 @@ local function getNPCs()
         end
     end
 
-    -- Dynamic scan for UUID-named models with Humanoids (excluding static ones)
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
@@ -61,7 +55,6 @@ local function getNPCs()
     return npcList
 end
 
--- Jump freeze loop (player + NPCs)
 local jumpRunning = false
 local jumpTask
 
@@ -78,7 +71,7 @@ local function freezeJumpLoop(npcs)
                 if humanoid and hrp and humanoid.Health > 0 then
                     humanoid.Jump = true
                     humanoid.PlatformStand = true
-                    hrp.Anchored = true -- anchor to freeze position
+                    hrp.Anchored = true
                 end
             end
 
@@ -90,7 +83,7 @@ local function freezeJumpLoop(npcs)
                     if humanoid and root and humanoid.Health > 0 then
                         humanoid.Jump = true
                         humanoid.PlatformStand = true
-                        root.Anchored = true -- anchor to freeze position
+                        root.Anchored = true
                     end
                 end
             end
@@ -107,7 +100,6 @@ local function unfreezeJumpLoop(npcs)
         jumpTask = nil
     end
 
-    -- Unanchor and disable PlatformStand for player
     local char = LocalPlayer.Character
     if char then
         local humanoid = char:FindFirstChildWhichIsA("Humanoid")
@@ -118,7 +110,6 @@ local function unfreezeJumpLoop(npcs)
         end
     end
 
-    -- Unanchor and disable PlatformStand for NPCs
     for _, npc in ipairs(npcs) do
         if npc and npc.Parent then
             local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
@@ -131,56 +122,61 @@ local function unfreezeJumpLoop(npcs)
     end
 end
 
--- Teleport function: teleport player and NPCs
-local function teleportToCheckpoint(checkpointName, npcs)
-    local route = checkpointsFolder["1"] -- Assuming route "1"
-    if not route then
-        warn("Route '1' not found in checkpoints.")
-        return
-    end
-
-    local checkpoint = route:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then
-        warn("Checkpoint '"..checkpointName.."' not found or invalid.")
-        return
-    end
-
-    -- Teleport player with offset
-    if hrp and hrp.Parent then
-        hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
-    end
-
-    -- Teleport NPCs
-    for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart and npc.PrimaryPart.Parent then
-            npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-        end
-    end
-end
-
 local running = false
 local teleportTask
 
-local checkpointOrder = {"1","2","3","4","5","6"}
+local function teleportToPart(npcs)
+    local targetPart = workspace:FindFirstChild("Part")
+    if not targetPart or not targetPart:IsA("BasePart") then
+        warn("Target part not found or invalid!")
+        return
+    end
+
+    if hrp and hrp.Parent then
+        hrp.CFrame = targetPart.CFrame + Vector3.new(2, 3, 0)
+    end
+
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart and npc.PrimaryPart.Parent then
+            npc:SetPrimaryPartCFrame(targetPart.CFrame + Vector3.new(-2, 3, 0))
+        end
+    end
+end
 
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        freezeJumpLoop(npcs) -- start freeze jump
+        freezeJumpLoop(npcs)
         while running do
-            for _, checkpointName in ipairs(checkpointOrder) do
-                if not running then break end
-                teleportToCheckpoint(checkpointName, npcs)
-                task.wait(1.4) -- wait 1 second between teleports
-            end
+            teleportToPart(npcs)
+            task.wait(1.4)
         end
         unfreezeJumpLoop(npcs)
     end)
 end
-    running = state
+
+-- GUI Setup
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "TeleportToggleGui"
+screenGui.ResetOnSpawn = false
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 160, 0, 50)
+button.Position = UDim2.new(0, 20, 0, 20)
+button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 24
+button.Text = "Start Teleport"
+button.Parent = screenGui
+
+button.MouseButton1Click:Connect(function()
+    running = not running
     if running then
+        button.Text = "Stop Teleport"
         startLoop()
     else
+        button.Text = "Start Teleport"
         if teleportTask then
             task.cancel(teleportTask)
             teleportTask = nil
