@@ -136,42 +136,44 @@ end)
 
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
-local Events = Communication:WaitForChild("Events", 9e9)
-local targetEvent = Events:GetChildren()[36]
+    task.spawn(function()
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
+        local Events = Communication:WaitForChild("Events", 9e9)
+        local targetEvent = Events:GetChildren()[36]
 
-local function runSequence()
-    -- Fire "Quit"
-    local quitArgs = {
-        [1] = "Quit";
-    }
-    targetEvent:FireServer(unpack(quitArgs))
+        local function runSequence()
+            -- Fire "Quit"
+            local quitArgs = {
+                [1] = "Quit";
+            }
+            targetEvent:FireServer(unpack(quitArgs))
 
-    -- Wait a short moment to ensure server processed the first call
-    wait(1)
+            wait(1)
 
-    -- Fire "TriggerInteractable"
-    local checkpoint = workspace:WaitForChild("Islands", 9e9)
-        :WaitForChild("Training Island", 9e9)
-        :WaitForChild("Outdoor Arena", 9e9)
-        :WaitForChild("DynamicArena", 9e9)
-        :WaitForChild("_LAYOUT", 9e9)
-        :WaitForChild("CheckpointActivity", 9e9)
+            -- Fire "TriggerInteractable"
+            local checkpoint = workspace:WaitForChild("Islands", 9e9)
+                :WaitForChild("Training Island", 9e9)
+                :WaitForChild("Outdoor Arena", 9e9)
+                :WaitForChild("DynamicArena", 9e9)
+                :WaitForChild("_LAYOUT", 9e9)
+                :WaitForChild("CheckpointActivity", 9e9)
 
-    local interactArgs = {
-        [1] = "TriggerInteractable";
-        [2] = checkpoint;
-    }
+            local interactArgs = {
+                [1] = "TriggerInteractable";
+                [2] = checkpoint;
+            }
 
-    targetEvent:FireServer(unpack(interactArgs))
-end
+            targetEvent:FireServer(unpack(interactArgs))
+        end
 
-while true do
-    runSequence()
-    wait(60) -- wait 6 minutes
-end
+        while true do
+            runSequence()
+            wait(60)
+        end
+    end)
 end)
+
 
 local teleportTask
 local running = false
