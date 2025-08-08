@@ -116,6 +116,25 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
+TrainSection:NewButton("Single", "Creates a red box around your character", function()
+
+local args = {
+    [1] = "SelectLayout";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+    [3] = 3;
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args))
+
+local args = {
+    [1] = "TriggerInteractable";
+    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+}
+
+game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
+end)
+
+
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
