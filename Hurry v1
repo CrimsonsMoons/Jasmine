@@ -2,29 +2,26 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-print("Script started, PlayerGui found.")
+-- Load Kavo UI from your provided URL
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "TeleportToggleGui"
-screenGui.Parent = PlayerGui
-screenGui.Enabled = true
-print("ScreenGui created.")
+-- Create the window
+local Window = Library.CreateLib("Training Island Teleport", "Ocean")
 
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 50)
-button.Position = UDim2.new(0, 20, 0, 20)
-button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 24
-button.Text = "Start Teleport"
-button.Parent = screenGui
-print("Button created.")
+-- Create the main tab
+local MainTab = Window:NewTab("Main")
+
+-- Create a section in the main tab
+local MainSection = MainTab:NewSection("Teleport Controls")
+
+-- Variables
+local running = false
+local teleportTask
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
-local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
+local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"]
     .DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
 
 local uuids = {
@@ -40,7 +37,7 @@ local function isUUID(str)
 end
 
 local function getNPCs()
-    local folder = workspace.Islands["Training Island"]
+    local folder = workspace:Islands()["Training Island"]
     local npcList = {}
 
     for _, uuid in ipairs(uuids) do
@@ -66,31 +63,25 @@ local function getNPCs()
         end
     end
 
-    print("Found NPCs:", #npcList)
     return npcList
 end
 
-local running = false
-local teleportTask
+local order = {"1", "2", "3", "4", "5", "6"}
 
 local function teleportToCheckpoint(checkpointName, npcs)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
-    if not checkpoint or not checkpoint:IsA("BasePart") then 
-        print("Checkpoint not found:", checkpointName)
-        return 
-    end
+    if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
-    print("Teleporting to checkpoint:", checkpointName)
+    -- Teleport player with offset
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
+    -- Teleport all valid UUID NPCs
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
         end
     end
 end
-
-local order = {"1", "2", "3", "4", "5", "6"}
 
 local function startLoop()
     teleportTask = task.spawn(function()
@@ -102,19 +93,13 @@ local function startLoop()
                 task.wait(1)
             end
         end
-        print("Teleport loop stopped.")
     end)
 end
 
-button.MouseButton1Click:Connect(function()
-    running = not running
-    button.Text = running and "Stop Teleport" or "Start Teleport"
-    print("Running:", running)
-
+-- Add toggle to Kavo UI
+MainSection:NewToggle("Toggle Teleport Loop", "Start/Stop teleport loop through checkpoints", function(state)
+    running = state
     if running then
         startLoop()
-    else
-        running = false
     end
 end)
----
