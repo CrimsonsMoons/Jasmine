@@ -2,16 +2,16 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Load Kavo UI from your provided URL
+-- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
--- Create the window
-local Window = Library.CreateLib("Training Island Teleport", "Ocean")
+-- Create UI Window with "Midnight" theme
+local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
--- Create the main tab
+-- Create Main Tab
 local MainTab = Window:NewTab("Main")
 
--- Create a section in the main tab
+-- Create Section in Main Tab
 local MainSection = MainTab:NewSection("Teleport Controls")
 
 -- Variables
@@ -21,7 +21,7 @@ local teleportTask
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
-local checkpointsFolder = workspace:Islands()["Training Island"]["Outdoor Arena"]
+local checkpointsFolder = workspace.Islands["Training Island"]["Outdoor Arena"]
     .DynamicArena._LAYOUT.CheckpointActivity.Routes["1"]
 
 local uuids = {
@@ -37,7 +37,7 @@ local function isUUID(str)
 end
 
 local function getNPCs()
-    local folder = workspace:Islands()["Training Island"]
+    local folder = workspace.Islands["Training Island"]
     local npcList = {}
 
     for _, uuid in ipairs(uuids) do
@@ -72,10 +72,10 @@ local function teleportToCheckpoint(checkpointName, npcs)
     local checkpoint = checkpointsFolder:FindFirstChild(checkpointName)
     if not checkpoint or not checkpoint:IsA("BasePart") then return end
 
-    -- Teleport player with offset
+    -- Teleport player slightly offset so they don't clip into the part
     HRP.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
 
-    -- Teleport all valid UUID NPCs
+    -- Teleport all valid NPCs slightly offset opposite side
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
@@ -96,11 +96,10 @@ local function startLoop()
     end)
 end
 
--- Add toggle to Kavo UI
-MainSection:NewToggle("Toggle Teleport Loop", "Start/Stop teleport loop through checkpoints", function(state)
+-- Toggle button in Kavo UI
+MainSection:NewToggle("Toggle Teleport Loop", "Start or stop teleporting through checkpoints", function(state)
     running = state
     if running then
         startLoop()
     end
 end)
------
