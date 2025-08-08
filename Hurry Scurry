@@ -1,4 +1,4 @@
---- Load Kavo UI Library
+-- Load Kavo UI Library
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("Training Island Teleport", "Midnight")
 
@@ -66,47 +66,77 @@ local function getNPCs()
     return npcList
 end
 
--- Jump loop control (player + NPCs) - continuous jump state
+-- Jump freeze loop (player + NPCs)
 local jumpRunning = false
 local jumpTask
 
-local function startJumpLoop(npcs)
+local function freezeJumpLoop(npcs)
     if jumpRunning then return end
     jumpRunning = true
     jumpTask = task.spawn(function()
         while jumpRunning do
-            -- Player jump (hold jump true)
+            -- Freeze player in jump state
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-                if humanoid and humanoid.Health > 0 then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if humanoid and hrp and humanoid.Health > 0 then
                     humanoid.Jump = true
-                    humanoid.PlatformStand = false
+                    humanoid.PlatformStand = true
+                    hrp.Anchored = true -- anchor to freeze position
                 end
             end
 
-            -- NPCs jump (hold jump true)
+            -- Freeze NPCs in jump state
             for _, npc in ipairs(npcs) do
                 if npc and npc.Parent then
                     local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
+                    local root = npc.PrimaryPart
+                    if humanoid and root and humanoid.Health > 0 then
                         humanoid.Jump = true
-                        humanoid.PlatformStand = false
+                        humanoid.PlatformStand = true
+                        root.Anchored = true -- anchor to freeze position
                     end
                 end
             end
 
-            task.wait(0.05)
+            task.wait(0.1)
         end
     end)
 end
 
-local function stopJumpLoop()
+local function unfreezeJumpLoop(npcs)
     jumpRunning = false
-    jumpTask = nil
+    if jumpTask then
+        task.cancel(jumpTask)
+        jumpTask = nil
+    end
+
+    -- Unanchor and disable PlatformStand for player
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if humanoid and hrp then
+            humanoid.PlatformStand = false
+            hrp.Anchored = false
+        end
+    end
+
+    -- Unanchor and disable PlatformStand for NPCs
+    for _, npc in ipairs(npcs) do
+        if npc and npc.Parent then
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            local root = npc.PrimaryPart
+            if humanoid and root then
+                humanoid.PlatformStand = false
+                root.Anchored = false
+            end
+        end
+    end
 end
 
--- Teleport function: teleport player and NPCs, make NPCs jump once after teleport
+-- Teleport function: teleport player and NPCs
 local function teleportToCheckpoint(checkpointName, npcs)
     local route = checkpointsFolder["1"] -- Assuming route "1"
     if not route then
@@ -125,14 +155,10 @@ local function teleportToCheckpoint(checkpointName, npcs)
         hrp.CFrame = checkpoint.CFrame + Vector3.new(2, 3, 0)
     end
 
-    -- Teleport NPCs and make them jump once (initial jump on teleport)
+    -- Teleport NPCs
     for _, npc in ipairs(npcs) do
         if npc.PrimaryPart and npc.PrimaryPart.Parent then
             npc:SetPrimaryPartCFrame(checkpoint.CFrame + Vector3.new(-2, 3, 0))
-            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-            if humanoid then
-                humanoid.Jump = true
-            end
         end
     end
 end
@@ -149,7 +175,7 @@ local checkpointOrder = {"1","2","3","4","5","6"}
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        startJumpLoop(npcs) -- start continuous jump loop
+        freezeJumpLoop(npcs) -- start freeze jump
         while running do
             for _, checkpointName in ipairs(checkpointOrder) do
                 if not running then break end
@@ -157,11 +183,11 @@ local function startLoop()
                 task.wait(1) -- wait 1 second between teleports
             end
         end
-        stopJumpLoop()
+        unfreezeJumpLoop(npcs)
     end)
 end
 
-Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints, keeps jumping", function(state)
+Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through checkpoints, freeze jump state", function(state)
     running = state
     if running then
         startLoop()
@@ -170,6 +196,6 @@ Section:NewToggle("Start Teleport Loop", "Teleports player and NPCs through chec
             task.cancel(teleportTask)
             teleportTask = nil
         end
-        stopJumpLoop()
+        unfreezeJumpLoop(getNPCs())
     end
 end)
