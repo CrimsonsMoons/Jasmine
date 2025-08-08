@@ -134,7 +134,7 @@ local args = {
 }
 
 game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
-end)
+
 
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
