@@ -103,3 +103,4 @@ MainSection:NewToggle("Toggle Teleport Loop", "Start/Stop teleport loop through 
         startLoop()
     end
 end)
+-----
