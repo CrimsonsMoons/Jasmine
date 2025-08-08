@@ -3,15 +3,17 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 local HRP = Character:WaitForChild("HumanoidRootPart")
 
---- Reconnect HRP on respawn
+-- Reconnect references on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
-    HRP = Character:WaitForChild("HumanoidRootPart")
+    Humanoid = char:WaitForChild("Humanoid")
+    HRP = char:WaitForChild("HumanoidRootPart")
 end)
 
--- Static list of known UUIDs
+-- Static list of known UUIDs for NPCs
 local uuids = {
     "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
     "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
@@ -20,35 +22,34 @@ local uuids = {
     "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
 }
 
--- UUID pattern checker
 local function isUUID(str)
-    return string.match(str, "^%b{}$") ~= nil
+    return tostring(str):match("^%b{}$") ~= nil
 end
 
--- Get all valid NPCs
+-- Get all valid NPCs (static + dynamic)
 local function getNPCs()
-    local folder = workspace.Islands["Training Island"]
+    local folder = workspace:Islands()["Training Island"]
     local npcList = {}
 
-    -- Static UUIDs
     for _, uuid in ipairs(uuids) do
         local model = folder:FindFirstChild(uuid)
         if model and model:IsA("Model") then
-            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-            if root then
-                model.PrimaryPart = root
+            if not model.PrimaryPart then
+                model.PrimaryPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            end
+            if model.PrimaryPart then
                 table.insert(npcList, model)
             end
         end
     end
 
-    -- Dynamic scan
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
             if model:FindFirstChildWhichIsA("Humanoid") then
-                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
-                if root then
-                    model.PrimaryPart = root
+                if not model.PrimaryPart then
+                    model.PrimaryPart = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                end
+                if model.PrimaryPart then
                     table.insert(npcList, model)
                 end
             end
@@ -58,41 +59,47 @@ local function getNPCs()
     return npcList
 end
 
--- Freeze & jump loop
 local jumpRunning = false
 local jumpTask
 
-local function freezeJumpLoop(npcs)
+local function freezeJumpLoop()
     if jumpRunning then return end
     jumpRunning = true
     jumpTask = task.spawn(function()
         while jumpRunning do
-            -- Player
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if humanoid and hrp and humanoid.Health > 0 then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping) -- force jump state
-                    humanoid.PlatformStand = false -- allow state change
-                    hrp.Anchored = true -- freeze in mid-air
+            if Humanoid and HRP and Humanoid.Health > 0 then
+                local state = Humanoid:GetState()
+                if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
+                    Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                    task.wait(0.1)
                 end
+                Humanoid.PlatformStand = true
+                HRP.Anchored = true
             end
+            task.wait(0.2)
+        end
+    end)
+end
 
-            -- NPCs
+local function freezeJumpLoopNPCs(npcs)
+    task.spawn(function()
+        while jumpRunning do
             for _, npc in ipairs(npcs) do
                 if npc and npc.Parent then
                     local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
                     local root = npc.PrimaryPart
                     if humanoid and root and humanoid.Health > 0 then
-                        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-                        humanoid.PlatformStand = false
+                        local state = humanoid:GetState()
+                        if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                            task.wait(0.05)
+                        end
+                        humanoid.PlatformStand = true
                         root.Anchored = true
                     end
                 end
             end
-
-            task.wait(0.1)
+            task.wait(0.2)
         end
     end)
 end
@@ -104,18 +111,11 @@ local function unfreezeJumpLoop(npcs)
         jumpTask = nil
     end
 
-    -- Player
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if humanoid and hrp then
-            humanoid.PlatformStand = false
-            hrp.Anchored = false
-        end
+    if Humanoid and HRP then
+        Humanoid.PlatformStand = false
+        HRP.Anchored = false
     end
 
-    -- NPCs
     for _, npc in ipairs(npcs) do
         if npc and npc.Parent then
             local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
@@ -128,10 +128,15 @@ local function unfreezeJumpLoop(npcs)
     end
 end
 
--- Teleport to Part
+local running = false
+local teleportTask
+
 local function teleportToPart(npcs)
     local targetPart = workspace:FindFirstChild("Part")
-    if not targetPart or not targetPart:IsA("BasePart") then return end
+    if not targetPart or not targetPart:IsA("BasePart") then
+        warn("Target part not found or invalid!")
+        return
+    end
 
     if HRP and HRP.Parent then
         HRP.CFrame = targetPart.CFrame + Vector3.new(2, 3, 0)
@@ -144,7 +149,7 @@ local function teleportToPart(npcs)
     end
 end
 
--- GUI
+-- GUI setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TeleportToggleGui"
 screenGui.Parent = PlayerGui
@@ -160,17 +165,14 @@ button.TextSize = 24
 button.Text = "Start Teleport"
 button.Parent = screenGui
 
--- Main loop
-local running = false
-local teleportTask
-
 local function startLoop()
     teleportTask = task.spawn(function()
         local npcs = getNPCs()
-        freezeJumpLoop(npcs)
+        freezeJumpLoop()
+        freezeJumpLoopNPCs(npcs)
         while running do
             teleportToPart(npcs)
-            task.wait(1.4)
+            task.wait(1)
         end
         unfreezeJumpLoop(npcs)
     end)
