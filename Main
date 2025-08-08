@@ -116,52 +116,43 @@ TrainSection:NewButton("Trap Character", "Creates a red box around your characte
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
 end)
 
-TrainSection:NewButton("Single Stake", "Runs Single Route Script", function()
+TrainSection:NewButton("Loop", "Runs Single Route Script", function()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
+local Events = Communication:WaitForChild("Events", 9e9)
+local targetEvent = Events:GetChildren()[36]
 
-while true do
-    -- Your first block:
-    local args1 = {
-        [1] = "SelectLayout";
-        [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
-        [3] = 1;
+local function runSequence()
+    -- Fire "Quit"
+    local quitArgs = {
+        [1] = "Quit";
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args1))
+    targetEvent:FireServer(unpack(quitArgs))
 
-    local args2 = {
+    -- Wait a short moment to ensure server processed the first call
+    wait(1)
+
+    -- Fire "TriggerInteractable"
+    local checkpoint = workspace:WaitForChild("Islands", 9e9)
+        :WaitForChild("Training Island", 9e9)
+        :WaitForChild("Outdoor Arena", 9e9)
+        :WaitForChild("DynamicArena", 9e9)
+        :WaitForChild("_LAYOUT", 9e9)
+        :WaitForChild("CheckpointActivity", 9e9)
+
+    local interactArgs = {
         [1] = "TriggerInteractable";
-        [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+        [2] = checkpoint;
     }
-    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
-    wait(360) -- wait 5 minutes before repeating
-end
-end)
 
-TrainSection:NewButton("Hurry Scurry", "Runs Single Route Script", function()
+    targetEvent:FireServer(unpack(interactArgs))
+end
+
 while true do
-
-
-local args = {
-    [1] = "Quit";
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
-
-local args = {
-    [1] = "SelectLayout";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
-    [3] = 3;
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args))
-
-local args = {
-    [1] = "TriggerInteractable";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
-wait(5)
+    runSequence()
+    wait(360) -- wait 6 minutes
 end
+
 end)
 
 
