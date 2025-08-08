@@ -113,7 +113,7 @@ TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
 end)
 
 TrainSection:NewButton("Trap Character", "Creates a red box around your character", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/WHI/refs/heads/main/box"))()
+     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
 end)
 
 TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
@@ -332,14 +332,6 @@ TrainSection:NewToggle("Cross Country", "Auto Catch Script", function(state)
     crosscountryEnabled = state
     if state then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
-    end
-end)
-
-local trainingEnabled = false
-TrainSection:NewToggle("Training", "Auto Catch Script", function(state)
-    trainingEnabled = state
-    if state then
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
     end
 end)
 
