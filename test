@@ -35,7 +35,7 @@ local function setupCharacter(newChar)
 end
 player.CharacterAdded:Connect(setupCharacter)
 
--- === Island Configuration and Universal Exclusions ===
+-- === Island Configuration ===
 local islandConfigs = {
     ["Mainland"] = {},
     ["Forest Island"] = {},
@@ -46,9 +46,10 @@ local islandConfigs = {
     ["Jungle Island"] = {},
     ["Volcano Island"] = {},
     ["Desert Island"] = {},
-    ["Glacier Island"] = {}, -- Added Glacier Island here
+    ["Glacier Island"] = {},  -- <-- Added Glacier Island here
 }
 
+-- === Universal Exclusions ===
 for _, config in pairs(islandConfigs) do
     config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
     config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
@@ -64,46 +65,38 @@ end
 
 -- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
-
-local function teleportToBodiesInFolder(folder, exclusions)
-    for _, model in ipairs(folder:GetChildren()) do
-        if exclusions[model.Name] then
-            -- skip excluded
-        else
-            local body = model:FindFirstChild("Body")
-            if body and body:IsA("BasePart") then
-                -- teleport while Body still exists and toggle enabled
-                while body.Parent and body:IsDescendantOf(workspace) do
-                    hrp.CFrame = body.CFrame + Vector3.new(0,5,0)
-                    task.wait(0.05)
-                end
-            end
-        end
-    end
-end
-
-local function teleportIslandBodies(islandName)
-    local exclusions = islandConfigs[islandName]
-    local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-    if not folder then
-        warn("Island folder not found: " .. islandName)
-        return
-    end
-    teleportToBodiesInFolder(folder, exclusions)
-end
-
 for islandName, excludedIds in pairs(islandConfigs) do
+    print("Creating toggle for island:", islandName)  -- Debug print to confirm toggle creation
+
     teleportToggles[islandName] = false
 
     TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName, function(state)
         teleportToggles[islandName] = state
-        if state then
-            task.spawn(function()
-                while teleportToggles[islandName] do
-                    teleportIslandBodies(islandName)
+    end)
+
+    task.spawn(function()
+        while true do
+            if teleportToggles[islandName] then
+                local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
+                if not folder then 
+                    warn("Island not found: " .. islandName)
+                    break
+                end
+                for _, model in ipairs(folder:GetChildren()) do
+                    if not teleportToggles[islandName] then break end
+                    if excludedIds[model.Name] then continue end
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") then
+                        while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
+                    end
                     task.wait(0.1)
                 end
-            end)
+            else
+                task.wait(0.5)
+            end
         end
     end)
 end
@@ -116,6 +109,11 @@ for islandName in pairs(islandConfigs) do
             :WaitForChild("Functions", 9e9):GetChildren()[2]:FireServer(unpack(args))
     end)
 end
+
+-- The rest of your script for Train, Auto, Shop, Lunar/Volcano tabs goes here unchanged
+-- (Include your previous content for these tabs as you have it)
+
+
 
 -- === Training Buttons ===
 TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
