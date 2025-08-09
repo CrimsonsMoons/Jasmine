@@ -1,0 +1,53 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function getHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+
+local Mainland = workspace:WaitForChild("Islands"):WaitForChild("Mainland")
+
+local targetParts = {
+    "Meshes/Rocks 2",
+    "Meshes/Coconut",
+    "Meshes/Bush (1)",
+    "Rocks",
+    "Meshes/Wheat Plane",
+    "Meshes/Rock 1"
+}
+
+local function findNested(parent, path)
+    local current = parent
+    for partName in string.gmatch(path, "[^/]+") do
+        current = current:FindFirstChild(partName)
+        if not current then return nil end
+    end
+    return current
+end
+
+while true do
+    local hrp = getHRP()
+    local teleportedToAny = false
+
+    for _, uuidFolder in ipairs(Mainland:GetChildren()) do
+        if uuidFolder:IsA("Model") or uuidFolder:IsA("Folder") then
+            local foundPart = nil
+            for _, partPath in ipairs(targetParts) do
+                foundPart = findNested(uuidFolder, partPath)
+                if foundPart and foundPart:IsA("BasePart") then
+                    hrp.CFrame = foundPart.CFrame + Vector3.new(0, 5, 0)
+                    teleportedToAny = true
+                    task.wait(0.1) -- very short wait to allow teleport to register
+                    break
+                else
+                    foundPart = nil
+                end
+            end
+        end
+    end
+
+    if not teleportedToAny then
+        task.wait(1) -- no targets found, wait longer before retrying
+    end
+end
