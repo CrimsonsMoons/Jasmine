@@ -381,6 +381,19 @@ AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 
     end
 end)
 
+local sellSpecials3 = false
+AutoSection:NewToggle("Sell Specials3", "Sell all special (unlocked) items every 5s", function(toggle)
+    sellSpecials3 = toggle
+    if toggle then
+        task.spawn(function()
+            while sellSpecials3 do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Sell%20Specials%203", true))()
+                task.wait(5)
+            end
+        end)
+    end
+end)
+
 local autoSellAll = false
 AutoSection:NewToggle("Auto Sell", "Sells all unlocked, non-special items every 5s", function(toggle)
     autoSellAll = toggle
