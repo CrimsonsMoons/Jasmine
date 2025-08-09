@@ -45,11 +45,5 @@ local function sellAllSpecials()
     end
 end
 
--- Run auto-sell loop for 10 seconds max
-local startTime = tick()
-while tick() - startTime < 10 do
-    pcall(sellAllSpecials)
-    task.wait(5)
-end
-
-print("🛑 Auto-sell specials loop ended after 10 seconds.")
+-- Run once
+pcall(sellAllSpecials)
