@@ -446,6 +446,33 @@ AutoSection:NewToggle("Auto Sell Acc", "Auto sell accessories every 5 seconds", 
     end
 end)
 
+-- Auto Fish Toggle
+local autoFish = false
+local autoFishConnection
+
+AutoSection:NewToggle("Auto Fish", "Automatically catches fish", function(state)
+    autoFish = state
+
+    if autoFish then
+        autoFishConnection = task.spawn(function()
+            while autoFish do
+                local args = {
+                    [1] = "{2d3056d8-fb58-42f3-88cf-33cc4eee5e2f}",
+                    [2] = "Activate",
+                    [3] = "Water"
+                }
+                game:GetService("ReplicatedStorage")
+                    :WaitForChild("Communication", 9e9)
+                    :WaitForChild("Events", 9e9)
+                    :GetChildren()[13]:FireServer(unpack(args))
+                task.wait(0.5)
+            end
+        end)
+    else
+        autoFishConnection = nil
+    end
+end)
+
 
 -- === Shop Buttons ===
 ShopSection:NewButton("Rope", "Buys Rope from Mainland Shop", function()
