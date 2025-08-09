@@ -1,4 +1,4 @@
-------- === GUI Library Setup ===
+---- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -46,6 +46,7 @@ local islandConfigs = {
     ["Jungle Island"] = {},
     ["Volcano Island"] = {},
     ["Desert Island"] = {},
+    ["Glacier Island"] = {},  -- <-- Added Glacier Island here
 }
 
 -- === Universal Exclusions ===
@@ -65,6 +66,8 @@ end
 -- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
 for islandName, excludedIds in pairs(islandConfigs) do
+    print("Creating toggle for island:", islandName)  -- Debug print to confirm toggle creation
+
     teleportToggles[islandName] = false
 
     TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName, function(state)
@@ -107,32 +110,37 @@ for islandName in pairs(islandConfigs) do
     end)
 end
 
+-- The rest of your script for Train, Auto, Shop, Lunar/Volcano tabs goes here unchanged
+-- (Include your previous content for these tabs as you have it)
+
+
+
 -- === Training Buttons ===
 TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Single%20tp%20v2", true))()
 end)
 
 TrainSection:NewButton("Training", "Creates a red box around your character", function()
-     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/All%20Training", true))()
 end)
 
-TrainSection:NewButton("Hurry Scurry", "Creates a red box around your character", function()
+TrainSection:NewButton("Hurry Scurry", "Runs Hurry Scurry Script", function()
+    local args = {
+        [1] = "SelectLayout";
+        [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
+        [3] = 3;
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args))
 
-local args = {
-    [1] = "SelectLayout";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9);
-    [3] = 3;
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[45]:FireServer(unpack(args))
-
-local args = {
-    [1] = "TriggerInteractable";
-    [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
-}
-
-game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args))
+    local args2 = {
+        [1] = "TriggerInteractable";
+        [2] = workspace:WaitForChild("Islands", 9e9):WaitForChild("Training Island", 9e9):WaitForChild("Outdoor Arena", 9e9):WaitForChild("DynamicArena", 9e9):WaitForChild("_LAYOUT", 9e9):WaitForChild("CheckpointActivity", 9e9);
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[36]:FireServer(unpack(args2))
 end)
+
+-- (You can keep adding your remaining Train buttons, toggles, Auto, Shop, Lunar/Volcano tabs and toggles as in your original code...)
+
 
 
 TrainSection:NewButton("Loop", "Runs Single Route Script", function()
@@ -367,6 +375,19 @@ AutoSection:NewToggle("Sell Specials", "Sell all special (unlocked) items every 
         task.spawn(function()
             while sellSpecials do
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials", true))()
+                task.wait(5)
+            end
+        end)
+    end
+end)
+
+local sellSpecials3 = false
+AutoSection:NewToggle("Sell Specials3", "Sell all special (unlocked) items every 5s", function(toggle)
+    sellSpecials3 = toggle
+    if toggle then
+        task.spawn(function()
+            while sellSpecials3 do
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Sell%20Specials%203", true))()
                 task.wait(5)
             end
         end)
