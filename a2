@@ -38,10 +38,11 @@ local EXCLUSIONS = {
     ["Travel Boat"] = true,
 }
 
--- Island names
+-- Island names (Glacier Island added)
 local ISLAND_NAMES = {
     "Mainland", "Forest Island", "Mountain Island", "Lunar Islands",
-    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island"
+    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island",
+    "Glacier Island"
 }
 
 -- RemoteEvent
@@ -112,4 +113,4 @@ while true do
     end
 
     task.wait(0.75) -- Slightly longer delay = less lag
-end
+en
