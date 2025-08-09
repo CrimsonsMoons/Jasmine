@@ -1,53 +1,63 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
+local islandFolder = workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
+
 local function getHRP()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    return char:WaitForChild("HumanoidRootPart")
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
 end
 
-local Mainland = workspace:WaitForChild("Islands"):WaitForChild("Mainland")
+local hrp = getHRP()
 
-local targetParts = {
-    "Meshes/Rocks 2",
-    "Meshes/Coconut",
-    "Meshes/Bush (1)",
-    "Rocks",
-    "Meshes/Wheat Plane",
-    "Meshes/Rock 1"
-}
+local uuidPattern = "%b{}" -- matches {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 
-local function findNested(parent, path)
-    local current = parent
-    for partName in string.gmatch(path, "[^/]+") do
-        current = current:FindFirstChild(partName)
-        if not current then return nil end
-    end
-    return current
-end
+local function findUUIDsWithTargetParts(folder, results)
+    results = results or {}
 
-while true do
-    local hrp = getHRP()
-    local teleportedToAny = false
+    for _, child in pairs(folder:GetChildren()) do
+        if child:IsA("Model") and child.Name:match(uuidPattern) then
+            local hasRocks = child:FindFirstChild("Rocks")
+            local hasMeshesRocks2 = false
 
-    for _, uuidFolder in ipairs(Mainland:GetChildren()) do
-        if uuidFolder:IsA("Model") or uuidFolder:IsA("Folder") then
-            local foundPart = nil
-            for _, partPath in ipairs(targetParts) do
-                foundPart = findNested(uuidFolder, partPath)
-                if foundPart and foundPart:IsA("BasePart") then
-                    hrp.CFrame = foundPart.CFrame + Vector3.new(0, 5, 0)
-                    teleportedToAny = true
-                    task.wait(0.1) -- very short wait to allow teleport to register
-                    break
-                else
-                    foundPart = nil
+            local meshesFolder = child:FindFirstChild("Meshes")
+            if meshesFolder and meshesFolder:IsA("Folder") then
+                local rocks2 = meshesFolder:FindFirstChild("Rocks 2")
+                if rocks2 and rocks2:IsA("BasePart") then
+                    hasMeshesRocks2 = true
                 end
+            end
+
+            if (hasRocks and hasRocks:IsA("BasePart")) or hasMeshesRocks2 then
+                table.insert(results, child)
+            end
+        elseif child:IsA("Folder") then
+            findUUIDsWithTargetParts(child, results)
+        end
+    end
+
+    return results
+end
+
+local allTargets = findUUIDsWithTargetParts(islandFolder)
+
+for _, uuidModel in ipairs(allTargets) do
+    local targetPart = nil
+
+    if uuidModel:FindFirstChild("Rocks") and uuidModel.Rocks:IsA("BasePart") then
+        targetPart = uuidModel.Rocks
+    else
+        local meshesFolder = uuidModel:FindFirstChild("Meshes")
+        if meshesFolder then
+            local rocks2 = meshesFolder:FindFirstChild("Rocks 2")
+            if rocks2 and rocks2:IsA("BasePart") then
+                targetPart = rocks2
             end
         end
     end
 
-    if not teleportedToAny then
-        task.wait(1) -- no targets found, wait longer before retrying
+    if targetPart then
+        hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
+        wait(.2)
     end
 end
