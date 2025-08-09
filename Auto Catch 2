@@ -37,7 +37,8 @@ local EXCLUSIONS = {
 -- Island names
 local ISLAND_NAMES = {
     "Mainland", "Forest Island", "Mountain Island", "Lunar Islands",
-    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island"
+    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island",
+    "Glacier Island"
 }
 
 -- RemoteEvent
