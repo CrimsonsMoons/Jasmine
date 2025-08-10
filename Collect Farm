@@ -1,71 +1,51 @@
---
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-
 local islandFolder = workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
 
 local function getHRP()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    return character:WaitForChild("HumanoidRootPart")
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
 end
 
-local uuidPattern = "%b{}" -- matches {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+-- Refetch HRP when respawning
+local hrp = getHRP()
+LocalPlayer.CharacterAdded:Connect(function(char)
+    hrp = char:WaitForChild("HumanoidRootPart")
+end)
 
-local function findUUIDsWithTargetParts(folder, results)
-    results = results or {}
+local uuidPattern = "%b{}"
 
+local function findUUIDsWithTargetParts(folder)
+    local results = {}
     for _, child in pairs(folder:GetChildren()) do
         if child:IsA("Model") and child.Name:match(uuidPattern) then
-            local hasRocks = child:FindFirstChild("Rocks")
-            local hasRock = child:FindFirstChild("Rock")
-            local hasMeshesRocks2 = false
-
-            local meshesFolder = child:FindFirstChild("Meshes")
-            if meshesFolder and meshesFolder:IsA("Folder") then
-                local rocks2 = meshesFolder:FindFirstChild("Rocks 2")
-                if rocks2 and rocks2:IsA("BasePart") then
-                    hasMeshesRocks2 = true
-                end
-            end
-
-            if (hasRocks and hasRocks:IsA("BasePart")) or 
-               (hasRock and hasRock:IsA("BasePart")) or 
-               hasMeshesRocks2 then
+            if (child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart"))
+            or (child:FindFirstChild("Rock") and child.Rock:IsA("BasePart"))
+            or (child:FindFirstChild("Meshes") and child.Meshes:FindFirstChild("Rocks 2") and child.Meshes["Rocks 2"]:IsA("BasePart")) then
                 table.insert(results, child)
             end
         elseif child:IsA("Folder") then
-            findUUIDsWithTargetParts(child, results)
+            for _, v in ipairs(findUUIDsWithTargetParts(child)) do
+                table.insert(results, v)
+            end
         end
     end
-
     return results
 end
 
-local hrp = getHRP()
+-- Cache the targets ONCE
+local allTargets = findUUIDsWithTargetParts(islandFolder)
 
 while true do
-    local allTargets = findUUIDsWithTargetParts(islandFolder)
-
     for _, uuidModel in ipairs(allTargets) do
-        local targetPart = nil
+        local targetPart = uuidModel:FindFirstChild("Rocks") 
+                        or uuidModel:FindFirstChild("Rock") 
+                        or (uuidModel:FindFirstChild("Meshes") and uuidModel.Meshes:FindFirstChild("Rocks 2"))
 
-        if uuidModel:FindFirstChild("Rocks") and uuidModel.Rocks:IsA("BasePart") then
-            targetPart = uuidModel.Rocks
-        elseif uuidModel:FindFirstChild("Rock") and uuidModel.Rock:IsA("BasePart") then
-            targetPart = uuidModel.Rock
-        else
-            local meshesFolder = uuidModel:FindFirstChild("Meshes")
-            if meshesFolder then
-                local rocks2 = meshesFolder:FindFirstChild("Rocks 2")
-                if rocks2 and rocks2:IsA("BasePart") then
-                    targetPart = rocks2
-                end
-            end
-        end
-
-        if targetPart then
+        if targetPart and targetPart:IsA("BasePart") then
             hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
-            wait(0.9)
+            wait(0.3) -- inner loop wait
         end
     end
+    wait(1) -- outer loop pause to prevent overload
 end
