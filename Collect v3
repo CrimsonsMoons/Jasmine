@@ -1,0 +1,56 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local IslandsFolder = workspace:WaitForChild("Islands")
+
+local uuidPattern = "%b{}"
+
+local function getHRP()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local function findUUIDsWithTargetParts(folder)
+    local results = {}
+    for _, child in pairs(folder:GetChildren()) do
+        if child:IsA("Model") and child.Name:match(uuidPattern) then
+            if (child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart"))
+            or (child:FindFirstChild("Rock") and child.Rock:IsA("BasePart"))
+            or (child:FindFirstChild("Meshes") and child.Meshes:FindFirstChild("Rocks 2") and child.Meshes["Rocks 2"]:IsA("BasePart")) then
+                table.insert(results, child)
+            end
+        elseif child:IsA("Folder") then
+            for _, v in ipairs(findUUIDsWithTargetParts(child)) do
+                table.insert(results, v)
+            end
+        end
+    end
+    return results
+end
+
+while true do
+    for _, island in ipairs(IslandsFolder:GetChildren()) do
+        if island:IsA("Folder") then
+            local allTargets = findUUIDsWithTargetParts(island)
+
+            for _, uuidModel in ipairs(allTargets) do
+                local hrp = getHRP()
+                if hrp then
+                    local targetPart = uuidModel:FindFirstChild("Rocks") 
+                                    or uuidModel:FindFirstChild("Rock") 
+                                    or (uuidModel:FindFirstChild("Meshes") and uuidModel.Meshes:FindFirstChild("Rocks 2"))
+
+                    if targetPart and targetPart:IsA("BasePart") then
+                        hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
+                        task.wait(0.3)
+                    end
+                else
+                    -- No HRP found, wait before retrying
+                    task.wait(0.5)
+                end
+            end
+        end
+    end
+
+    task.wait(1)
+end
