@@ -65,7 +65,7 @@ while true do
 
         if targetPart then
             hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
-            wait(0.7)
+            wait(0.9)
         end
     end
 end
