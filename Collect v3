@@ -4,19 +4,50 @@ local IslandsFolder = workspace:WaitForChild("Islands")
 
 local uuidPattern = "%b{}"
 
+-- Priority list of target parts (checked direct child first, then inside Meshes)
+local targetPartNames = {
+    "Rocks",       
+    "Rock",        
+    "Fabric",      
+    "Flower",      -- new addition
+    "Rocks 2",     
+    "Bush (1)",    
+    "Wheat Plane", 
+    "Rock 1",      
+    "Leaf",        
+    "Coconut",
+    "Hay"
+}
+
 local function getHRP()
     local char = LocalPlayer.Character
     if not char then return nil end
     return char:FindFirstChild("HumanoidRootPart")
 end
 
+local function findTargetPart(model)
+    for _, name in ipairs(targetPartNames) do
+        -- Check direct child first
+        local part = model:FindFirstChild(name)
+        if part and part:IsA("BasePart") then
+            return part
+        end
+        -- Check inside Meshes folder
+        if model:FindFirstChild("Meshes") then
+            local meshPart = model.Meshes:FindFirstChild(name)
+            if meshPart and meshPart:IsA("BasePart") then
+                return meshPart
+            end
+        end
+    end
+    return nil
+end
+
 local function findUUIDsWithTargetParts(folder)
     local results = {}
     for _, child in pairs(folder:GetChildren()) do
         if child:IsA("Model") and child.Name:match(uuidPattern) then
-            if (child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart"))
-            or (child:FindFirstChild("Rock") and child.Rock:IsA("BasePart"))
-            or (child:FindFirstChild("Meshes") and child.Meshes:FindFirstChild("Rocks 2") and child.Meshes["Rocks 2"]:IsA("BasePart")) then
+            if findTargetPart(child) then
                 table.insert(results, child)
             end
         elseif child:IsA("Folder") then
@@ -36,21 +67,16 @@ while true do
             for _, uuidModel in ipairs(allTargets) do
                 local hrp = getHRP()
                 if hrp then
-                    local targetPart = uuidModel:FindFirstChild("Rocks") 
-                                    or uuidModel:FindFirstChild("Rock") 
-                                    or (uuidModel:FindFirstChild("Meshes") and uuidModel.Meshes:FindFirstChild("Rocks 2"))
-
-                    if targetPart and targetPart:IsA("BasePart") then
+                    local targetPart = findTargetPart(uuidModel)
+                    if targetPart then
                         hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
                         task.wait(0.3)
                     end
                 else
-                    -- No HRP found, wait before retrying
                     task.wait(0.5)
                 end
             end
         end
     end
-
     task.wait(1)
 end
