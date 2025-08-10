@@ -44,7 +44,7 @@ while true do
 
         if targetPart and targetPart:IsA("BasePart") then
             hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
-            wait(0.3) -- inner loop wait
+            wait(0.5) -- inner loop wait
         end
     end
     wait(1) -- outer loop pause to prevent overload
