@@ -24,7 +24,7 @@ local function getHRP()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
--- Cache excluded instances
+--- Cache excluded instances
 local excludedPart = workspace:FindFirstChild("Islands")
     and workspace.Islands:FindFirstChild("Forest Island")
     and workspace.Islands["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
