@@ -26,6 +26,20 @@ local function getHRP()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
+-- Cache excluded instances
+local excludedPart = workspace:FindFirstChild("Islands")
+    and workspace.Islands:FindFirstChild("Forest Island")
+    and workspace.Islands["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
+    and workspace.Islands["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
+
+local excludedFolder = workspace:FindFirstChild("Islands")
+    and workspace.Islands:FindFirstChild("Forest Island")
+    and workspace.Islands["Forest Island"]:FindFirstChild("Larry")
+
+local function isDescendantOfExcludedFolder(instance)
+    return excludedFolder and instance:IsDescendantOf(excludedFolder)
+end
+
 local function isTargetName(name, parentName)
     for _, targetName in ipairs(targetPartNames) do
         if name == targetName then
@@ -42,8 +56,11 @@ end
 local function findTargets(folder)
     local results = {}
     for _, descendant in ipairs(folder:GetDescendants()) do
-        if descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
-            -- Check attribute first
+        if descendant == excludedPart then
+            -- Skip the excluded part
+        elseif isDescendantOfExcludedFolder(descendant) then
+            -- Skip everything inside the excluded folder
+        elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
             if descendant:GetAttribute("interactionType") == "CollectableItem" then
                 table.insert(results, descendant)
             elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
