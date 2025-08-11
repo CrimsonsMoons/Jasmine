@@ -16,8 +16,7 @@ local targetPartNames = {
     "Leaf",
     "Coconut",
     "Hay",
-    "StrawBerries",
-    "Log"     -- UUID only
+    "StrawBerries"
 }
 
 local function getHRP()
