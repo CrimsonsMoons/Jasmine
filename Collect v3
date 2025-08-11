@@ -2,21 +2,26 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local IslandsFolder = workspace:WaitForChild("Islands")
 
+-- UUID pattern {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 local uuidPattern = "%b{}"
 
--- Priority list of target parts (checked direct child first, then inside Meshes)
+-- Target part names we want to teleport to
 local targetPartNames = {
-    "Rocks",       
-    "Rock",        
-    "Fabric",      
-    "Flower",      -- new addition
-    "Rocks 2",     
-    "Bush (1)",    
-    "Wheat Plane", 
-    "Rock 1",      
-    "Leaf",        
+    "Rocks",
+    "Rock",
+    "Fabric",
+    "Flower",
+    "Rocks 2",
+    "Bush (1)",
+    "Wheat Plane",
+    "Rock 1",
+    "Leaf",
     "Coconut",
-    "Hay"
+    "Hay",
+    "Part",
+    "StrawBerries",
+    "Bounds", -- UUID only
+    "Log"     -- UUID only
 }
 
 local function getHRP()
@@ -25,34 +30,23 @@ local function getHRP()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
-local function findTargetPart(model)
-    for _, name in ipairs(targetPartNames) do
-        -- Check direct child first
-        local part = model:FindFirstChild(name)
-        if part and part:IsA("BasePart") then
-            return part
-        end
-        -- Check inside Meshes folder
-        if model:FindFirstChild("Meshes") then
-            local meshPart = model.Meshes:FindFirstChild(name)
-            if meshPart and meshPart:IsA("BasePart") then
-                return meshPart
-            end
-        end
-    end
-    return nil
-end
-
-local function findUUIDsWithTargetParts(folder)
+-- Recursively search for any matching target part in a model/folder
+local function findTargetPartsRecursive(folder, uuidOnly)
     local results = {}
-    for _, child in pairs(folder:GetChildren()) do
-        if child:IsA("Model") and child.Name:match(uuidPattern) then
-            if findTargetPart(child) then
-                table.insert(results, child)
+    for _, child in ipairs(folder:GetChildren()) do
+        if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
+            for _, name in ipairs(targetPartNames) do
+                if child.Name == name then
+                    if not uuidOnly or folder.Name:match(uuidPattern) then
+                        table.insert(results, child)
+                    end
+                end
             end
-        elseif child:IsA("Folder") then
-            for _, v in ipairs(findUUIDsWithTargetParts(child)) do
-                table.insert(results, v)
+        elseif child:IsA("Folder") or child:IsA("Model") then
+            -- If it's a model with UUID name, mark it for UUID-only targets
+            local isUUID = child.Name:match(uuidPattern)
+            for _, part in ipairs(findTargetPartsRecursive(child, uuidOnly or isUUID)) do
+                table.insert(results, part)
             end
         end
     end
@@ -60,23 +54,20 @@ local function findUUIDsWithTargetParts(folder)
 end
 
 while true do
-    for _, island in ipairs(IslandsFolder:GetChildren()) do
-        if island:IsA("Folder") then
-            local allTargets = findUUIDsWithTargetParts(island)
-
-            for _, uuidModel in ipairs(allTargets) do
-                local hrp = getHRP()
-                if hrp then
-                    local targetPart = findTargetPart(uuidModel)
-                    if targetPart then
-                        hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
-                        task.wait(0.3)
-                    end
-                else
-                    task.wait(0.5)
-                end
+    local hrp = getHRP()
+    if hrp then
+        -- Loop through all islands
+        for _, island in ipairs(IslandsFolder:GetChildren()) do
+            -- Find all target parts inside this island
+            local parts = findTargetPartsRecursive(island, false)
+            for _, part in ipairs(parts) do
+                -- Teleport above each target part
+                hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
+                task.wait(0.3)
             end
         end
+    else
+        task.wait(0.5)
     end
     task.wait(1)
 end
