@@ -2,10 +2,8 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local IslandsFolder = workspace:WaitForChild("Islands")
 
---- UUID pattern {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
 local uuidPattern = "%b{}"
 
--- Target part names we want to teleport to
 local targetPartNames = {
     "Rocks",
     "Rock",
@@ -18,9 +16,7 @@ local targetPartNames = {
     "Leaf",
     "Coconut",
     "Hay",
-    "Part",
     "StrawBerries",
-    "Bounds", -- UUID only
     "Log"     -- UUID only
 }
 
@@ -30,23 +26,28 @@ local function getHRP()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
--- Recursively search for any matching target part in a model/folder
-local function findTargetPartsRecursive(folder, uuidOnly)
-    local results = {}
-    for _, child in ipairs(folder:GetChildren()) do
-        if child:IsA("BasePart") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
-            for _, name in ipairs(targetPartNames) do
-                if child.Name == name then
-                    if not uuidOnly or folder.Name:match(uuidPattern) then
-                        table.insert(results, child)
-                    end
-                end
+local function isTargetName(name, parentName)
+    for _, targetName in ipairs(targetPartNames) do
+        if name == targetName then
+            -- Log is UUID only
+            if targetName == "Log" then
+                return parentName:match(uuidPattern) ~= nil
             end
-        elseif child:IsA("Folder") or child:IsA("Model") then
-            -- If it's a model with UUID name, mark it for UUID-only targets
-            local isUUID = child.Name:match(uuidPattern)
-            for _, part in ipairs(findTargetPartsRecursive(child, uuidOnly or isUUID)) do
-                table.insert(results, part)
+            return true
+        end
+    end
+    return false
+end
+
+local function findTargets(folder)
+    local results = {}
+    for _, descendant in ipairs(folder:GetDescendants()) do
+        if descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
+            -- Check attribute first
+            if descendant:GetAttribute("interactionType") == "CollectableItem" then
+                table.insert(results, descendant)
+            elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
+                table.insert(results, descendant)
             end
         end
     end
@@ -56,12 +57,9 @@ end
 while true do
     local hrp = getHRP()
     if hrp then
-        -- Loop through all islands
         for _, island in ipairs(IslandsFolder:GetChildren()) do
-            -- Find all target parts inside this island
-            local parts = findTargetPartsRecursive(island, false)
-            for _, part in ipairs(parts) do
-                -- Teleport above each target part
+            local targets = findTargets(island)
+            for _, part in ipairs(targets) do
                 hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
                 task.wait(0.3)
             end
