@@ -36,5 +36,5 @@ while true do
         end
     end
 
-    task.wait(.4)  -- wait 5 seconds before checking again
+    task.wait(.4)  --- wait 5 seconds before checking again
 end
