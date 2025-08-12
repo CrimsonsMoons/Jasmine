@@ -3,66 +3,38 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local IslandsFolder = Workspace:WaitForChild("Islands", 9e9)
-local CommFunctions = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9)
-local engageFunction = CommFunctions:GetChildren()[4]
 
-local uuidPattern = "%b{}"
-local MAX_DISTANCE = 50
+local Islands = Workspace:WaitForChild("Islands", 9e9)
+local forestIsland = Islands:WaitForChild("Forest Island", 9e9)
 
---- Example excluded folders (you can customize)
-local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
-    and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
-    and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
-
-local excludedFolder = IslandsFolder:FindFirstChild("Forest Island")
-    and IslandsFolder["Forest Island"]:FindFirstChild("Larry")
-
-local function isDescendantOfExcludedFolder(instance)
-    return excludedFolder and instance:IsDescendantOf(excludedFolder)
-end
-
-local function getHRP()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-local function findUUIDTargets(folder)
-    local results = {}
-    for _, descendant in ipairs(folder:GetDescendants()) do
-        if descendant == excludedPart then
-            -- Skip excluded part exactly
-        elseif isDescendantOfExcludedFolder(descendant) then
-            -- Skip excluded folder descendants
-        elseif descendant:IsA("BasePart") then
-            if descendant.Name:match(uuidPattern) then
-                table.insert(results, descendant)
-            end
-        end
-    end
-    return results
-end
+local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
+local FunctionsFolder = Communication:WaitForChild("Functions", 9e9)
+local engageFunction = FunctionsFolder:GetChildren()[4]
 
 while true do
-    local hrp = getHRP()
-    if hrp then
-        for _, island in ipairs(IslandsFolder:GetChildren()) do
-            local targets = findUUIDTargets(island)
-            for _, part in ipairs(targets) do
-                if (part.Position - hrp.Position).Magnitude <= MAX_DISTANCE then
-                    local args = {
-                        [1] = " ";
-                        [2] = "Engage";
-                        [3] = part,
-                    }
-                    engageFunction:FireServer(unpack(args))
-                    task.wait(0.3)
+    local Character = LocalPlayer.Character
+    if Character and Character:FindFirstChild("HumanoidRootPart") then
+        local RootPart = Character.HumanoidRootPart
+
+        for _, uuidFolder in ipairs(forestIsland:GetChildren()) do
+            if uuidFolder.Name:match("^%b{}$") then
+                local success, pivot = pcall(function()
+                    return uuidFolder:GetPivot()
+                end)
+                if success and pivot then
+                    local distance = (pivot.Position - RootPart.Position).Magnitude
+                    if distance <= 20 then
+                        local args = {
+                            [1] = " ";
+                            [2] = "Engage";
+                            [3] = uuidFolder;
+                        }
+                        engageFunction:FireServer(unpack(args))
+                    end
                 end
             end
         end
-    else
-        task.wait(0.5)
     end
-    task.wait(1)
+
+    task.wait(.4)  -- wait 5 seconds before checking again
 end
