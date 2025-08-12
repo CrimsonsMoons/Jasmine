@@ -1,53 +1,51 @@
-while true do
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
+local Communication = ReplicatedStorage:WaitForChild("Communication")
+local Functions = Communication:WaitForChild("Functions")
+local Remote = Functions:GetChildren()[4]  -- Adjust if needed
+print("Using remote:", Remote.Name)
+
+local Islands = Workspace:WaitForChild("Islands")
+local SEARCH_RADIUS = 100
+
+local function findChildByNameRecursive(parent, targetName)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child.Name == targetName then
+            return child
+        end
+        if #child:GetChildren() > 0 then
+            local found = findChildByNameRecursive(child, targetName)
+            if found then
+                return found
+            end
+        end
+    end
+    return nil
+end
+
+local function getFirstArgForRemote(uuidFolder)
+    local rocksPart = uuidFolder:FindFirstChild("Rocks")
+    if rocksPart and rocksPart:IsA("BasePart") then
+        return uuidFolder.Name
+    end
+
+    local meshesFolder = uuidFolder:FindFirstChild("Meshes")
+    if meshesFolder then
+        local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
+        if rocks2Part and rocks2Part:IsA("BasePart") then
+            return "$"
+        end
+    end
+
+    return nil
+end
+
+while true do
     local LocalPlayer = Players.LocalPlayer
     local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local RootPart = Character:WaitForChild("HumanoidRootPart")
-
-    local Communication = ReplicatedStorage:WaitForChild("Communication")
-    local Functions = Communication:WaitForChild("Functions")
-    local Remote = Functions:GetChildren()[4]  -- Adjust if needed
-    print("Using remote:", Remote.Name)
-
-    local Islands = Workspace:WaitForChild("Islands")
-    local SEARCH_RADIUS = 100
-
-    local function findChildByNameRecursive(parent, targetName)
-        for _, child in ipairs(parent:GetChildren()) do
-            if child.Name == targetName then
-                return child
-            end
-            if #child:GetChildren() > 0 then
-                local found = findChildByNameRecursive(child, targetName)
-                if found then
-                    return found
-                end
-            end
-        end
-        return nil
-    end
-
-    local function getFirstArgForRemote(uuidFolder)
-        --- If direct "Rocks" exists, return UUID string
-        local rocksPart = uuidFolder:FindFirstChild("Rocks")
-        if rocksPart and rocksPart:IsA("BasePart") then
-            return uuidFolder.Name
-        end
-
-        -- If "Meshes" exists and contains "Rocks 2", return "$"
-        local meshesFolder = uuidFolder:FindFirstChild("Meshes")
-        if meshesFolder then
-            local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
-            if rocks2Part and rocks2Part:IsA("BasePart") then
-                return "$"
-            end
-        end
-
-        return nil -- no valid target
-    end
 
     for _, island in ipairs(Islands:GetChildren()) do
         for _, uuidFolder in ipairs(island:GetChildren()) do
@@ -55,22 +53,26 @@ while true do
                 local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
                 if bodyPart then
                     local dist = (bodyPart.Position - RootPart.Position).Magnitude
+                    print(string.format("UUID: %s at distance %.2f", uuidFolder.Name, dist))
                     if dist <= SEARCH_RADIUS then
                         local firstArg = getFirstArgForRemote(uuidFolder)
                         if firstArg then
+                            print("Firing remote for UUID:", uuidFolder.Name, "FirstArg:", firstArg, "Distance:", dist)
                             local args = {
                                 [1] = firstArg,
                                 [2] = "Engage",
                                 [3] = uuidFolder
                             }
-                            print("Firing remote for UUID:", uuidFolder.Name, "FirstArg:", firstArg, "Distance:", dist)
                             Remote:FireServer(unpack(args))
+                        else
+                            print("No valid firstArg for UUID:", uuidFolder.Name)
                         end
                     end
+                else
+                    print("No Body or BasePart found in UUID folder:", uuidFolder.Name)
                 end
             end
         end
     end
-
-    task.wait(1) -- pause before next full re-execution
+    task.wait(1)
 end
