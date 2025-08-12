@@ -10,7 +10,7 @@ local engageFunction = CommFunctions:GetChildren()[4]
 local uuidPattern = "%b{}"
 local MAX_DISTANCE = 50
 
--- Example excluded folders (you can customize)
+--- Example excluded folders (you can customize)
 local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
     and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
     and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
