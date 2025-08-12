@@ -1,52 +1,75 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
-local Functions = Communication:WaitForChild("Functions", 9e9)
-local fireFunction = Functions:GetChildren()[4] -- Verify index
+local Communication = ReplicatedStorage:WaitForChild("Communication")
+local Functions = Communication:WaitForChild("Functions")
+local Remote = Functions:GetChildren()[4]  -- Update if needed
+print("Using remote:", Remote.Name)
 
-print("Using remote function:", fireFunction.Name)
+local Islands = Workspace:WaitForChild("Islands")
+local SEARCH_RADIUS = 100
 
-local ForestIsland = workspace:WaitForChild("Islands", 9e9):WaitForChild("Forest Island", 9e9)
-
-local targetPartNames = {
-    ["Rock"] = true,
-    ["Rocks"] = true,
-    ["Rock 1"] = true,
-    ["Rocks 2"] = true,
-}
-
-local function findTargetPart(folder)
-    for _, descendant in pairs(folder:GetDescendants()) do
-        if descendant:IsA("BasePart") and targetPartNames[descendant.Name] then
-            return descendant
+local function findChildByNameRecursive(parent, targetName)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child.Name == targetName then
+            return child
+        end
+        if #child:GetChildren() > 0 then
+            local found = findChildByNameRecursive(child, targetName)
+            if found then
+                return found
+            end
         end
     end
     return nil
 end
 
-while true do
-    for _, uuidFolder in pairs(ForestIsland:GetChildren()) do
-        if uuidFolder:IsA("Folder") and uuidFolder.Name:match("^%b{}$") then
-            local targetPart = findTargetPart(uuidFolder)
-            if targetPart then
-                local distance = (RootPart.Position - targetPart.Position).Magnitude
-                if distance <= 15 then
-                    print("Processing UUID:", uuidFolder.Name, "Distance:", distance)
-                    local args = {
-                        [1] = " ",
-                        [2] = "Engage",
-                        [3] = uuidFolder
-                    }
-                    fireFunction:FireServer(unpack(args))
-                    task.wait(1) -- wait 1 second before next UUID
+local function hasTargetParts(uuidFolder)
+    -- Check direct child "Rocks"
+    local rocksPart = uuidFolder:FindFirstChild("Rocks")
+    if rocksPart and rocksPart:IsA("BasePart") then
+        return true
+    end
+
+    -- Check recursively inside "Meshes" for "Rocks 2"
+    local meshesFolder = uuidFolder:FindFirstChild("Meshes")
+    if meshesFolder then
+        local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
+        if rocks2Part and rocks2Part:IsA("BasePart") then
+            return true
+        else
+            print("Found 'Meshes' but no valid 'Rocks 2' BasePart inside in UUID:", uuidFolder.Name)
+        end
+    else
+        print("No 'Meshes' folder found in UUID:", uuidFolder.Name)
+    end
+
+    return false
+end
+
+for _, island in ipairs(Islands:GetChildren()) do
+    for _, uuidFolder in ipairs(island:GetChildren()) do
+        if tostring(uuidFolder.Name):match("^%b{}$") then
+            local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
+            if bodyPart then
+                local dist = (bodyPart.Position - RootPart.Position).Magnitude
+                if dist <= SEARCH_RADIUS then
+                    if hasTargetParts(uuidFolder) then
+                        local args = {
+                            [1] = uuidFolder.Name,
+                            [2] = "Engage",
+                            [3] = uuidFolder
+                        }
+                        print("Firing remote for UUID:", uuidFolder.Name, "Distance:", dist)
+                        Remote:FireServer(unpack(args))
+                    end
                 end
             end
         end
     end
-    task.wait(2) -- wait 2 seconds before scanning again
 end
