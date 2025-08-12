@@ -31,7 +31,7 @@ while true do
     end
 
     local function getFirstArgForRemote(uuidFolder)
-        -- If direct "Rocks" exists, return UUID string
+        --- If direct "Rocks" exists, return UUID string
         local rocksPart = uuidFolder:FindFirstChild("Rocks")
         if rocksPart and rocksPart:IsA("BasePart") then
             return uuidFolder.Name
