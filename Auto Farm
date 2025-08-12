@@ -1,25 +1,26 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local workspace = game:GetService("Workspace")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local IslandsFolder = workspace:WaitForChild("Islands")
+local IslandsFolder = Workspace:WaitForChild("Islands", 9e9)
+local CommFunctions = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9)
+local engageFunction = CommFunctions:GetChildren()[4]
 
-local uuidPattern = "^%b{}$" -- matches exact {uuid}
+local uuidPattern = "%b{}"
+local MAX_DISTANCE = 50
 
-local targetPartNames = {
-    "Rocks",
-    "Rock",
-    "Flower",
-    "Rocks 2",
-    "Bush (1)",
-    "Wheat Plane",
-    "Rock 1",
-    "Leaf",
-    "Coconut",
-    "Hay",
-    "StrawBerries"
-}
+-- Example excluded folders (you can customize)
+local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
+    and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
+    and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
+
+local excludedFolder = IslandsFolder:FindFirstChild("Forest Island")
+    and IslandsFolder["Forest Island"]:FindFirstChild("Larry")
+
+local function isDescendantOfExcludedFolder(instance)
+    return excludedFolder and instance:IsDescendantOf(excludedFolder)
+end
 
 local function getHRP()
     local char = LocalPlayer.Character
@@ -27,42 +28,15 @@ local function getHRP()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
-local excludedPart = workspace:FindFirstChild("Islands")
-    and workspace.Islands:FindFirstChild("Forest Island")
-    and workspace.Islands["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
-    and workspace.Islands["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
-
-local excludedFolder = workspace:FindFirstChild("Islands")
-    and workspace.Islands:FindFirstChild("Forest Island")
-    and workspace.Islands["Forest Island"]:FindFirstChild("Larry")
-
-local function isDescendantOfExcludedFolder(instance)
-    return excludedFolder and instance:IsDescendantOf(excludedFolder)
-end
-
-local function isTargetName(name, parentName)
-    for _, targetName in ipairs(targetPartNames) do
-        if name == targetName then
-            if targetName == "Log" then
-                return parentName:match(uuidPattern) ~= nil
-            end
-            return true
-        end
-    end
-    return false
-end
-
-local function findTargets(folder)
+local function findUUIDTargets(folder)
     local results = {}
     for _, descendant in ipairs(folder:GetDescendants()) do
         if descendant == excludedPart then
-            -- skip excluded part
+            -- Skip excluded part exactly
         elseif isDescendantOfExcludedFolder(descendant) then
-            -- skip excluded folder
-        elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
-            if descendant:GetAttribute("interactionType") == "CollectableItem" then
-                table.insert(results, descendant)
-            elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
+            -- Skip excluded folder descendants
+        elseif descendant:IsA("BasePart") then
+            if descendant.Name:match(uuidPattern) then
                 table.insert(results, descendant)
             end
         end
@@ -70,39 +44,21 @@ local function findTargets(folder)
     return results
 end
 
-local function findUUIDFolder(parent)
-    for _, child in ipairs(parent:GetChildren()) do
-        if child.Name:match(uuidPattern) then
-            return child
-        end
-    end
-    return nil
-end
-
-local commFuncs = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Functions", 9e9)
-local engageFunc = commFuncs:GetChildren()[4]
-
 while true do
     local hrp = getHRP()
     if hrp then
         for _, island in ipairs(IslandsFolder:GetChildren()) do
-            -- Find UUID folder dynamically per island
-            local uuidFolder = findUUIDFolder(island)
-            if uuidFolder then
-                -- Fire Engage remote per island UUID
-                local args = {
-                    [1] = " ";
-                    [2] = "Engage";
-                    [3] = uuidFolder
-                }
-                engageFunc:FireServer(unpack(args))
-            end
-
-            -- Teleport to target parts in this island
-            local targets = findTargets(island)
+            local targets = findUUIDTargets(island)
             for _, part in ipairs(targets) do
-                hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-                task.wait(0.3)
+                if (part.Position - hrp.Position).Magnitude <= MAX_DISTANCE then
+                    local args = {
+                        [1] = " ";
+                        [2] = "Engage";
+                        [3] = part,
+                    }
+                    engageFunction:FireServer(unpack(args))
+                    task.wait(0.3)
+                end
             end
         end
     else
