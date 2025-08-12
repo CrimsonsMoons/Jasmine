@@ -1,55 +1,54 @@
----
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+while true do
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Workspace = game:GetService("Workspace")
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local RootPart = Character:WaitForChild("HumanoidRootPart")
+    local LocalPlayer = Players.LocalPlayer
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-local Communication = ReplicatedStorage:WaitForChild("Communication")
-local Functions = Communication:WaitForChild("Functions")
-local Remote = Functions:GetChildren()[4]  -- Adjust if needed
-print("Using remote:", Remote.Name)
+    local Communication = ReplicatedStorage:WaitForChild("Communication")
+    local Functions = Communication:WaitForChild("Functions")
+    local Remote = Functions:GetChildren()[4]  -- Adjust if needed
+    print("Using remote:", Remote.Name)
 
-local Islands = Workspace:WaitForChild("Islands")
-local SEARCH_RADIUS = 100
+    local Islands = Workspace:WaitForChild("Islands")
+    local SEARCH_RADIUS = 100
 
-local function findChildByNameRecursive(parent, targetName)
-    for _, child in ipairs(parent:GetChildren()) do
-        if child.Name == targetName then
-            return child
-        end
-        if #child:GetChildren() > 0 then
-            local found = findChildByNameRecursive(child, targetName)
-            if found then
-                return found
+    local function findChildByNameRecursive(parent, targetName)
+        for _, child in ipairs(parent:GetChildren()) do
+            if child.Name == targetName then
+                return child
+            end
+            if #child:GetChildren() > 0 then
+                local found = findChildByNameRecursive(child, targetName)
+                if found then
+                    return found
+                end
             end
         end
-    end
-    return nil
-end
-
-local function getFirstArgForRemote(uuidFolder)
-    -- If direct "Rocks" exists, return UUID string
-    local rocksPart = uuidFolder:FindFirstChild("Rocks")
-    if rocksPart and rocksPart:IsA("BasePart") then
-        return uuidFolder.Name
+        return nil
     end
 
-    -- If "Meshes" exists and contains "Rocks 2", return "$"
-    local meshesFolder = uuidFolder:FindFirstChild("Meshes")
-    if meshesFolder then
-        local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
-        if rocks2Part and rocks2Part:IsA("BasePart") then
-            return "$"
+    local function getFirstArgForRemote(uuidFolder)
+        -- If direct "Rocks" exists, return UUID string
+        local rocksPart = uuidFolder:FindFirstChild("Rocks")
+        if rocksPart and rocksPart:IsA("BasePart") then
+            return uuidFolder.Name
         end
+
+        -- If "Meshes" exists and contains "Rocks 2", return "$"
+        local meshesFolder = uuidFolder:FindFirstChild("Meshes")
+        if meshesFolder then
+            local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
+            if rocks2Part and rocks2Part:IsA("BasePart") then
+                return "$"
+            end
+        end
+
+        return nil -- no valid target
     end
 
-    return nil -- no valid target
-end
-
-while true do
     for _, island in ipairs(Islands:GetChildren()) do
         for _, uuidFolder in ipairs(island:GetChildren()) do
             if tostring(uuidFolder.Name):match("^%b{}$") then
@@ -72,5 +71,6 @@ while true do
             end
         end
     end
-    task.wait(1) -- wait 1 second between loops
+
+    task.wait(1) -- pause before next full re-execution
 end
