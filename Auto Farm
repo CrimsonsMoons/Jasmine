@@ -1,7 +1,7 @@
----
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -9,11 +9,12 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Communication = ReplicatedStorage:WaitForChild("Communication")
 local Functions = Communication:WaitForChild("Functions")
-local Remote = Functions:GetChildren()[4]  -- Update if needed
+local Remote = Functions:GetChildren()[4]  -- Update index if needed
 print("Using remote:", Remote.Name)
 
 local Islands = Workspace:WaitForChild("Islands")
 local SEARCH_RADIUS = 100
+local LOOP_DELAY = 5 -- seconds between each scan and fire
 
 local function findChildByNameRecursive(parent, targetName)
     for _, child in ipairs(parent:GetChildren()) do
@@ -31,13 +32,11 @@ local function findChildByNameRecursive(parent, targetName)
 end
 
 local function hasTargetParts(uuidFolder)
-    -- Check direct child "Rocks"
     local rocksPart = uuidFolder:FindFirstChild("Rocks")
     if rocksPart and rocksPart:IsA("BasePart") then
         return true
     end
 
-    -- Check recursively inside "Meshes" for "Rocks 2"
     local meshesFolder = uuidFolder:FindFirstChild("Meshes")
     if meshesFolder then
         local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
@@ -53,24 +52,31 @@ local function hasTargetParts(uuidFolder)
     return false
 end
 
-for _, island in ipairs(Islands:GetChildren()) do
-    for _, uuidFolder in ipairs(island:GetChildren()) do
-        if tostring(uuidFolder.Name):match("^%b{}$") then
-            local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
-            if bodyPart then
-                local dist = (bodyPart.Position - RootPart.Position).Magnitude
-                if dist <= SEARCH_RADIUS then
-                    if hasTargetParts(uuidFolder) then
-                        local args = {
-                            [1] = uuidFolder.Name,
-                            [2] = "Engage",
-                            [3] = uuidFolder
-                        }
-                        print("Firing remote for UUID:", uuidFolder.Name, "Distance:", dist)
-                        Remote:FireServer(unpack(args))
+while true do
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+
+    for _, island in ipairs(Islands:GetChildren()) do
+        for _, uuidFolder in ipairs(island:GetChildren()) do
+            if tostring(uuidFolder.Name):match("^%b{}$") then
+                local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
+                if bodyPart then
+                    local dist = (bodyPart.Position - RootPart.Position).Magnitude
+                    if dist <= SEARCH_RADIUS then
+                        if hasTargetParts(uuidFolder) then
+                            local args = {
+                                [1] = uuidFolder.Name,
+                                [2] = "Engage",
+                                [3] = uuidFolder
+                            }
+                            print("Firing remote for UUID:", uuidFolder.Name, "Distance:", dist)
+                            Remote:FireServer(unpack(args))
+                        end
                     end
                 end
             end
         end
     end
+
+    task.wait(LOOP_DELAY)
 end
