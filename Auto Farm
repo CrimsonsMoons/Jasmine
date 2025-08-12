@@ -7,51 +7,46 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
 local Functions = Communication:WaitForChild("Functions", 9e9)
-local fireFunction = Functions:GetChildren()[4] -- Confirm correct
+local fireFunction = Functions:GetChildren()[4] -- Verify index
+
+print("Using remote function:", fireFunction.Name)
 
 local ForestIsland = workspace:WaitForChild("Islands", 9e9):WaitForChild("Forest Island", 9e9)
 
 local targetPartNames = {
+    ["Rock"] = true,
+    ["Rocks"] = true,
     ["Rock 1"] = true,
     ["Rocks 2"] = true,
-    ["Rocks"] = true,
-    ["Rock"] = true,
 }
 
 local function findTargetPart(folder)
     for _, descendant in pairs(folder:GetDescendants()) do
         if descendant:IsA("BasePart") and targetPartNames[descendant.Name] then
-            print("Found target part:", descendant.Name, "in", folder.Name)
             return descendant
         end
     end
     return nil
 end
 
-for _, uuidFolder in pairs(ForestIsland:GetChildren()) do
-    if uuidFolder:IsA("Folder") and uuidFolder.Name:match("^%b{}$") then
-        print("Checking UUID folder:", uuidFolder.Name)
-        local targetPart = findTargetPart(uuidFolder)
-        if targetPart then
-            local distance = (RootPart.Position - targetPart.Position).Magnitude
-            print("Distance to part:", distance)
-            if distance <= 15 then
-                print("Within range! Firing for UUID:", uuidFolder.Name)
-                local args = {
-                    [1] = " ",
-                    [2] = "Engage",
-                    [3] = uuidFolder
-                }
-                fireFunction:FireServer(unpack(args))
-                task.wait(0.1)
-            else
-                print("Too far:", uuidFolder.Name)
+while true do
+    for _, uuidFolder in pairs(ForestIsland:GetChildren()) do
+        if uuidFolder:IsA("Folder") and uuidFolder.Name:match("^%b{}$") then
+            local targetPart = findTargetPart(uuidFolder)
+            if targetPart then
+                local distance = (RootPart.Position - targetPart.Position).Magnitude
+                if distance <= 15 then
+                    print("Processing UUID:", uuidFolder.Name, "Distance:", distance)
+                    local args = {
+                        [1] = " ",
+                        [2] = "Engage",
+                        [3] = uuidFolder
+                    }
+                    fireFunction:FireServer(unpack(args))
+                    task.wait(1) -- wait 1 second before next UUID
+                end
             end
-        else
-            print("No target part found in UUID:", uuidFolder.Name)
         end
-    else
-        print("Skipped non-UUID:", uuidFolder.Name)
     end
+    task.wait(2) -- wait 2 seconds before scanning again
 end
---
