@@ -1,0 +1,88 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+local Communication = ReplicatedStorage:WaitForChild("Communication")
+local Functions = Communication:WaitForChild("Functions")
+local Remote = Functions:GetChildren()[4]  -- Use remote index 4 as before
+
+local Islands = Workspace:WaitForChild("Islands")
+local SEARCH_RADIUS = 20 -- studs
+
+local function findChildByNameRecursive(parent, targetName)
+    for _, child in ipairs(parent:GetChildren()) do
+        if child.Name == targetName then
+            return child
+        end
+        if #child:GetChildren() > 0 then
+            local found = findChildByNameRecursive(child, targetName)
+            if found then
+                return found
+            end
+        end
+    end
+    return nil
+end
+
+local function getFirstArgForRemote(uuidFolder)
+    -- If direct "Rocks" exists, return UUID string (folder name)
+    local rocksPart = uuidFolder:FindFirstChild("Rocks")
+    if rocksPart and rocksPart:IsA("BasePart") then
+        return uuidFolder.Name
+    end
+
+    -- If "Meshes" exists and contains "Rocks 2", return "$"
+    local meshesFolder = uuidFolder:FindFirstChild("Meshes")
+    if meshesFolder then
+        local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
+        if rocks2Part and rocks2Part:IsA("BasePart") then
+            return "$"
+        end
+    end
+
+    return nil -- no valid target
+end
+
+-- Collect all UUID folders within SEARCH_RADIUS around the player
+local nearbyUUIDs = {}
+
+for _, island in ipairs(Islands:GetChildren()) do
+    for _, uuidFolder in ipairs(island:GetChildren()) do
+        if tostring(uuidFolder.Name):match("^%b{}$") then
+            local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
+            if bodyPart then
+                local dist = (bodyPart.Position - RootPart.Position).Magnitude
+                if dist <= SEARCH_RADIUS then
+                    -- Check if first argument is valid
+                    local firstArg = getFirstArgForRemote(uuidFolder)
+                    if firstArg then
+                        table.insert(nearbyUUIDs, {folder = uuidFolder, firstArg = firstArg, distance = dist})
+                    end
+                end
+            end
+        end
+    end
+end
+
+if #nearbyUUIDs == 0 then
+    print("No valid UUID folders found within", SEARCH_RADIUS, "studs.")
+    return
+end
+
+-- Pick a random UUID folder from the nearby list
+local randomIndex = math.random(1, #nearbyUUIDs)
+local target = nearbyUUIDs[randomIndex]
+
+print("Firing remote for random nearby UUID:", target.folder.Name, "FirstArg:", target.firstArg, "Distance:", target.distance)
+
+local args = {
+    [1] = target.firstArg,
+    [2] = "Engage",
+    [3] = target.folder
+}
+
+Remote:FireServer(unpack(args))
