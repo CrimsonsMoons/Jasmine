@@ -1,107 +1,56 @@
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local IslandsFolder = Workspace:WaitForChild("Islands", 9e9)
-local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
-local FunctionsFolder = Communication:WaitForChild("Functions", 9e9)
-local engageFunction = FunctionsFolder:GetChildren()[4]
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-local uuidPattern = "%b{}"
+local Communication = ReplicatedStorage:WaitForChild("Communication", 9e9)
+local Functions = Communication:WaitForChild("Functions", 9e9)
+local fireFunction = Functions:GetChildren()[4] -- Confirm correct
+
+local ForestIsland = workspace:WaitForChild("Islands", 9e9):WaitForChild("Forest Island", 9e9)
 
 local targetPartNames = {
-    "Rocks",
-    "Rock",
-    "Flower",
-    "Rocks 2",
-    "Bush (1)",
-    "Wheat Plane",
-    "Rock 1",
-    "Leaf",
-    "Coconut",
-    "Hay",
-    "StrawBerries"
+    ["Rock 1"] = true,
+    ["Rocks 2"] = true,
+    ["Rocks"] = true,
+    ["Rock"] = true,
 }
 
---- Excluded parts and folders (blacklist)
-local excludedPart = Workspace:FindFirstChild("Islands")
-    and Workspace.Islands:FindFirstChild("Forest Island")
-    and Workspace.Islands["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
-    and Workspace.Islands["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
-
-local excludedFolder = Workspace:FindFirstChild("Islands")
-    and Workspace.Islands:FindFirstChild("Forest Island")
-    and Workspace.Islands["Forest Island"]:FindFirstChild("Larry")
-
-local function isDescendantOfExcludedFolder(instance)
-    return excludedFolder and instance:IsDescendantOf(excludedFolder)
-end
-
-local function isTargetName(name, parentName)
-    for _, targetName in ipairs(targetPartNames) do
-        if name == targetName then
-            -- In your original code Log is handled specially,
-            -- but you don't have "Log" in your targetPartNames, so skipping that
-            return true
+local function findTargetPart(folder)
+    for _, descendant in pairs(folder:GetDescendants()) do
+        if descendant:IsA("BasePart") and targetPartNames[descendant.Name] then
+            print("Found target part:", descendant.Name, "in", folder.Name)
+            return descendant
         end
     end
-    return false
+    return nil
 end
 
-local function findTargets(folder)
-    local results = {}
-    for _, descendant in ipairs(folder:GetDescendants()) do
-        if descendant == excludedPart then
-            -- Skip excluded part
-        elseif isDescendantOfExcludedFolder(descendant) then
-            -- Skip everything inside the excluded folder
-        elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
-            if descendant:GetAttribute("interactionType") == "CollectableItem" then
-                table.insert(results, descendant)
-            elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
-                table.insert(results, descendant)
+for _, uuidFolder in pairs(ForestIsland:GetChildren()) do
+    if uuidFolder:IsA("Folder") and uuidFolder.Name:match("^%b{}$") then
+        print("Checking UUID folder:", uuidFolder.Name)
+        local targetPart = findTargetPart(uuidFolder)
+        if targetPart then
+            local distance = (RootPart.Position - targetPart.Position).Magnitude
+            print("Distance to part:", distance)
+            if distance <= 15 then
+                print("Within range! Firing for UUID:", uuidFolder.Name)
+                local args = {
+                    [1] = " ",
+                    [2] = "Engage",
+                    [3] = uuidFolder
+                }
+                fireFunction:FireServer(unpack(args))
+                task.wait(0.1)
+            else
+                print("Too far:", uuidFolder.Name)
             end
-        end
-    end
-    return results
-end
-
-local function getHumanoidRootPart()
-    local character = LocalPlayer.Character
-    if not character then return nil end
-    return character:FindFirstChild("HumanoidRootPart")
-end
-
-while true do
-    local hrp = getHumanoidRootPart()
-    if hrp then
-        for _, island in ipairs(IslandsFolder:GetChildren()) do
-            for _, uuidFolder in ipairs(island:GetChildren()) do
-                if uuidFolder.Name:match("^%b{}$") then
-                    local success, pivot = pcall(function()
-                        return uuidFolder:GetPivot()
-                    end)
-                    if success and pivot then
-                        local distance = (pivot.Position - hrp.Position).Magnitude
-                        if distance <= 20 then
-                            -- Check if this UUID folder contains valid target parts
-                            local targets = findTargets(uuidFolder)
-                            if #targets > 0 then
-                                local args = {
-                                    [1] = " ";
-                                    [2] = "Engage";
-                                    [3] = uuidFolder;
-                                }
-                                engageFunction:FireServer(unpack(args))
-                            end
-                        end
-                    end
-                end
-            end
+        else
+            print("No target part found in UUID:", uuidFolder.Name)
         end
     else
-        task.wait(0.5)
+        print("Skipped non-UUID:", uuidFolder.Name)
     end
-    task.wait(5)  -- loop delay
 end
