@@ -24,7 +24,7 @@ local targetPartNames = {
     "StrawBerries"
 }
 
--- Excluded parts and folders (blacklist)
+--- Excluded parts and folders (blacklist)
 local excludedPart = Workspace:FindFirstChild("Islands")
     and Workspace.Islands:FindFirstChild("Forest Island")
     and Workspace.Islands["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
