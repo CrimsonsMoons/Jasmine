@@ -1,0 +1,97 @@
+local args = {
+    [1] = {
+        [1] = {
+            ["productId"] = 1240572510;
+        };
+        [2] = {
+            ["productId"] = 1276886354;
+        };
+        [3] = {
+            ["productId"] = 2662131225;
+        };
+        [4] = {
+            ["itemData"] = {
+                ["id"] = 364;
+            };
+        };
+        [5] = {
+            ["itemData"] = {
+                ["id"] = 368;
+            };
+        };
+        [6] = {
+            ["itemData"] = {
+                ["id"] = 142;
+                ["variants"] = {
+                    ["colour"] = "Bright Purple";
+                };
+            };
+        };
+        [7] = {
+            ["itemData"] = {
+                ["id"] = 1078;
+                ["variants"] = {
+                    ["secondary"] = "Tin";
+                    ["primary"] = "Shiny Blue";
+                };
+            };
+        };
+        [8] = {
+            ["itemData"] = {
+                ["id"] = 262;
+                ["variants"] = {
+                    ["colour"] = "Icey Green";
+                };
+            };
+        };
+        [9] = {
+            ["itemData"] = {
+                ["id"] = 1076;
+                ["variants"] = {
+                    ["secondary"] = "Wooden";
+                    ["primary"] = "Pastel Red";
+                };
+            };
+        };
+        [10] = {
+            ["itemData"] = {
+                ["id"] = 1077;
+                ["variants"] = {
+                    ["primary"] = "Pearl";
+                };
+            };
+        };
+        [11] = {
+            ["itemData"] = {
+                ["id"] = 253;
+                ["variants"] = {
+                    ["colour"] = "Pastel Orange";
+                };
+            };
+        };
+        [12] = {
+            ["itemData"] = {
+                ["id"] = 109;
+                ["variants"] = {
+                    ["colour"] = "Bright Purple";
+                };
+            };
+        };
+        [13] = {
+            ["itemData"] = {
+                ["id"] = 259;
+                ["variants"] = {
+                    ["texture"] = "zebraPrint";
+                };
+            };
+        };
+        [14] = {
+            ["itemData"] = {
+                ["id"] = 257;
+                ["variants"] = {
+                    ["texture"] = "lightGreenGingham";
+                };
+            };
+        };
+    };
+}
