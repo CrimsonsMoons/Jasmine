@@ -1,7 +1,10 @@
-------
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Communication = ReplicatedStorage:WaitForChild("Communication")
 local Functions = Communication:WaitForChild("Functions")
@@ -44,36 +47,26 @@ local function getFirstArgForRemote(uuidFolder)
 end
 
 while true do
-    local LocalPlayer = Players.LocalPlayer
-    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local RootPart = Character:WaitForChild("HumanoidRootPart")
-
     for _, island in ipairs(Islands:GetChildren()) do
         for _, uuidFolder in ipairs(island:GetChildren()) do
             if tostring(uuidFolder.Name):match("^%b{}$") then
                 local bodyPart = uuidFolder:FindFirstChild("Body") or uuidFolder:FindFirstChildWhichIsA("BasePart")
                 if bodyPart then
                     local dist = (bodyPart.Position - RootPart.Position).Magnitude
-                    print(string.format("UUID: %s at distance %.2f", uuidFolder.Name, dist))
                     if dist <= SEARCH_RADIUS then
                         local firstArg = getFirstArgForRemote(uuidFolder)
                         if firstArg then
-                            print("Firing remote for UUID:", uuidFolder.Name, "FirstArg:", firstArg, "Distance:", dist)
                             local args = {
                                 [1] = firstArg,
                                 [2] = "Engage",
                                 [3] = uuidFolder
                             }
                             Remote:FireServer(unpack(args))
-                        else
-                            print("No valid firstArg for UUID:", uuidFolder.Name)
                         end
                     end
-                else
-                    print("No Body or BasePart found in UUID folder:", uuidFolder.Name)
                 end
             end
         end
     end
-    task.wait(1)
+    task.wait(0.1)  -- Reduced wait time for faster scanning
 end
