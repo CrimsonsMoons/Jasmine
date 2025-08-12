@@ -1,4 +1,3 @@
--------
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -9,11 +8,11 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Communication = ReplicatedStorage:WaitForChild("Communication")
 local Functions = Communication:WaitForChild("Functions")
-local Remote = Functions:GetChildren()[4]  -- Update index if needed
+local Remote = Functions:GetChildren()[4]  -- Adjust if needed
 print("Using remote:", Remote.Name)
 
 local Islands = Workspace:WaitForChild("Islands")
-local SEARCH_RADIUS = 30
+local SEARCH_RADIUS = 100
 
 local function findChildByNameRecursive(parent, targetName)
     for _, child in ipairs(parent:GetChildren()) do
@@ -30,40 +29,23 @@ local function findChildByNameRecursive(parent, targetName)
     return nil
 end
 
-local function printDescendants(parent, indent)
-    indent = indent or ""
-    for _, child in ipairs(parent:GetChildren()) do
-        print(indent .. child.Name, child.ClassName)
-        printDescendants(child, indent .. "  ")
-    end
-end
-
-local function hasTargetParts(uuidFolder)
-    -- Check direct child "Rocks"
+local function getFirstArgForRemote(uuidFolder)
+    -- If direct "Rocks" exists, return UUID string
     local rocksPart = uuidFolder:FindFirstChild("Rocks")
     if rocksPart and rocksPart:IsA("BasePart") then
-        print("Found direct 'Rocks' in UUID:", uuidFolder.Name)
-        return true
+        return uuidFolder.Name
     end
 
-    -- Check "Meshes"
+    -- If "Meshes" exists and contains "Rocks 2", return "$"
     local meshesFolder = uuidFolder:FindFirstChild("Meshes")
-    if not meshesFolder then
-        print("No 'Meshes' folder in UUID:", uuidFolder.Name)
-        return false
+    if meshesFolder then
+        local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
+        if rocks2Part and rocks2Part:IsA("BasePart") then
+            return "$"
+        end
     end
 
-    print("'Meshes' folder contents in UUID:", uuidFolder.Name)
-    printDescendants(meshesFolder, "  ")
-
-    local rocks2Part = findChildByNameRecursive(meshesFolder, "Rocks 2")
-    if rocks2Part and rocks2Part:IsA("BasePart") then
-        print("Found 'Rocks 2' inside 'Meshes' in UUID:", uuidFolder.Name)
-        return true
-    else
-        print("No valid 'Rocks 2' BasePart found inside 'Meshes' in UUID:", uuidFolder.Name)
-        return false
-    end
+    return nil -- no valid target
 end
 
 for _, island in ipairs(Islands:GetChildren()) do
@@ -73,13 +55,14 @@ for _, island in ipairs(Islands:GetChildren()) do
             if bodyPart then
                 local dist = (bodyPart.Position - RootPart.Position).Magnitude
                 if dist <= SEARCH_RADIUS then
-                    if hasTargetParts(uuidFolder) then
+                    local firstArg = getFirstArgForRemote(uuidFolder)
+                    if firstArg then
                         local args = {
-                            [1] = uuidFolder.Name,
+                            [1] = firstArg,
                             [2] = "Engage",
                             [3] = uuidFolder
                         }
-                        print("Firing remote for UUID:", uuidFolder.Name, "Distance:", dist)
+                        print("Firing remote for UUID:", uuidFolder.Name, "FirstArg:", firstArg, "Distance:", dist)
                         Remote:FireServer(unpack(args))
                     end
                 end
