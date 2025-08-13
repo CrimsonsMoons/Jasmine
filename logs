@@ -1,0 +1,12 @@
+-- Clears the developer console every 20 seconds
+while task.wait(20) do
+    if typeof(rconsoleclear) == "function" then
+        -- Synapse / executor console
+        rconsoleclear()
+    else
+        -- Roblox in-game console
+        for i = 1, 100 do
+            print("\n")
+        end
+    end
+end
