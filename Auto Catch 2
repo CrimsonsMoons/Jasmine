@@ -5,7 +5,7 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
--- Tool UUIDs
+--- Tool UUIDs
 local TOOL_UUIDS = {
     "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
@@ -15,6 +15,10 @@ local TOOL_UUIDS = {
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
     "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+    "{c774eb07-6267-4c0a-a57a-f9d308ff0796}",
+    "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+    "{efe4b787-0112-42f2-a83c-659149e1de5c}",
+    "{a58d9d73-ffd0-45ad-b0eb-e08cd1692dae}",
 }
 
 -- Exclusions
@@ -34,7 +38,7 @@ local EXCLUSIONS = {
     ["Travel Boat"] = true,
 }
 
--- Island names
+-- Island names (Glacier Island added)
 local ISLAND_NAMES = {
     "Mainland", "Forest Island", "Mountain Island", "Lunar Islands",
     "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island",
@@ -109,4 +113,4 @@ while true do
     end
 
     task.wait(0.75) -- Slightly longer delay = less lag
-end
+en
