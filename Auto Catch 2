@@ -5,7 +5,7 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
---- Tool UUIDs
+---- Tool UUIDs
 local TOOL_UUIDS = {
     "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
