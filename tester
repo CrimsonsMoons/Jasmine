@@ -1,4 +1,4 @@
-------- === GUI Library Setup ===
+----- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -27,7 +27,6 @@ local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 local explorerFolder = workspace:FindFirstChild("Explorer")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Reconnect HRP on respawn
 local function setupCharacter(newChar)
@@ -66,63 +65,11 @@ for _, config in pairs(islandConfigs) do
     config["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true
 end
 
--- === Helper Function to get all Bodies ===
-local function getAllBodies(islandName)
-    local bodies = {}
-    local excludedIds = islandConfigs[islandName]
-
-    local function checkModel(model)
-        if excludedIds[model.Name] then return end
-        local body = model:FindFirstChild("Body")
-        if body then
-            if body:IsA("BasePart") then
-                table.insert(bodies, body)
-            elseif body:IsA("Model") then
-                for _, part in ipairs(body:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        table.insert(bodies, part)
-                    end
-                end
-            end
-        end
-    end
-
-    -- Islands folder
-    local folder = islandsFolder:FindFirstChild(islandName)
-    if folder then
-        for _, model in ipairs(folder:GetChildren()) do
-            if model:IsA("Model") then
-                checkModel(model)
-            end
-        end
-    end
-
-    -- Explorer folder
-    if explorerFolder then
-        local explorerIsland = explorerFolder:FindFirstChild(islandName)
-        if explorerIsland then
-            for _, model in ipairs(explorerIsland:GetChildren()) do
-                if model:IsA("Model") then
-                    checkModel(model)
-                end
-            end
-        end
-    end
-
-    -- Direct workspace children
-    for _, model in ipairs(workspace:GetChildren()) do
-        if model:IsA("Model") then
-            checkModel(model)
-        end
-    end
-
-    return bodies
-end
-
--- === Main Island Teleport Toggles ===
+-- === Teleport Toggles for Islands in Main Tab ===
 local teleportToggles = {}
-for islandName, _ in pairs(islandConfigs) do
+for islandName, excludedIds in pairs(islandConfigs) do
     teleportToggles[islandName] = false
+
     TeleportSection:NewToggle("Teleport " .. islandName, "Teleport to " .. islandName, function(state)
         teleportToggles[islandName] = state
     end)
@@ -130,15 +77,20 @@ for islandName, _ in pairs(islandConfigs) do
     task.spawn(function()
         while true do
             if teleportToggles[islandName] then
-                local bodies = getAllBodies(islandName)
-                for _, body in ipairs(bodies) do
+                local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
+                if not folder then break end
+                for _, model in ipairs(folder:GetChildren()) do
                     if not teleportToggles[islandName] then break end
-                    while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
-                        hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                        task.wait(0.05)
+                    if excludedIds[model.Name] then continue end
+                    local body = model:FindFirstChild("Body")
+                    if body and body:IsA("BasePart") then
+                        while teleportToggles[islandName] and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
                     end
+                    task.wait(0.1)
                 end
-                task.wait(0.5)
             else
                 task.wait(0.5)
             end
@@ -150,12 +102,12 @@ end
 for islandName in pairs(islandConfigs) do
     TravelSection:NewButton("Travel to " .. islandName, "Use teleport remote", function()
         local args = {"\1", "Travel", islandName, 1}
-        ReplicatedStorage:WaitForChild("Communication", 9e9)
+        game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9)
             :WaitForChild("Functions", 9e9):GetChildren()[2]:FireServer(unpack(args))
     end)
 end
 
--- === Lunar/Volcano Positions ===
+-- === Lunar and Volcano Positions ===
 local lunarPositions = {
     Vector3.new(-3097.42, 17.63, -3681.29),
     Vector3.new(-2759.49, 6.74, -2589.20),
@@ -171,29 +123,63 @@ local volcanoPositions = {
     Vector3.new(3487.48, 20.99, -8586.85),
 }
 
--- === Lunar Island Toggle ===
+local exclusions = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
+}
+
+-- === Lunar Island Teleport Toggle ===
 local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts", function(state)
+LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport to UUID.Body parts, then next position", function(state)
     lunarToggle = state
 end)
 
 task.spawn(function()
     while true do
         if lunarToggle then
+            local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
+            if not folder then task.wait(1) continue end
+
             for _, pos in ipairs(lunarPositions) do
                 if not lunarToggle then break end
-                local bodies = getAllBodies("Lunar Islands")
-                if #bodies > 0 then
-                    for _, body in ipairs(bodies) do
+
+                local hasBodies = false
+                for _, model in ipairs(folder:GetChildren()) do
+                    if not exclusions[model.Name] then
+                        local body = model:FindFirstChild("Body")
+                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                            hasBodies = true
+                            break
+                        end
+                    end
+                end
+
+                if hasBodies then
+                    for _, model in ipairs(folder:GetChildren()) do
                         if not lunarToggle then break end
-                        while lunarToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
+                        if not exclusions[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                while lunarToggle and body:IsDescendantOf(workspace) do
+                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                    task.wait(0.05)
+                                end
+                            end
                         end
                     end
                 else
                     hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(11.5)
                 end
             end
         else
@@ -202,29 +188,48 @@ task.spawn(function()
     end
 end)
 
--- === Volcano Island Toggle ===
+-- === Volcano Island Teleport Toggle ===
 local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts", function(state)
+LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport to UUID.Body parts, then next position", function(state)
     volcanoToggle = state
 end)
 
 task.spawn(function()
     while true do
         if volcanoToggle then
+            local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+            if not folder then task.wait(1) continue end
+
             for _, pos in ipairs(volcanoPositions) do
                 if not volcanoToggle then break end
-                local bodies = getAllBodies("Volcano Island")
-                if #bodies > 0 then
-                    for _, body in ipairs(bodies) do
+
+                local hasBodies = false
+                for _, model in ipairs(folder:GetChildren()) do
+                    if not exclusions[model.Name] then
+                        local body = model:FindFirstChild("Body")
+                        if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                            hasBodies = true
+                            break
+                        end
+                    end
+                end
+
+                if hasBodies then
+                    for _, model in ipairs(folder:GetChildren()) do
                         if not volcanoToggle then break end
-                        while volcanoToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
+                        if not exclusions[model.Name] then
+                            local body = model:FindFirstChild("Body")
+                            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
+                                while volcanoToggle and body:IsDescendantOf(workspace) do
+                                    hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                                    task.wait(0.05)
+                                end
+                            end
                         end
                     end
                 else
                     hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
+                    task.wait(11.5)
                 end
             end
         else
@@ -232,7 +237,8 @@ task.spawn(function()
         end
     end
 end)
--- Lava Removal Toggle
+
+-- === Volcano Lava Removal Toggle ===
 local removeLavaEnabled = false
 LunarVolcanoSection:NewToggle("Remove Volcano Lava", "Deletes Volcano Island LavaParts every 60 seconds", function(state)
     removeLavaEnabled = state
