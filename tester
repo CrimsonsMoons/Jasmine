@@ -233,6 +233,25 @@ task.spawn(function()
     end
 end)
 
+LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
+    task.spawn(function()
+        while true do
+            local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
+            for _, part in ipairs(folder:GetChildren()) do
+                if part:IsA("BasePart") then
+                    for _, child in ipairs(part:GetChildren()) do
+                        if child:IsA("TouchTransmitter") then
+                            child:Destroy()
+                        end
+                    end
+                end
+            end
+            print("All TouchInterests removed.")
+            task.wait(60)
+        end
+    end)
+end)
+
 -- === Training Buttons ===
 TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Single%20tp%20v2", true))()
