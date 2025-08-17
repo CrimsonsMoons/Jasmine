@@ -232,24 +232,23 @@ task.spawn(function()
         end
     end
 end)
-
-LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
-    task.spawn(function()
-        while true do
-            local folder = islandsFolder:WaitForChild("Volcano Island"):WaitForChild("LavaParts"):WaitForChild("Folder")
-            for _, part in ipairs(folder:GetChildren()) do
-                if part:IsA("BasePart") then
-                    for _, child in ipairs(part:GetChildren()) do
-                        if child:IsA("TouchTransmitter") then
-                            child:Destroy()
-                        end
-                    end
+-- Lava Removal Toggle
+local removeLavaEnabled = false
+LunarVolcanoSection:NewToggle("Remove Volcano Lava", "Deletes Volcano Island LavaParts every 60 seconds", function(state)
+    removeLavaEnabled = state
+    if state then
+        task.spawn(function()
+            while removeLavaEnabled do
+                local lavaFolder = workspace:FindFirstChild("Islands")
+                    and workspace.Islands:FindFirstChild("Volcano Island")
+                    and workspace.Islands["Volcano Island"]:FindFirstChild("LavaParts")
+                if lavaFolder then
+                    lavaFolder:Destroy()
                 end
+                task.wait(60)
             end
-            print("All TouchInterests removed.")
-            task.wait(60)
-        end
-    end)
+        end)
+    end
 end)
 
 -- === Training Buttons ===
