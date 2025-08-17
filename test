@@ -109,8 +109,14 @@ end
 
 -- === Positions for Special Islands ===
 local positionsByIsland = {
-    ["Forest Island"] = {},
-    ["Mountain Island"] = {},
+    ["Forest Island"] = {
+        Vector3.new(-4500, 50, -5000),
+        Vector3.new(-4600, 55, -5100),
+    },
+    ["Mountain Island"] = {
+        Vector3.new(-4500, 50, -5000),
+        Vector3.new(-4600, 55, -5100),
+    },
     ["Lunar Islands"] = {
         Vector3.new(-3097.42, 17.63, -3681.29),
         Vector3.new(-2759.49, 6.74, -2589.20),
