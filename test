@@ -1,4 +1,4 @@
------- === GUI Library Setup ===
+----- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -108,39 +108,36 @@ for islandName in pairs(islandConfigs) do
 end
 
 -- === Positions for Special Islands ===
-local lunarPositions = {
-    Vector3.new(-3097.42, 17.63, -3681.29),
-    Vector3.new(-2759.49, 6.74, -2589.20),
-    Vector3.new(-2207.14, 139.06, -1223.94),
-    Vector3.new(-3266.90, 15.43, -1436.56),
-    Vector3.new(-3357.76, 24.34, -2428.62),
-}
-
-local volcanoPositions = {
-    Vector3.new(2964.74, 108.94, -7078.36),
-    Vector3.new(4134.52, 27.04, -6894.68),
-    Vector3.new(4757.52, 26.13, -7939.00),
-    Vector3.new(3487.48, 20.99, -8586.85),
-}
-
-local blizzardPositions = {
-    Vector3.new(-4500, 50, -5000),
-    Vector3.new(-4600, 55, -5100),
-}
-
--- === Universal Exclusions ===
-local exclusions = islandConfigs["Mainland"]
-
--- === All Special Islands Toggles ===
-local specialIslands = {
-    ["Lunar Islands"] = lunarPositions,
-    ["Volcano Island"] = volcanoPositions,
-    ["Blizzard Island"] = blizzardPositions,
+local positionsByIsland = {
+    ["Forest Island"] = {},
+    ["Mountain Island"] = {},
+    ["Lunar Islands"] = {
+        Vector3.new(-3097.42, 17.63, -3681.29),
+        Vector3.new(-2759.49, 6.74, -2589.20),
+        Vector3.new(-2207.14, 139.06, -1223.94),
+        Vector3.new(-3266.90, 15.43, -1436.56),
+        Vector3.new(-3357.76, 24.34, -2428.62),
+    },
+    ["Royal Island"] = {},
+    ["Blizzard Island"] = {
+        Vector3.new(-4500, 50, -5000),
+        Vector3.new(-4600, 55, -5100),
+    },
+    ["Jungle Island"] = {},
+    ["Volcano Island"] = {
+        Vector3.new(2964.74, 108.94, -7078.36),
+        Vector3.new(4134.52, 27.04, -6894.68),
+        Vector3.new(4757.52, 26.13, -7939.00),
+        Vector3.new(3487.48, 20.99, -8586.85),
+    },
+    ["Desert Island"] = {},
+    ["Glacier Island"] = {},
 }
 
 local islandToggles = {}
+local exclusions = islandConfigs["Mainland"]
 
-for islandName, positions in pairs(specialIslands) do
+for islandName, positions in pairs(positionsByIsland) do
     islandToggles[islandName] = false
     LunarVolcanoSection:NewToggle(islandName .. " Explore", "Teleport to UUID.Body parts, then next position", function(state)
         islandToggles[islandName] = state
