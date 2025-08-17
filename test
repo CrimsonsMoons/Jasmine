@@ -1,4 +1,4 @@
---- === GUI Library Setup ===
+------ === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -28,10 +28,12 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local islandsFolder = workspace:WaitForChild("Islands")
 local explorerFolder = workspace:FindFirstChild("Explorer")
 
-player.CharacterAdded:Connect(function(newChar)
+-- Reconnect HRP on respawn
+local function setupCharacter(newChar)
     character = newChar
     hrp = character:WaitForChild("HumanoidRootPart")
-end)
+end
+player.CharacterAdded:Connect(setupCharacter)
 
 -- === Island Configuration ===
 local islandConfigs = {
@@ -48,25 +50,19 @@ local islandConfigs = {
 }
 
 -- === Universal Exclusions ===
-local exclusions = {
-    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
-    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
-    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
-    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
-    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
-    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
-    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
-    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
-    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
-    ["Horse"] = true,
-    ["Travel Boat"] = true,
-    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
-}
-
 for _, config in pairs(islandConfigs) do
-    for k,v in pairs(exclusions) do
-        config[k] = true
-    end
+    config["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true
+    config["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true
+    config["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true
+    config["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true
+    config["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true
+    config["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true
+    config["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true
+    config["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true
+    config["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true
+    config["Horse"] = true
+    config["Travel Boat"] = true
+    config["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true
 end
 
 -- === Teleport Toggles for Islands in Main Tab ===
@@ -82,7 +78,7 @@ for islandName, excludedIds in pairs(islandConfigs) do
         while true do
             if teleportToggles[islandName] then
                 local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-                if not folder then task.wait(1) continue end
+                if not folder then task.wait(0.5) continue end
                 for _, model in ipairs(folder:GetChildren()) do
                     if not teleportToggles[islandName] then break end
                     if excludedIds[model.Name] then continue end
@@ -111,29 +107,35 @@ for islandName in pairs(islandConfigs) do
     end)
 end
 
--- === Lunar/Volcano/Blizzard Positions ===
-local islandPositions = {
-    ["Lunar Islands"] = {
-        Vector3.new(-3097.42, 17.63, -3681.29),
-        Vector3.new(-2759.49, 6.74, -2589.20),
-        Vector3.new(-2207.14, 139.06, -1223.94),
-        Vector3.new(-3266.90, 15.43, -1436.56),
-        Vector3.new(-3357.76, 24.34, -2428.62),
-    },
-    ["Volcano Island"] = {
-        Vector3.new(2964.74, 108.94, -7078.36),
-        Vector3.new(4134.52, 27.04, -6894.68),
-        Vector3.new(4757.52, 26.13, -7939.00),
-        Vector3.new(3487.48, 20.99, -8586.85),
-    },
-    ["Blizzard Island"] = {
-        Vector3.new(-500, 50, -200), -- replace with real Blizzard positions
-        Vector3.new(-600, 45, -300),
-    },
+-- === Lunar, Volcano, Blizzard Positions ===
+local lunarPositions = {
+    Vector3.new(-3097.42, 17.63, -3681.29),
+    Vector3.new(-2759.49, 6.74, -2589.20),
+    Vector3.new(-2207.14, 139.06, -1223.94),
+    Vector3.new(-3266.90, 15.43, -1436.56),
+    Vector3.new(-3357.76, 24.34, -2428.62),
 }
 
-local islandToggles = {}
+local volcanoPositions = {
+    Vector3.new(2964.74, 108.94, -7078.36),
+    Vector3.new(4134.52, 27.04, -6894.68),
+    Vector3.new(4757.52, 26.13, -7939.00),
+    Vector3.new(3487.48, 20.99, -8586.85),
+}
 
+local blizzardPositions = {
+    Vector3.new(-4000, 50, -1000),
+    Vector3.new(-4200, 55, -1200),
+}
+
+local exclusions = {}
+for _, config in pairs(islandConfigs) do
+    for k,v in pairs(config) do
+        exclusions[k] = v
+    end
+end
+
+-- === Helper Function ===
 local function teleportToBodies(folder, positions, toggleFunc)
     task.spawn(function()
         while true do
@@ -141,8 +143,9 @@ local function teleportToBodies(folder, positions, toggleFunc)
                 for _, pos in ipairs(positions) do
                     if not toggleFunc() then break end
                     local hasBodies = false
-
-                    for _, model in ipairs(folder:GetChildren()) do
+                    local models = folder:GetChildren()
+                    
+                    for _, model in ipairs(models) do
                         if not exclusions[model.Name] then
                             local body = model:FindFirstChild("Body")
                             if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
@@ -153,7 +156,7 @@ local function teleportToBodies(folder, positions, toggleFunc)
                     end
 
                     if hasBodies then
-                        for _, model in ipairs(folder:GetChildren()) do
+                        for _, model in ipairs(models) do
                             if not toggleFunc() then break end
                             if not exclusions[model.Name] then
                                 local body = model:FindFirstChild("Body")
@@ -171,24 +174,41 @@ local function teleportToBodies(folder, positions, toggleFunc)
                     end
                 end
             else
-                task.wait(0.5)
+                task.wait(0.2)
             end
         end
     end)
 end
 
--- === Create toggles for Lunar/Volcano/Blizzard ===
-for islandName, positions in pairs(islandPositions) do
-    islandToggles[islandName] = false
-    LunarVolcanoSection:NewToggle(islandName .. " Explore", "Teleport to UUID.Body parts, then next position", function(state)
-        islandToggles[islandName] = state
-    end)
-
-    local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
+-- === Lunar Island Toggle ===
+local lunarToggle = false
+LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport to UUID.Body parts, then next position", function(state)
+    lunarToggle = state
+    local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
     if folder then
-        teleportToBodies(folder, positions, function() return islandToggles[islandName] end)
+        teleportToBodies(folder, lunarPositions, function() return lunarToggle end)
     end
-end
+end)
+
+-- === Volcano Island Toggle ===
+local volcanoToggle = false
+LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport to UUID.Body parts, then next position", function(state)
+    volcanoToggle = state
+    local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
+    if folder then
+        teleportToBodies(folder, volcanoPositions, function() return volcanoToggle end)
+    end
+end)
+
+-- === Blizzard Island Toggle ===
+local blizzardToggle = false
+LunarVolcanoSection:NewToggle("Blizzard Island Explore", "Teleport to UUID.Body parts, then next position", function(state)
+    blizzardToggle = state
+    local folder = islandsFolder:FindFirstChild("Blizzard Island") or (explorerFolder and explorerFolder:FindFirstChild("Blizzard Island"))
+    if folder then
+        teleportToBodies(folder, blizzardPositions, function() return blizzardToggle end)
+    end
+end)
 
 -- === Volcano Lava Removal Toggle ===
 local removeLavaEnabled = false
