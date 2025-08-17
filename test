@@ -741,4 +741,3 @@ ShopSection:NewToggle("Auto Collect", "Collects from all islands every 0.1s", fu
         end)
     end
 end)
-
