@@ -154,86 +154,6 @@ for islandName in pairs(islandConfigs) do
     end)
 end
 
--- === Lunar Island Positions ===
-local lunarPositions = {
-    Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
-    Vector3.new(-2759.49609375, 6.74829626083374, -2589.205810546875),
-    Vector3.new(-2207.140380859375, 139.0631866455078, -1223.9427490234375),
-    Vector3.new(-3266.90771484375, 15.430882453918457, -1436.565673828125),
-    Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
-}
-
--- === Volcano Island Positions ===
-local volcanoPositions = {
-    Vector3.new(2964.748291015625, 108.94522857666016, -7078.3603515625),
-    Vector3.new(4134.52197265625, 27.04894256591797, -6894.68603515625),
-    Vector3.new(4757.5205078125, 26.138153076171875, -7939.00634765625),
-    Vector3.new(3487.487548828125, 20.9999942779541, -8586.859375),
-}
-
--- === Lunar Island Teleport Toggle ===
-local lunarToggle = false
-LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    lunarToggle = state
-end)
-
-task.spawn(function()
-    while true do
-        if lunarToggle then
-            for _, pos in ipairs(lunarPositions) do
-                if not lunarToggle then break end
-                local bodies = getAllBodies("Lunar Islands")
-                if #bodies > 0 then
-                    for _, body in ipairs(bodies) do
-                        if not lunarToggle then break end
-                        while lunarToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
-                        end
-                    end
-                else
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
-                end
-            end
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- === Volcano Island Teleport Toggle ===
-local volcanoToggle = false
-LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
-    volcanoToggle = state
-end)
-
-task.spawn(function()
-    while true do
-        if volcanoToggle then
-            for _, pos in ipairs(volcanoPositions) do
-                if not volcanoToggle then break end
-                local bodies = getAllBodies("Volcano Island")
-                if #bodies > 0 then
-                    for _, body in ipairs(bodies) do
-                        if not volcanoToggle then break end
-                        while volcanoToggle and body:IsDescendantOf(workspace) do
-                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
-                            task.wait(0.05)
-                        end
-                    end
-                else
-                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-                    task.wait(15)
-                end
-            end
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
-
 
 -- === Training Buttons ===
 TrainSection:NewButton("Single Script", "Runs Single Route Script", function()
@@ -764,6 +684,85 @@ ShopSection:NewToggle("Auto Collect", "Collects from all islands every 0.1s", fu
     end
 end)
 
+-- === Lunar Island Positions ===
+local lunarPositions = {
+    Vector3.new(-3097.421875, 17.63089942932129, -3681.2919921875),
+    Vector3.new(-2759.49609375, 6.74829626083374, -2589.205810546875),
+    Vector3.new(-2207.140380859375, 139.0631866455078, -1223.9427490234375),
+    Vector3.new(-3266.90771484375, 15.430882453918457, -1436.565673828125),
+    Vector3.new(-3357.76318359375, 24.348201751708984, -2428.62890625),
+}
+
+-- === Volcano Island Positions ===
+local volcanoPositions = {
+    Vector3.new(2964.748291015625, 108.94522857666016, -7078.3603515625),
+    Vector3.new(4134.52197265625, 27.04894256591797, -6894.68603515625),
+    Vector3.new(4757.5205078125, 26.138153076171875, -7939.00634765625),
+    Vector3.new(3487.487548828125, 20.9999942779541, -8586.859375),
+}
+
+-- === Lunar Island Teleport Toggle ===
+local lunarToggle = false
+LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
+    lunarToggle = state
+end)
+
+task.spawn(function()
+    while true do
+        if lunarToggle then
+            for _, pos in ipairs(lunarPositions) do
+                if not lunarToggle then break end
+                local bodies = getAllBodies("Lunar Islands")
+                if #bodies > 0 then
+                    for _, body in ipairs(bodies) do
+                        if not lunarToggle then break end
+                        while lunarToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
+                    end
+                else
+                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                    task.wait(15)
+                end
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- === Volcano Island Teleport Toggle ===
+local volcanoToggle = false
+LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
+    volcanoToggle = state
+end)
+
+task.spawn(function()
+    while true do
+        if volcanoToggle then
+            for _, pos in ipairs(volcanoPositions) do
+                if not volcanoToggle then break end
+                local bodies = getAllBodies("Volcano Island")
+                if #bodies > 0 then
+                    for _, body in ipairs(bodies) do
+                        if not volcanoToggle then break end
+                        while volcanoToggle and body:IsDescendantOf(workspace) do
+                            hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            task.wait(0.05)
+                        end
+                    end
+                else
+                    hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                    task.wait(15)
+                end
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
 -- Remove Lava Button and Loop
 LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from Lava parts every 5 seconds", function()
     task.spawn(function()
@@ -783,3 +782,5 @@ LunarVolcanoSection:NewButton("Remove Lava", "Removes all TouchTransmitters from
         end
     end)
 end)
+
+
