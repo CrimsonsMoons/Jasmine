@@ -1,4 +1,4 @@
------- === GUI Library Setup ===
+----- === GUI Library Setup ===
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("All Islands Teleport", "DarkTheme")
 
@@ -46,7 +46,7 @@ local islandConfigs = {
     ["Jungle Island"] = {},
     ["Volcano Island"] = {},
     ["Desert Island"] = {},
-    ["Glacier Island"] = {},  -- Added Glacier Island
+    ["Glacier Island"] = {},  -- <-- Added Glacier Island here
 }
 
 -- === Universal Exclusions ===
@@ -78,8 +78,10 @@ for islandName, excludedIds in pairs(islandConfigs) do
         while true do
             if teleportToggles[islandName] then
                 local folder = islandsFolder:FindFirstChild(islandName) or (explorerFolder and explorerFolder:FindFirstChild(islandName))
-                if not folder then warn("Island not found: " .. islandName) break end
-
+                if not folder then 
+                    warn("Island not found: " .. islandName)
+                    break
+                end
                 for _, model in ipairs(folder:GetChildren()) do
                     if not teleportToggles[islandName] then break end
                     if excludedIds[model.Name] then continue end
@@ -108,30 +110,44 @@ for islandName in pairs(islandConfigs) do
     end)
 end
 
--- === Helper Function for Lunar/Volcano ===
-local function getBodiesForIsland(folder, excludedIds)
+-- === Helper for Lunar/Volcano Bodies ===
+local function getAllBodies(islandName)
     local bodies = {}
-    for _, model in ipairs(folder:GetChildren()) do
-        if not excludedIds[model.Name] then
-            local body = model:FindFirstChild("Body")
-            if body and body:IsA("BasePart") and body:IsDescendantOf(workspace) then
-                table.insert(bodies, body)
+    local excludedIds = islandConfigs[islandName]
+
+    -- Islands folder
+    local folder = islandsFolder:FindFirstChild(islandName)
+    if folder then
+        for _, model in ipairs(folder:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("Body") and not excludedIds[model.Name] then
+                table.insert(bodies, model.Body)
             end
         end
     end
-    -- Also include top-level workspace UUIDs with Body
+
+    -- Explorer folder
+    if explorerFolder then
+        local explorerIsland = explorerFolder:FindFirstChild(islandName)
+        if explorerIsland then
+            for _, model in ipairs(explorerIsland:GetChildren()) do
+                if model:IsA("Model") and model:FindFirstChild("Body") and not excludedIds[model.Name] then
+                    table.insert(bodies, model.Body)
+                end
+            end
+        end
+    end
+
+    -- Direct workspace children
     for _, model in ipairs(workspace:GetChildren()) do
-        if model:IsA("Model") and model.Name:match("^%b{}$") and not excludedIds[model.Name] then
-            local body = model:FindFirstChild("Body")
-            if body and body:IsA("BasePart") then
-                table.insert(bodies, body)
-            end
+        if model:IsA("Model") and model:FindFirstChild("Body") and not excludedIds[model.Name] then
+            table.insert(bodies, model.Body)
         end
     end
+
     return bodies
 end
 
--- === Lunar/Volcano Positions ===
+-- === Lunar & Volcano Positions ===
 local lunarPositions = {
     Vector3.new(-3097.42, 17.63, -3681.29),
     Vector3.new(-2759.49, 6.74, -2589.20),
@@ -147,7 +163,7 @@ local volcanoPositions = {
     Vector3.new(3487.48, 20.99, -8586.85),
 }
 
--- Lunar Island Toggle
+-- === Lunar Island Explore Toggle ===
 local lunarToggle = false
 LunarVolcanoSection:NewToggle("Lunar Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
     lunarToggle = state
@@ -158,13 +174,9 @@ task.spawn(function()
         if lunarToggle then
             for _, pos in ipairs(lunarPositions) do
                 if not lunarToggle then break end
-                local folder = islandsFolder:FindFirstChild("Lunar Islands") or (explorerFolder and explorerFolder:FindFirstChild("Lunar Islands"))
-                if not folder then warn("Lunar Islands folder not found") break end
-
-                local bodies = getBodiesForIsland(folder, islandConfigs["Lunar Islands"])
+                local bodies = getAllBodies("Lunar Islands")
                 if #bodies > 0 then
                     for _, body in ipairs(bodies) do
-                        if not lunarToggle then break end
                         while lunarToggle and body:IsDescendantOf(workspace) do
                             hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
                             task.wait(0.05)
@@ -181,7 +193,7 @@ task.spawn(function()
     end
 end)
 
--- Volcano Island Toggle
+-- === Volcano Island Explore Toggle ===
 local volcanoToggle = false
 LunarVolcanoSection:NewToggle("Volcano Island Explore", "Teleport repeatedly to UUID.Body parts, then move to next position", function(state)
     volcanoToggle = state
@@ -192,13 +204,9 @@ task.spawn(function()
         if volcanoToggle then
             for _, pos in ipairs(volcanoPositions) do
                 if not volcanoToggle then break end
-                local folder = islandsFolder:FindFirstChild("Volcano Island") or (explorerFolder and explorerFolder:FindFirstChild("Volcano Island"))
-                if not folder then warn("Volcano Island folder not found") break end
-
-                local bodies = getBodiesForIsland(folder, islandConfigs["Volcano Island"])
+                local bodies = getAllBodies("Volcano Island")
                 if #bodies > 0 then
                     for _, body in ipairs(bodies) do
-                        if not volcanoToggle then break end
                         while volcanoToggle and body:IsDescendantOf(workspace) do
                             hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
                             task.wait(0.05)
@@ -215,6 +223,4 @@ task.spawn(function()
     end
 end)
 
--- === (Remaining sections like Train, Auto, Shop) ===
--- Keep your previously written Train buttons, toggles, Auto scripts, Shop buttons and toggles here.
--- They will continue to work exactly as before.
+-- === (Rest of your Train, Auto, Shop buttons and toggles remain unchanged) ===
