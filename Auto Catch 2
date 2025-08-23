@@ -4,6 +4,7 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Tool UUIDs
 local TOOL_UUIDS = {
@@ -38,8 +39,8 @@ local EXCLUSIONS = {
 
 -- Island names
 local ISLAND_NAMES = {
-    "Mainland", "Forest Island", "Mountain Island", "Lunar Islands",
-    "Royal Island", "Blizzard Island", "Jungle Island", "Volcano Island", "Desert Island",
+    "Mountain Island",
+    "Royal Island", "Jungle Island", "Desert Island",
     "Glacier Island"
 }
 
@@ -52,11 +53,6 @@ local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
-local function getHumanoidRootPosition()
-    local root = Character and Character:FindFirstChild("HumanoidRootPart")
-    return root and root.Position
-end
-
 local function tryFireOnTarget(target)
     for _, tool in ipairs(TOOL_UUIDS) do
         remote:FireServer(tool, "Activate", target)
@@ -67,10 +63,8 @@ end
 local IslandsFolder = Workspace:WaitForChild("Islands")
 
 while true do
-    local playerPos = getHumanoidRootPosition()
+    local playerPos = HumanoidRootPart.Position
     if playerPos then
-        local found = false
-
         -- Search island folders
         for _, islandName in ipairs(ISLAND_NAMES) do
             local island = IslandsFolder:FindFirstChild(islandName)
@@ -82,8 +76,7 @@ while true do
 
                         local dist = (model.Body.Position - playerPos).Magnitude
                         if dist <= 15 then
-                            task.spawn(tryFireOnTarget, model)
-                            found = true
+                            tryFireOnTarget(model)
                         end
                     end
                 end
@@ -98,17 +91,11 @@ while true do
 
                 local dist = (model.Body.Position - playerPos).Magnitude
                 if dist <= 15 then
-                    task.spawn(tryFireOnTarget, model)
-                    found = true
+                    tryFireOnTarget(model)
                 end
             end
         end
-
-        if not found then
-            -- Only warn every few seconds instead of spamming
-            print("⚠️ No valid targets nearby.")
-        end
     end
 
-    task.wait(0.75) -- Slightly longer delay = less lag
+    task.wait(0.25) -- balanced delay = smoother performance
 end
