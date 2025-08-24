@@ -34,7 +34,7 @@ local EXCLUSIONS = {
 -- Island names
 local ISLAND_NAMES = {
     "Mountain Island",
-    "Royal Island", "Jungle Island", "Desert Island",
+    "Royal Island", "Desert Island",
     "Glacier Island"
 }
 
