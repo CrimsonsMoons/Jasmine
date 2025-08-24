@@ -37,15 +37,9 @@ local EXCLUSIONS = {
 
 -- === Island folders to check ===
 local ISLAND_NAMES = {
-    "Mainland",
-    "Forest Island",
-    "Mountain Island",
     "Lunar Islands",
-    "Royal Island",
-    "Blizzard Island",
     "Jungle Island",
     "Volcano Island",
-    "Desert Island",
 }
 
 -- === Remote ===
@@ -57,7 +51,7 @@ local function isUUID(name)
 end
 
 -- === Main Loop ===
-while task.wait(0.05) do
+while task.wait(0.25) do
     local playerPos = HumanoidRootPart.Position
 
     -- Check islands
