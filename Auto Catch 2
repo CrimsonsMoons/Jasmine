@@ -91,5 +91,5 @@ while true do
         end
     end
 
-    task.wait(0.05) -- balanced delay = smoother performance
+    task.wait(0.25) -- balanced delay = smoother performance
 end
