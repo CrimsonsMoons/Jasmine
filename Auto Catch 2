@@ -39,8 +39,7 @@ local ISLAND_NAMES = {
 }
 
 -- RemoteEvent
-local remote = ReplicatedStorage:WaitForChild("Communication", 9e9)
-    :WaitForChild("Events", 9e9):GetChildren()[10]
+local remote = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[10]
 
 -- Utilities
 local function isUUID(name)
