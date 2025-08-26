@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
--- Tool UUIDs
+--- Tool UUIDs
 local TOOL_UUIDS = {
     "{b3766c24-da18-40f0-be56-66dba5e882d8}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
