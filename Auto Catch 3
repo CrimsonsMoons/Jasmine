@@ -39,7 +39,7 @@ local EXCLUSIONS = {
 local ISLAND_NAMES = {
     "Lunar Islands",
     "Jungle Island",
-    "Volcano Island",
+    "Volcano Island"
 }
 
 -- === Remote ===
