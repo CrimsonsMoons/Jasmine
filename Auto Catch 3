@@ -8,12 +8,9 @@ local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- === Tool UUIDs ===
 local TOOL_UUIDS = {
-    "{4ba69e17-8de2-43a2-ac9a-f1d1e425be9b}",
     "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
-    "{51ba4466-f758-4d1c-970d-aad27326dbaf}",
     "{06905d54-7826-417e-bfc7-82d326a30885}",
     "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
-    "{838c92de-e5a1-440a-8904-d2ccb1ff62e3}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
 }
 
