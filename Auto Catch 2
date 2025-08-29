@@ -1,4 +1,4 @@
- local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
---- Tool UUIDs
+-- === Tool UUIDs ===
 local TOOL_UUIDS = {
     "{b3766c24-da18-40f0-be56-66dba5e882d8}",
     "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
@@ -14,8 +14,8 @@ local TOOL_UUIDS = {
     "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
 }
 
--- Exclusions
-local EXCLUSIONS = {
+-- === Exclusions ===
+local exclusions = {
     ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
     ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
     ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
@@ -31,64 +31,65 @@ local EXCLUSIONS = {
     ["Travel Boat"] = true,
 }
 
--- Island names
-local ISLAND_NAMES = {
+-- === Island Folders ===
+local islandFolders = {
     "Mountain Island",
-    "Royal Island", "Desert Island",
-    "Glacier Island"
+    "Royal Island",
+    "Desert Island",
+    "Glacier Island",
 }
 
--- RemoteEvent
-local remote = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9):GetChildren()[10]
+-- === Remote ===
+local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[10]
 
--- Utilities
+-- === Settings ===
+local CATCH_RADIUS = 15
+local CATCH_COOLDOWN = 0.9
+local lastCaught = {}
+
+-- === Utility ===
 local function isUUID(name)
     return typeof(name) == "string" and name:match("^%b{}$") ~= nil
 end
 
-local function tryFireOnTarget(target)
-    for _, tool in ipairs(TOOL_UUIDS) do
-        remote:FireServer(tool, "Activate", target)
-    end
-end
-
--- MAIN LOOP
-local IslandsFolder = Workspace:WaitForChild("Islands")
-
-while true do
+-- === Main Loop ===
+while task.wait(0.05) do
     local playerPos = HumanoidRootPart.Position
-    if playerPos then
-        -- Search island folders
-        for _, islandName in ipairs(ISLAND_NAMES) do
-            local island = IslandsFolder:FindFirstChild(islandName)
-            if island then
-                for _, model in ipairs(island:GetChildren()) do
-                    if isUUID(model.Name)
-                        and not EXCLUSIONS[model.Name]
-                        and model:FindFirstChild("Body") then
 
-                        local dist = (model.Body.Position - playerPos).Magnitude
-                        if dist <= 15 then
-                            tryFireOnTarget(model)
+    -- Check island folders
+    for _, islandName in ipairs(islandFolders) do
+        local islandFolder = Workspace:FindFirstChild("Islands"):FindFirstChild(islandName)
+        if islandFolder then
+            for _, child in ipairs(islandFolder:GetChildren()) do
+                local body = child:FindFirstChild("Body")
+                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                    local dist = (body.Position - playerPos).Magnitude
+                    local now = os.clock()
+                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                        for _, tool in ipairs(TOOL_UUIDS) do
+                            remote:FireServer(tool, "Activate", child)
                         end
+                        lastCaught[child] = now
+                        print("Caught:", child.Name, "at", islandName, "Distance:", math.floor(dist))
                     end
                 end
             end
         end
+    end
 
-        -- Search top-level UUID models in Workspace
-        for _, model in ipairs(Workspace:GetChildren()) do
-            if isUUID(model.Name)
-                and not EXCLUSIONS[model.Name]
-                and model:FindFirstChild("Body") then
-
-                local dist = (model.Body.Position - playerPos).Magnitude
-                if dist <= 15 then
-                    tryFireOnTarget(model)
+    -- Check top-level Workspace UUID models
+    for _, child in ipairs(Workspace:GetChildren()) do
+        local body = child:FindFirstChild("Body")
+        if body and isUUID(child.Name) and not exclusions[child.Name] then
+            local dist = (body.Position - playerPos).Magnitude
+            local now = os.clock()
+            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                for _, tool in ipairs(TOOL_UUIDS) do
+                    remote:FireServer(tool, "Activate", child)
                 end
+                lastCaught[child] = now
+                print("Caught top-level:", child.Name, "Distance:", math.floor(dist))
             end
         end
     end
-
-    task.wait(0.9) -- balanced delay = smoother performance
 end
