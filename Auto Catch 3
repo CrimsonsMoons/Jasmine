@@ -47,7 +47,7 @@ local function isUUID(name)
 end
 
 -- === Main Loop ===
-while task.wait(0.8) do
+while task.wait(0.9) do
     local playerPos = HumanoidRootPart.Position
 
     -- Check islands
