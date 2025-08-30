@@ -10,7 +10,6 @@ local uuidPattern = "%b{}"
 local targetPartNames = {
     "Rocks",
     "Rock",
-    "Flower",
     "Rocks 2",
     "Rock 1",
 }
