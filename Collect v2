@@ -26,7 +26,7 @@ local function getHRP()
     return char:WaitForChild("HumanoidRootPart")
 end
 
--- === Exclusions for Forest Island ===
+--- === Exclusions for Forest Island ===
 local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
     and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
     and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
@@ -107,7 +107,7 @@ while true do
             end
         end
     else
-        task.wait(0.5)
+        task.wait(0.6)
     end
     task.wait(1)
 end
