@@ -12,13 +12,7 @@ local targetPartNames = {
     "Rock",
     "Flower",
     "Rocks 2",
-    "Bush (1)",
-    "Wheat Plane",
     "Rock 1",
-    "Leaf",
-    "Coconut",
-    "Hay",
-    "StrawBerries"
 }
 
 local function getHRP()
