@@ -1,52 +1,113 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local islandFolder = workspace:WaitForChild("Islands"):WaitForChild("Volcano Island")
+local Workspace = game:GetService("Workspace")
+
+local IslandsFolder = Workspace:WaitForChild("Islands")
+local ExplorerFolder = Workspace:FindFirstChild("Explorer")
 
 local uuidPattern = "%b{}"
 
+local targetPartNames = {
+    "Rocks",
+    "Rock",
+    "Flower",
+    "Rocks 2",
+    "Bush (1)",
+    "Wheat Plane",
+    "Rock 1",
+    "Leaf",
+    "Coconut",
+    "Hay",
+    "StrawBerries"
+}
+
 local function getHRP()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
 end
 
-local function findUUIDsWithTargetParts(folder)
-    local results = {}
-    for _, child in pairs(folder:GetChildren()) do
-        if child:IsA("Model") and child.Name:match(uuidPattern) then
-            if (child:FindFirstChild("Rocks") and child.Rocks:IsA("BasePart"))
-            or (child:FindFirstChild("Rock") and child.Rock:IsA("BasePart"))
-            or (child:FindFirstChild("Meshes") and child.Meshes:FindFirstChild("Rocks 2") and child.Meshes["Rocks 2"]:IsA("BasePart")) then
-                table.insert(results, child)
+-- === Exclusions for Forest Island ===
+local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
+    and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
+    and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
+
+local excludedFolder = IslandsFolder:FindFirstChild("Forest Island")
+    and IslandsFolder["Forest Island"]:FindFirstChild("Larry")
+
+local function isDescendantOfExcludedFolder(instance)
+    return excludedFolder and instance:IsDescendantOf(excludedFolder)
+end
+
+local function isTargetName(name, parentName)
+    for _, targetName in ipairs(targetPartNames) do
+        if name == targetName then
+            -- Logs must be inside UUID
+            if targetName == "Log" then
+                return parentName:match(uuidPattern) ~= nil
             end
-        elseif child:IsA("Folder") then
-            for _, v in ipairs(findUUIDsWithTargetParts(child)) do
-                table.insert(results, v)
+            return true
+        end
+    end
+    return false
+end
+
+local function findTargets(folder)
+    local results = {}
+    for _, descendant in ipairs(folder:GetDescendants()) do
+        if descendant == excludedPart then
+            -- Skip excluded part
+        elseif isDescendantOfExcludedFolder(descendant) then
+            -- Skip excluded folder
+        elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
+            if descendant:GetAttribute("interactionType") == "CollectableItem" then
+                table.insert(results, descendant)
+            elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
+                table.insert(results, descendant)
             end
         end
     end
     return results
 end
 
-while true do
-    local allTargets = findUUIDsWithTargetParts(islandFolder)
+-- Collects all island folders (workspace.Islands + UUIDs in workspace + Explorer contents)
+local function getAllIslands()
+    local all = {}
 
-    for _, uuidModel in ipairs(allTargets) do
-        local hrp = getHRP()
-        if hrp then
-            local targetPart = uuidModel:FindFirstChild("Rocks") 
-                            or uuidModel:FindFirstChild("Rock") 
-                            or (uuidModel:FindFirstChild("Meshes") and uuidModel.Meshes:FindFirstChild("Rocks 2"))
+    -- Standard islands
+    for _, island in ipairs(IslandsFolder:GetChildren()) do
+        table.insert(all, island)
+    end
 
-            if targetPart and targetPart:IsA("BasePart") then
-                hrp.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0)
-                task.wait(0.3)
-            end
-        else
-            -- No HRP found, just wait and try again without breaking
-            task.wait(0.5)
+    -- UUID folders directly in workspace
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj.Name:match(uuidPattern) and obj:IsA("Folder") then
+            table.insert(all, obj)
         end
     end
 
+    -- Explorer folder if it exists
+    if ExplorerFolder then
+        for _, island in ipairs(ExplorerFolder:GetChildren()) do
+            table.insert(all, island)
+        end
+    end
+
+    return all
+end
+
+-- Main loop
+while true do
+    local hrp = getHRP()
+    if hrp then
+        for _, island in ipairs(getAllIslands()) do
+            local targets = findTargets(island)
+            for _, part in ipairs(targets) do
+                hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
+                task.wait(0.3)
+            end
+        end
+    else
+        task.wait(0.5)
+    end
     task.wait(1)
 end
