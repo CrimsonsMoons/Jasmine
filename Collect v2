@@ -22,6 +22,9 @@ local targetPartNames = {
 local targetAttributeName = "itemName"
 local targetAttributeValue = "Rock"
 
+-- Name to exclude
+local excludedName = "Cattail"
+
 -- Get HumanoidRootPart safely
 local function getHRP()
     local char = LocalPlayer.Character
@@ -68,6 +71,8 @@ local function findTargets(folder)
             -- Skip excluded part
         elseif isDescendantOfExcludedFolder(descendant) then
             -- Skip excluded folder
+        elseif descendant.Name == excludedName then
+            -- Skip Cattail
         elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
             if descendant:GetAttribute("interactionType") == "CollectableItem" then
                 table.insert(results, descendant)
@@ -77,10 +82,12 @@ local function findTargets(folder)
                 table.insert(results, descendant)
             end
         elseif descendant:IsA("Model") and descendant.PrimaryPart then
-            -- If the model's PrimaryPart matches
             local p = descendant.PrimaryPart
-            if isTargetName(p.Name) or hasTargetAttribute(p) then
-                table.insert(results, p)
+            -- Skip model if its PrimaryPart is excluded
+            if descendant.Name ~= excludedName and p.Name ~= excludedName then
+                if isTargetName(p.Name) or hasTargetAttribute(p) then
+                    table.insert(results, p)
+                end
             end
         end
     end
@@ -124,7 +131,7 @@ while true do
                 if part and part.Parent then
                     -- Teleport in front of the part, slightly above
                     hrp.CFrame = part.CFrame + part.CFrame.LookVector * 2 + Vector3.new(0, 5, 0)
-                    task.wait(0.4)
+                    task.wait(0.2)
                 end
             end
         end
