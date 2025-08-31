@@ -1,12 +1,16 @@
+-- Services
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
 
+-- Folders
 local IslandsFolder = Workspace:WaitForChild("Islands")
 local ExplorerFolder = Workspace:FindFirstChild("Explorer")
 
+-- UUID pattern
 local uuidPattern = "%b{}"
 
+-- Target names
 local targetPartNames = {
     "Rocks",
     "Rock",
@@ -14,12 +18,16 @@ local targetPartNames = {
     "Rock 1",
 }
 
+-- Get HumanoidRootPart safely
 local function getHRP()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then
+        char = LocalPlayer.CharacterAdded:Wait()
+    end
     return char:WaitForChild("HumanoidRootPart")
 end
 
---- === Exclusions for Forest Island ===
+-- Excluded parts/folders for Forest Island
 local excludedPart = IslandsFolder:FindFirstChild("Forest Island")
     and IslandsFolder["Forest Island"]:FindFirstChild("Enhanced Storage Locker")
     and IslandsFolder["Forest Island"]["Enhanced Storage Locker"]:FindFirstChild("Bounds")
@@ -31,30 +39,28 @@ local function isDescendantOfExcludedFolder(instance)
     return excludedFolder and instance:IsDescendantOf(excludedFolder)
 end
 
-local function isTargetName(name, parentName)
+-- Check if a part is a target
+local function isTargetName(name)
     for _, targetName in ipairs(targetPartNames) do
         if name == targetName then
-            -- Logs must be inside UUID
-            if targetName == "Log" then
-                return parentName:match(uuidPattern) ~= nil
-            end
             return true
         end
     end
     return false
 end
 
+-- Find targets inside a folder
 local function findTargets(folder)
     local results = {}
     for _, descendant in ipairs(folder:GetDescendants()) do
-        if descendant == excludedPart then
+        if excludedPart and descendant:IsDescendantOf(excludedPart) then
             -- Skip excluded part
         elseif isDescendantOfExcludedFolder(descendant) then
             -- Skip excluded folder
         elseif descendant:IsA("BasePart") or descendant:IsA("MeshPart") or descendant:IsA("UnionOperation") then
             if descendant:GetAttribute("interactionType") == "CollectableItem" then
                 table.insert(results, descendant)
-            elseif isTargetName(descendant.Name, descendant.Parent and descendant.Parent.Name or "") then
+            elseif isTargetName(descendant.Name) then
                 table.insert(results, descendant)
             end
         end
@@ -62,7 +68,7 @@ local function findTargets(folder)
     return results
 end
 
--- Collects all island folders (workspace.Islands + UUIDs in workspace + Explorer contents)
+-- Collect all islands (Islands folder + UUIDs + Explorer)
 local function getAllIslands()
     local all = {}
 
@@ -71,14 +77,14 @@ local function getAllIslands()
         table.insert(all, island)
     end
 
-    -- UUID folders directly in workspace
+    -- UUID folders in workspace
     for _, obj in ipairs(Workspace:GetChildren()) do
         if obj.Name:match(uuidPattern) and obj:IsA("Folder") then
             table.insert(all, obj)
         end
     end
 
-    -- Explorer folder if it exists
+    -- Explorer contents
     if ExplorerFolder then
         for _, island in ipairs(ExplorerFolder:GetChildren()) do
             table.insert(all, island)
@@ -95,12 +101,15 @@ while true do
         for _, island in ipairs(getAllIslands()) do
             local targets = findTargets(island)
             for _, part in ipairs(targets) do
-                hrp.CFrame = part.CFrame + Vector3.new(0, 5, 0)
-                task.wait(0.5)
+                if part and part.Parent then
+                    -- Teleport in front of the part, slightly above
+                    hrp.CFrame = part.CFrame + part.CFrame.LookVector * 2 + Vector3.new(0, 5, 0)
+                    task.wait(0.2)
+                end
             end
         end
     else
-        task.wait(0.6)
+        task.wait(0.5)
     end
     task.wait(1)
 end
