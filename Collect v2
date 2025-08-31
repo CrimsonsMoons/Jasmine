@@ -1,4 +1,4 @@
---- Services
+-- Services
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
@@ -24,6 +24,9 @@ local targetAttributeValue = "Rock"
 
 -- Name to exclude
 local excludedName = "Cattail"
+
+-- Target Size
+local targetSize = Vector3.new(4.103665351867676, 4.298451900482178, 3.103231191635132)
 
 -- Get HumanoidRootPart safely
 local function getHRP()
@@ -61,6 +64,11 @@ local function hasTargetAttribute(part)
     return part:GetAttribute(targetAttributeName) == targetAttributeValue
 end
 
+-- Check if a part has the target size
+local function hasTargetSize(part)
+    return part.Size == targetSize
+end
+
 -- Find targets inside a folder
 local function findTargets(folder)
     local results = {}
@@ -80,12 +88,14 @@ local function findTargets(folder)
                 table.insert(results, descendant)
             elseif hasTargetAttribute(descendant) then
                 table.insert(results, descendant)
+            elseif hasTargetSize(descendant) then
+                table.insert(results, descendant)
             end
         elseif descendant:IsA("Model") and descendant.PrimaryPart then
             local p = descendant.PrimaryPart
             -- Skip model if its PrimaryPart is excluded
             if descendant.Name ~= excludedName and p.Name ~= excludedName then
-                if isTargetName(p.Name) or hasTargetAttribute(p) then
+                if isTargetName(p.Name) or hasTargetAttribute(p) or hasTargetSize(p) then
                     table.insert(results, p)
                 end
             end
