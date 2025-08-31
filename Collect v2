@@ -1,4 +1,4 @@
---- Services
+-- Services
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
@@ -21,6 +21,9 @@ local targetPartNames = {
 
 -- Target MeshId
 local targetMeshId = "rbxassetid://7007859978"
+
+-- Target Color
+local targetColor = Color3.fromRGB(163,162,165)
 
 -- Get HumanoidRootPart safely
 local function getHRP()
@@ -66,6 +69,11 @@ local function hasTargetMeshId(part)
     return false
 end
 
+-- Check if a part has the target Color
+local function hasTargetColor(part)
+    return part.Color == targetColor
+end
+
 -- Find targets inside a folder
 local function findTargets(folder)
     local results = {}
@@ -83,11 +91,13 @@ local function findTargets(folder)
                 table.insert(results, descendant)
             elseif hasTargetMeshId(descendant) then
                 table.insert(results, descendant)
+            elseif hasTargetColor(descendant) then
+                table.insert(results, descendant)
             end
         elseif descendant:IsA("Model") and descendant.PrimaryPart then
             -- If the model's PrimaryPart matches
             local p = descendant.PrimaryPart
-            if isTargetName(p.Name) or hasTargetMeshId(p) then
+            if isTargetName(p.Name) or hasTargetMeshId(p) or hasTargetColor(p) then
                 table.insert(results, p)
             end
         end
