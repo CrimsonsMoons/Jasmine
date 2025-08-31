@@ -124,7 +124,7 @@ while true do
                 if part and part.Parent then
                     -- Teleport in front of the part, slightly above
                     hrp.CFrame = part.CFrame + part.CFrame.LookVector * 2 + Vector3.new(0, 5, 0)
-                    task.wait(0.2)
+                    task.wait(0.4)
                 end
             end
         end
