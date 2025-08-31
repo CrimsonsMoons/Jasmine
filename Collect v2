@@ -1,4 +1,4 @@
---- Services
+-- Services
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
@@ -15,15 +15,8 @@ local targetPartNames = {
     "Rocks",
     "Rock",
     "Rocks 2",
-    "Rock 1",
-    "Meshes"
+    "Rock 1"
 }
-
--- Target MeshId
-local targetMeshId = "rbxassetid://7007859978"
-
--- Target Color
-local targetColor = Color3.fromRGB(163,162,165)
 
 -- Target attribute
 local targetAttributeName = "itemName"
@@ -60,24 +53,6 @@ local function isTargetName(name)
     return false
 end
 
--- Check if a part has the target MeshId
-local function hasTargetMeshId(part)
-    if part:IsA("MeshPart") then
-        return part.MeshId == targetMeshId
-    else
-        local mesh = part:FindFirstChildOfClass("SpecialMesh")
-        if mesh then
-            return mesh.MeshId == targetMeshId
-        end
-    end
-    return false
-end
-
--- Check if a part has the target Color
-local function hasTargetColor(part)
-    return part.Color == targetColor
-end
-
 -- Check if a part has the target attribute
 local function hasTargetAttribute(part)
     return part:GetAttribute(targetAttributeName) == targetAttributeValue
@@ -98,17 +73,13 @@ local function findTargets(folder)
                 table.insert(results, descendant)
             elseif isTargetName(descendant.Name) then
                 table.insert(results, descendant)
-            elseif hasTargetMeshId(descendant) then
-                table.insert(results, descendant)
-            elseif hasTargetColor(descendant) then
-                table.insert(results, descendant)
             elseif hasTargetAttribute(descendant) then
                 table.insert(results, descendant)
             end
         elseif descendant:IsA("Model") and descendant.PrimaryPart then
             -- If the model's PrimaryPart matches
             local p = descendant.PrimaryPart
-            if isTargetName(p.Name) or hasTargetMeshId(p) or hasTargetColor(p) or hasTargetAttribute(p) then
+            if isTargetName(p.Name) or hasTargetAttribute(p) then
                 table.insert(results, p)
             end
         end
