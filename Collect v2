@@ -16,6 +16,7 @@ local targetPartNames = {
     "Rock",
     "Rocks 2",
     "Rock 1",
+    "Meshes"  -- Added "Meshes" as a target
 }
 
 -- Get HumanoidRootPart safely
@@ -52,7 +53,9 @@ end
 -- Find targets inside a folder
 local function findTargets(folder)
     local results = {}
+
     for _, descendant in ipairs(folder:GetDescendants()) do
+        -- Skip excluded
         if excludedPart and descendant:IsDescendantOf(excludedPart) then
             -- Skip excluded part
         elseif isDescendantOfExcludedFolder(descendant) then
@@ -63,8 +66,14 @@ local function findTargets(folder)
             elseif isTargetName(descendant.Name) then
                 table.insert(results, descendant)
             end
+        elseif descendant:IsA("Model") and descendant.PrimaryPart then
+            -- If the model's PrimaryPart is a target, add it
+            if isTargetName(descendant.PrimaryPart.Name) then
+                table.insert(results, descendant.PrimaryPart)
+            end
         end
     end
+
     return results
 end
 
@@ -104,7 +113,7 @@ while true do
                 if part and part.Parent then
                     -- Teleport in front of the part, slightly above
                     hrp.CFrame = part.CFrame + part.CFrame.LookVector * 2 + Vector3.new(0, 5, 0)
-                    task.wait(0.3)
+                    task.wait(0.2)
                 end
             end
         end
