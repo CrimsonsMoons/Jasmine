@@ -136,15 +136,18 @@ local function teleportToPart(npcs)
         print("[Teleport] No parts named 'Part' found, firing event...")
 
         local args = {
-            [1] = "TriggerInteractable",
+            [1] = "TriggerInteractable";
             [2] = workspace:WaitForChild("Islands", 9e9)
                 :WaitForChild("Training Island", 9e9)
                 :WaitForChild("Cross Country", 9e9)
-                :WaitForChild("CheckpointActivity", 9e9)
+                :WaitForChild("CheckpointActivity", 9e9);
         }
 
-        local eventFolder = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
-        local event = eventFolder:GetChildren()[36]
+        local events = game:GetService("ReplicatedStorage")
+            :WaitForChild("Communication", 9e9)
+            :WaitForChild("Events", 9e9)
+
+        local event = events:GetChildren()[37]
 
         if event then
             print("[Teleport] RemoteEvent #36 found, firing...")
