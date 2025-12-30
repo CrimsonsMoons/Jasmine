@@ -185,7 +185,7 @@ local function startLoop()
         freezeJumpLoop(npcs)
         while running do
             teleportToPart(npcs)
-            task.wait(1.4)
+            task.wait(1.5)
         end
         unfreezeJumpLoop(npcs)
     end)
