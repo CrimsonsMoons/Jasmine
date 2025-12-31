@@ -7,7 +7,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hrp = Character:WaitForChild("HumanoidRootPart")
 
------ Reconnect HRP on respawn
+------ Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
     hrp = Character:WaitForChild("HumanoidRootPart")
