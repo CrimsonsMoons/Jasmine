@@ -1,267 +1,217 @@
---// Checkpoint Tween Runner (FOR YOUR OWN GAME)
--- Put this LocalScript in StarterPlayerScripts
--- Requires: workspace.Checkpoints folder with checkpoint Parts (CP1, CP2, ...)
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local CollectionService = game:GetService("CollectionService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local CHECKPOINT_FOLDER_NAME = "Checkpoints"
-local NPC_TAG = "RunnerNPC"
-
--- Movement tuning
-local TWEEN_TIME_PER_STUD = 0.05      -- smaller = faster
-local MIN_TWEEN_TIME = 0.35
-local MAX_TWEEN_TIME = 3.0
-local PLAYER_OFFSET = Vector3.new(2, 3, 0)
-local NPC_OFFSET    = Vector3.new(-2, 3, 0)
-
--- State
-local running = false
-local loopTask: thread? = nil
-local activeTweens = {} :: { [Instance]: Tween }
-
--- Character refs
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local hrp = Character:WaitForChild("HumanoidRootPart")
 
-local function getHRP(char: Model)
-	return char and char:FindFirstChild("HumanoidRootPart")
-end
-
-local function getHumanoid(char: Model)
-	return char and char:FindFirstChildWhichIsA("Humanoid")
-end
-
--- Reconnect on respawn
+----- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
-	Character = char
+    Character = char
+    hrp = Character:WaitForChild("HumanoidRootPart")
 end)
 
---// Utility: cancel active tween for a part
-local function cancelTween(part: Instance)
-	local t = activeTweens[part]
-	if t then
-		pcall(function() t:Cancel() end)
-		activeTweens[part] = nil
-	end
+local uuids = {
+    "{60f828f4-a916-4262-842e-7ddc49e07ad9}",
+    "{c5769905-aecf-4d7a-ada9-064802b0cae9}",
+    "{d2227f02-c482-4911-b201-7e842b31c47c}",
+    "{6b019e60-21c6-4536-9a06-4cbfee80d88f}",
+    "{12916ad6-7fd9-46d5-8bc1-e69671249721}",
+}
+
+local function isUUID(str)
+    return string.match(str, "^%b{}$") ~= nil
 end
 
---// Tween a BasePart to CFrame
-local function tweenPartTo(part: BasePart, goalCFrame: CFrame, duration: number)
-	if not part or not part.Parent then return end
+local function getNPCs()
+    local folder = workspace.Islands["Training Island"]
+    local npcList = {}
 
-	cancelTween(part)
+    for _, uuid in ipairs(uuids) do
+        local model = folder:FindFirstChild(uuid)
+        if model and model:IsA("Model") then
+            local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            if root then
+                model.PrimaryPart = root
+                table.insert(npcList, model)
+            end
+        end
+    end
 
-	local info = TweenInfo.new(
-		duration,
-		Enum.EasingStyle.Quad,
-		Enum.EasingDirection.Out
-	)
+    for _, model in ipairs(folder:GetDescendants()) do
+        if model:IsA("Model") and isUUID(model.Name) and not table.find(uuids, model.Name) then
+            if model:FindFirstChildWhichIsA("Humanoid") then
+                local root = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+                if root then
+                    model.PrimaryPart = root
+                    table.insert(npcList, model)
+                end
+            end
+        end
+    end
 
-	local tween = TweenService:Create(part, info, { CFrame = goalCFrame })
-	activeTweens[part] = tween
-	tween:Play()
-
-	-- Cleanup on finish
-	tween.Completed:Connect(function()
-		if activeTweens[part] == tween then
-			activeTweens[part] = nil
-		end
-	end)
-
-	return tween
+    return npcList
 end
 
---// Compute tween time based on distance
-local function timeForDistance(fromPos: Vector3, toPos: Vector3)
-	local dist = (toPos - fromPos).Magnitude
-	local t = dist * TWEEN_TIME_PER_STUD
-	if t < MIN_TWEEN_TIME then t = MIN_TWEEN_TIME end
-	if t > MAX_TWEEN_TIME then t = MAX_TWEEN_TIME end
-	return t
+-- 🔹 Tween helper
+local function tweenTo(part, targetCFrame, time)
+    if not part or not part.Parent then return end
+    local tween = TweenService:Create(
+        part,
+        TweenInfo.new(time, Enum.EasingStyle.Linear),
+        { CFrame = targetCFrame }
+    )
+    tween:Play()
 end
 
---// Get checkpoints sorted
-local function getCheckpoints(): { BasePart }
-	local folder = workspace:FindFirstChild(CHECKPOINT_FOLDER_NAME)
-	if not folder then return {} end
+local jumpRunning = false
+local jumpTask
 
-	local parts = {}
-	for _, obj in ipairs(folder:GetChildren()) do
-		if obj:IsA("BasePart") then
-			table.insert(parts, obj)
-		end
-	end
+local function freezeJumpLoop(npcs)
+    if jumpRunning then return end
+    jumpRunning = true
+    jumpTask = task.spawn(function()
+        while jumpRunning do
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if humanoid and hrp then
+                    humanoid.Jump = true
+                    humanoid.PlatformStand = true
+                    hrp.Anchored = true
+                end
+            end
 
-	table.sort(parts, function(a, b)
-		local ao = a:GetAttribute("Order")
-		local bo = b:GetAttribute("Order")
-		if typeof(ao) == "number" and typeof(bo) == "number" then
-			return ao < bo
-		end
+            for _, npc in ipairs(npcs) do
+                local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                local root = npc.PrimaryPart
+                if humanoid and root then
+                    humanoid.Jump = true
+                    humanoid.PlatformStand = true
+                    root.Anchored = true
+                end
+            end
 
-		-- Fallback: sort by trailing number in name (CP1, CP2, ...)
-		local an = tonumber((a.Name:match("(%d+)$")))
-		local bn = tonumber((b.Name:match("(%d+)$")))
-		if an and bn then
-			return an < bn
-		end
-
-		return a.Name < b.Name
-	end)
-
-	return parts
+            task.wait(0.1)
+        end
+    end)
 end
 
---// Get tagged NPC models
-local function getNPCs(): { Model }
-	local out = {}
-	for _, inst in ipairs(CollectionService:GetTagged(NPC_TAG)) do
-		if inst:IsA("Model") and inst.Parent then
-			local pp = inst.PrimaryPart
-				or inst:FindFirstChild("HumanoidRootPart")
-				or inst:FindFirstChildWhichIsA("BasePart")
+local function unfreezeJumpLoop(npcs)
+    jumpRunning = false
+    if jumpTask then
+        task.cancel(jumpTask)
+        jumpTask = nil
+    end
 
-			if pp and pp:IsA("BasePart") then
-				inst.PrimaryPart = pp
-				table.insert(out, inst)
-			end
-		end
-	end
-	return out
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if humanoid and hrp then
+            humanoid.PlatformStand = false
+            hrp.Anchored = false
+        end
+    end
+
+    for _, npc in ipairs(npcs) do
+        local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+        local root = npc.PrimaryPart
+        if humanoid and root then
+            humanoid.PlatformStand = false
+            root.Anchored = false
+        end
+    end
 end
 
---// Safe "lock" so tween doesn't get yanked by physics while running (your own game)
-local function lockModel(model: Model, locked: boolean)
-	local hum = model:FindFirstChildWhichIsA("Humanoid")
-	local pp = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart")
-	if not pp or not pp:IsA("BasePart") then return end
-
-	if locked then
-		if hum then hum.PlatformStand = true end
-		pp.Anchored = true
-	else
-		if hum then hum.PlatformStand = false end
-		pp.Anchored = false
-	end
+local function workspaceHasImmediatePartNamedPart()
+    for _, child in ipairs(workspace:GetChildren()) do
+        if child.Name == "Part" then
+            return true
+        end
+    end
+    return false
 end
 
-local function stopAllTweensAndUnlock()
-	-- cancel tweens
-	for inst, _ in pairs(activeTweens) do
-		cancelTween(inst)
-	end
+local running = false
+local teleportTask
 
-	-- unlock player
-	local char = LocalPlayer.Character
-	if char then lockModel(char, false) end
+local function teleportToPart(npcs)
+    if not workspaceHasImmediatePartNamedPart() then
+        local args = {
+            [1] = "TriggerInteractable",
+            [2] = workspace.Islands["Training Island"].CrossCountry.CheckpointActivity
+        }
 
-	-- unlock NPCs
-	for _, npc in ipairs(getNPCs()) do
-		lockModel(npc, false)
-	end
+        local events = game:GetService("ReplicatedStorage")
+            .Communication.Events:GetChildren()[37]
+
+        if events then
+            events:FireServer(unpack(args))
+        end
+        return
+    end
+
+    local targetPart = workspace:FindFirstChild("Part")
+    if not targetPart or not targetPart:IsA("BasePart") then return end
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    local duration = 0.6
+
+    if hrp then
+        tweenTo(hrp, targetPart.CFrame + Vector3.new(2, 3, 0), duration)
+    end
+
+    for _, npc in ipairs(npcs) do
+        if npc.PrimaryPart then
+            tweenTo(npc.PrimaryPart, targetPart.CFrame + Vector3.new(-2, 3, 0), duration)
+        end
+    end
 end
 
---// Main loop: tween through checkpoints
-local function runLoop()
-	local checkpoints = getCheckpoints()
-	if #checkpoints == 0 then
-		warn("[Runner] No checkpoints found. Create workspace." .. CHECKPOINT_FOLDER_NAME .. " with Parts inside.")
-		running = false
-		return
-	end
-
-	local npcs = getNPCs()
-
-	while running do
-		local char = LocalPlayer.Character
-		local hrp = char and getHRP(char)
-		if not char or not hrp then
-			task.wait(0.2)
-			continue
-		end
-
-		lockModel(char, true)
-		for _, npc in ipairs(npcs) do
-			lockModel(npc, true)
-		end
-
-		for _, cp in ipairs(checkpoints) do
-			if not running then break end
-			if not cp or not cp.Parent then continue end
-
-			-- Player tween
-			local fromPos = hrp.Position
-			local goalCF = cp.CFrame + PLAYER_OFFSET
-			local duration = timeForDistance(fromPos, goalCF.Position)
-
-			local t1 = tweenPartTo(hrp, goalCF, duration)
-
-			-- NPC tweens
-			local npcTweens = {}
-			for _, npc in ipairs(npcs) do
-				if npc.PrimaryPart and npc.PrimaryPart.Parent then
-					local nFrom = npc.PrimaryPart.Position
-					local nGoal = cp.CFrame + NPC_OFFSET
-					local nDur = timeForDistance(nFrom, nGoal.Position)
-					npcTweens[#npcTweens + 1] = tweenPartTo(npc.PrimaryPart, nGoal, nDur)
-				end
-			end
-
-			-- Wait until player tween finishes (or you stop)
-			local done = false
-			if t1 then
-				t1.Completed:Once(function() done = true end)
-				while running and not done do
-					task.wait(0.05)
-				end
-			else
-				task.wait(0.3)
-			end
-
-			-- small pause at each checkpoint
-			task.wait(0.15)
-		end
-	end
-
-	stopAllTweensAndUnlock()
+local function startLoop()
+    teleportTask = task.spawn(function()
+        local npcs = getNPCs()
+        freezeJumpLoop(npcs)
+        while running do
+            teleportToPart(npcs)
+            task.wait(1.7)
+        end
+        unfreezeJumpLoop(npcs)
+    end)
 end
 
---// GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CheckpointTweenGui"
+-- GUI
+local screenGui = Instance.new("ScreenGui", PlayerGui)
+screenGui.Name = "TeleportToggleGui"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 210, 0, 50)
+button.Size = UDim2.new(0, 160, 0, 50)
 button.Position = UDim2.new(0, 20, 0, 20)
 button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.SourceSansBold
-button.TextSize = 22
-button.Text = "Start Checkpoint Tween"
+button.TextSize = 24
+button.Text = "Start Teleport"
 button.Parent = screenGui
 
 button.MouseButton1Click:Connect(function()
-	running = not running
-
-	if running then
-		button.Text = "Stop Checkpoint Tween"
-		if loopTask then
-			task.cancel(loopTask)
-			loopTask = nil
-		end
-		loopTask = task.spawn(runLoop)
-	else
-		button.Text = "Start Checkpoint Tween"
-		if loopTask then
-			task.cancel(loopTask)
-			loopTask = nil
-		end
-		stopAllTweensAndUnlock()
-	end
+    running = not running
+    if running then
+        button.Text = "Stop Teleport"
+        startLoop()
+    else
+        button.Text = "Start Teleport"
+        if teleportTask then
+            task.cancel(teleportTask)
+            teleportTask = nil
+        end
+        unfreezeJumpLoop(getNPCs())
+    end
 end)
