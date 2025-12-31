@@ -1,13 +1,11 @@
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-
+local Players = game:GetService("Players") 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hrp = Character:WaitForChild("HumanoidRootPart")
 
------- Reconnect HRP on respawn
+----- Reconnect HRP on respawn
 LocalPlayer.CharacterAdded:Connect(function(char)
     Character = char
     hrp = Character:WaitForChild("HumanoidRootPart")
@@ -55,17 +53,6 @@ local function getNPCs()
     return npcList
 end
 
--- 🔹 Tween helper
-local function tweenTo(part, targetCFrame, time)
-    if not part or not part.Parent then return end
-    local tween = TweenService:Create(
-        part,
-        TweenInfo.new(time, Enum.EasingStyle.Linear),
-        { CFrame = targetCFrame }
-    )
-    tween:Play()
-end
-
 local jumpRunning = false
 local jumpTask
 
@@ -74,24 +61,28 @@ local function freezeJumpLoop(npcs)
     jumpRunning = true
     jumpTask = task.spawn(function()
         while jumpRunning do
+            -- Freeze player in jump state
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChildWhichIsA("Humanoid")
                 local hrp = char:FindFirstChild("HumanoidRootPart")
-                if humanoid and hrp then
+                if humanoid and hrp and humanoid.Health > 0 then
                     humanoid.Jump = true
                     humanoid.PlatformStand = true
                     hrp.Anchored = true
                 end
             end
 
+            -- Freeze NPCs in jump state
             for _, npc in ipairs(npcs) do
-                local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-                local root = npc.PrimaryPart
-                if humanoid and root then
-                    humanoid.Jump = true
-                    humanoid.PlatformStand = true
-                    root.Anchored = true
+                if npc and npc.Parent then
+                    local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+                    local root = npc.PrimaryPart
+                    if humanoid and root and humanoid.Health > 0 then
+                        humanoid.Jump = true
+                        humanoid.PlatformStand = true
+                        root.Anchored = true
+                    end
                 end
             end
 
@@ -118,11 +109,13 @@ local function unfreezeJumpLoop(npcs)
     end
 
     for _, npc in ipairs(npcs) do
-        local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
-        local root = npc.PrimaryPart
-        if humanoid and root then
-            humanoid.PlatformStand = false
-            root.Anchored = false
+        if npc and npc.Parent then
+            local humanoid = npc:FindFirstChildWhichIsA("Humanoid")
+            local root = npc.PrimaryPart
+            if humanoid and root then
+                humanoid.PlatformStand = false
+                root.Anchored = false
+            end
         end
     end
 end
@@ -140,36 +133,48 @@ local running = false
 local teleportTask
 
 local function teleportToPart(npcs)
+    -- If there's no *immediate* child of workspace named "Part", run the RemoteEvent code
     if not workspaceHasImmediatePartNamedPart() then
+        print("[Teleport] No immediate workspace child named 'Part' -> firing RemoteEvent #37")
+
         local args = {
-            [1] = "TriggerInteractable",
-            [2] = workspace.Islands["Training Island"].CrossCountry.CheckpointActivity
+            [1] = "TriggerInteractable";
+            [2] = workspace:WaitForChild("Islands", 9e9)
+                :WaitForChild("Training Island", 9e9)
+                :WaitForChild("Cross Country", 9e9)
+                :WaitForChild("CheckpointActivity", 9e9);
         }
 
-        local events = game:GetService("ReplicatedStorage")
-            .Communication.Events:GetChildren()[37]
+        local eventsFolder = game:GetService("ReplicatedStorage"):WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
+        local eventsChildren = eventsFolder:GetChildren()
+        local event = eventsChildren[37]
 
-        if events then
-            events:FireServer(unpack(args))
+        if event and type(event.FireServer) == "function" then
+            event:FireServer(unpack(args))
+            print("[Teleport] Fired RemoteEvent #37")
+        else
+            warn("[Teleport] RemoteEvent #37 not found or invalid")
         end
+
         return
     end
 
+    -- Otherwise, teleport to workspace.Part (immediate child)
     local targetPart = workspace:FindFirstChild("Part")
-    if not targetPart or not targetPart:IsA("BasePart") then return end
+    if not targetPart or not targetPart:IsA("BasePart") then
+        warn("[Teleport] Found a workspace child named 'Part' but it's not a BasePart")
+        return
+    end
 
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
-    local duration = 0.6
-
-    if hrp then
-        tweenTo(hrp, targetPart.CFrame + Vector3.new(2, 3, 0), duration)
+    if hrp and hrp.Parent then
+        hrp.CFrame = targetPart.CFrame + Vector3.new(0, 0, 0)
     end
 
     for _, npc in ipairs(npcs) do
-        if npc.PrimaryPart then
-            tweenTo(npc.PrimaryPart, targetPart.CFrame + Vector3.new(-2, 3, 0), duration)
+        if npc.PrimaryPart and npc.PrimaryPart.Parent then
+            npc:SetPrimaryPartCFrame(targetPart.CFrame + Vector3.new(0, 3, 0))
         end
     end
 end
@@ -180,13 +185,13 @@ local function startLoop()
         freezeJumpLoop(npcs)
         while running do
             teleportToPart(npcs)
-            task.wait(1.7)
+            task.wait(1.9)
         end
         unfreezeJumpLoop(npcs)
     end)
 end
 
--- GUI
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui", PlayerGui)
 screenGui.Name = "TeleportToggleGui"
 screenGui.ResetOnSpawn = false
