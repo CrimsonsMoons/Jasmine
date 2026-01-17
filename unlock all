@@ -1,0 +1,31 @@
+-- Step 1: Get the remote
+local remote = game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Events", 9e9)
+    :GetChildren()[5]  -- Safer to use name if known
+
+-- Step 2: Navigate to the inventory list
+local tabFolder = game:GetService("Players").LocalPlayer.PlayerGui
+    :WaitForChild("Menus")
+    :WaitForChild("Backpack")
+    :WaitForChild("Main")
+    :WaitForChild("Inventory")
+    :WaitForChild("Content")
+    :WaitForChild("List")
+
+-- Step 3: Loop through all tabs and their UUIDs
+for _, tab in ipairs(tabFolder:GetChildren()) do
+    local list = tab:FindFirstChild("List")
+    if list then
+        for _, item in ipairs(list:GetChildren()) do
+            -- Check if it's a UUID-style name and has a "Locked" child
+            if typeof(item.Name) == "string" and item.Name:match("{.+}") then
+                local locked = item:FindFirstChild("Locked")
+                if locked then
+                    print("Unlocking:", item.Name)
+                    remote:FireServer("Lock", item.Name)
+                end
+            end
+        end
+    end
+end
