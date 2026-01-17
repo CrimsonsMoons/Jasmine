@@ -1,10 +1,10 @@
--- Step 1: Get the "Add" Remote (23rd)
+-- Step 1: Use the confirmed working remote at index 23
 local addRemote = game:GetService("ReplicatedStorage")
     :WaitForChild("Communication", 9e9)
     :WaitForChild("Events", 9e9)
     :GetChildren()[23]
 
--- Step 2: Get the tab folder
+-- Step 2: Inventory pages (all tabs)
 local tabFolder = game.Players.LocalPlayer.PlayerGui
     :WaitForChild("Menus")
     :WaitForChild("Backpack")
@@ -13,7 +13,7 @@ local tabFolder = game.Players.LocalPlayer.PlayerGui
     :WaitForChild("Content")
     :WaitForChild("List")
 
--- Step 3: Loop through UUIDs without "Locked" and fire up to 25 times
+-- Step 3: Run on UUIDs that DO NOT have a "Locked" child
 local count = 0
 local max = 25
 
@@ -23,11 +23,11 @@ for _, tab in ipairs(tabFolder:GetChildren()) do
         for _, item in ipairs(list:GetChildren()) do
             if typeof(item.Name) == "string" and item.Name:match("{.+}") then
                 if not item:FindFirstChild("Locked") then
-                    print("Firing 'Add' on:", item.Name)
+                    print("Sending 'Add' to:", item.Name)
                     addRemote:FireServer("Add", item.Name)
                     count += 1
                     if count >= max then
-                        print("Reached limit of 25. Stopping.")
+                        print("✅ Done: 25 items sent to Add remote.")
                         return
                     end
                 end
